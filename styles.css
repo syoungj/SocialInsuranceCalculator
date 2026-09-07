@@ -116,6 +116,10 @@ body {
 
 /* 헤더 */
 header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
     text-align: center;
     margin-bottom: 24px;
 }
@@ -125,6 +129,29 @@ header {
     font-weight: 700;
     margin-bottom: 4px;
     color: var(--text);
+}
+
+/* 홈 화면에 추가해서 쓰면 브라우저 새로고침 버튼이 없어서, 앱을 처음 상태로 되돌리는 용도로 헤더에 둠 */
+.header-refresh-btn {
+    position: absolute;
+    right: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    color: var(--text-sub);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-refresh-btn:active {
+    background: rgba(255, 255, 255, 0.7);
+    transform: scale(0.92);
 }
 
 .company-name {
