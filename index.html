@@ -204,6 +204,41 @@
         </div>
     </div>
 
+    <!-- 전문가용 화면 -->
+    <div id="stepExpert" class="step">
+        <div class="card">
+            <h2>전문가용 계산기</h2>
+            <p class="privacy-note">🔒 입력하신 정보는 계산에만 사용되고 저장되거나 기록되지 않습니다.</p>
+
+            <div class="option-block" id="foreignerBlock">
+                <button class="btn-option" id="foreignerOptionBtn" onclick="toggleExpertOption('foreigner')">
+                    <div class="option-title">외국인 근로자인가요?</div>
+                    <div class="option-desc">체류자격·국적에 따라 국민연금 적용 여부가 달라져요</div>
+                </button>
+
+                <div class="option-expand" id="foreignerExpand">
+                    <div class="option-expand-inner">
+                        <div class="input-group">
+                            <label for="foreignerVisa">체류자격을 선택해주세요</label>
+                            <select id="foreignerVisa"></select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="foreignerCountry">국적을 선택해주세요</label>
+                            <select id="foreignerCountry"></select>
+                        </div>
+
+                        <button class="btn-primary" onclick="checkForeignerPension()">국민연금 대상 확인하기</button>
+
+                        <div id="foreignerPensionResult" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-secondary" onclick="showStep('step2')">이전</button>
+        </div>
+    </div>
+
     <!-- 푸터 -->
     <footer>
         <p>이 계산기는 <a href="http://www.gmlabor.co.kr/" target="_blank" rel="noopener noreferrer">국민노무법인</a>에서 제공합니다</p>

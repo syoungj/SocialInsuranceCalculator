@@ -586,6 +586,10 @@ header {
     margin-top: 6px;
 }
 
+.result-row.total.result-excluded {
+    color: #c0392b;
+}
+
 /* 공제 합계 — 위 개별 항목들과 헷갈리지 않게 색과 굵기를 다르게 강조 */
 .result-row.subtotal {
     border-top: 1.5px solid var(--line);

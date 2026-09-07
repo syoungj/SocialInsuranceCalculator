@@ -48,6 +48,106 @@ const INDUSTRY_RATES = [
     { name: '농업', permille: 20 },
 ];
 
+// ========================================
+// 외국인 근로자 — 국민연금 적용 판단용 자료
+// ========================================
+
+// 체류자격별 국민연금 당연적용 여부 (2024.4.1. 기준) — 국적과 무관하게 여기서 먼저 걸러짐
+const VISA_TYPES = [
+    { code: 'A-1', name: '외교', pensionExcluded: true },
+    { code: 'A-2', name: '공무', pensionExcluded: true },
+    { code: 'A-3', name: '협정', pensionExcluded: true },
+    { code: 'B-1', name: '사증면제', pensionExcluded: true },
+    { code: 'B-2', name: '관광통과', pensionExcluded: true },
+    { code: 'C-1', name: '일시취재', pensionExcluded: true },
+    { code: 'C-3', name: '단기방문', pensionExcluded: true },
+    { code: 'C-4', name: '단기취업', pensionExcluded: true },
+    { code: 'D-1', name: '문화예술', pensionExcluded: true },
+    { code: 'D-2', name: '유학', pensionExcluded: true },
+    { code: 'D-3', name: '기술연수', pensionExcluded: true },
+    { code: 'D-4', name: '일반연수', pensionExcluded: true },
+    { code: 'D-5', name: '취재', pensionExcluded: false },
+    { code: 'D-6', name: '종교', pensionExcluded: true },
+    { code: 'D-7', name: '주재', pensionExcluded: false },
+    { code: 'D-8', name: '기업투자', pensionExcluded: false },
+    { code: 'D-9', name: '무역경영', pensionExcluded: false },
+    { code: 'D-10', name: '구직', pensionExcluded: false },
+    { code: 'E-1', name: '교수', pensionExcluded: false },
+    { code: 'E-2', name: '회화', pensionExcluded: false },
+    { code: 'E-3', name: '연구', pensionExcluded: false },
+    { code: 'E-4', name: '기술지도', pensionExcluded: false },
+    { code: 'E-5', name: '전문직업', pensionExcluded: false },
+    { code: 'E-6', name: '예술흥행', pensionExcluded: false },
+    { code: 'E-7', name: '특정활동', pensionExcluded: false },
+    { code: 'E-8', name: '계절근로', pensionExcluded: false },
+    { code: 'E-9', name: '비전문취업', pensionExcluded: false },
+    { code: 'E-10', name: '선원취업', pensionExcluded: false },
+    { code: 'F-1', name: '방문동거', pensionExcluded: true },
+    { code: 'F-2', name: '거주', pensionExcluded: false },
+    { code: 'F-3', name: '동반', pensionExcluded: true },
+    { code: 'F-4', name: '재외동포', pensionExcluded: false },
+    { code: 'F-5', name: '영주', pensionExcluded: false },
+    { code: 'F-6', name: '결혼이민', pensionExcluded: false },
+    { code: 'G-1', name: '기타', pensionExcluded: true },
+    { code: 'H-1', name: '관광취업', pensionExcluded: false },
+    { code: 'H-2', name: '방문취업', pensionExcluded: false },
+];
+
+// 국가별 국민연금 적용 여부 (2026.3.19. 기준, 136개국).
+// 이 계산기는 "고용된 근로자(사업장가입자)"만 다루므로, 사업장 기준으로 판단이 갈리는 세 그룹 중
+// "사업장·지역 적용제외국"(20개국)만 실제로 국민연금이 제외되고, 나머지(사업장은 당연적용인 116개국 +
+// 표에 없는 국가)는 전부 가입 대상 — exempt: true인 나라만 제외 대상.
+const PENSION_COUNTRIES = [
+    { name: '가나', exempt: false }, { name: '가봉', exempt: false }, { name: '가이아나', exempt: false },
+    { name: '그레나다', exempt: false }, { name: '그리스', exempt: false }, { name: '나이지리아', exempt: true },
+    { name: '남아프리카공화국', exempt: true },
+    { name: '네덜란드', exempt: false }, { name: '네팔', exempt: true }, { name: '노르웨이', exempt: false },
+    { name: '뉴질랜드', exempt: false }, { name: '도미니카(연방)', exempt: false }, { name: '독일', exempt: false },
+    { name: '덴마크', exempt: false }, { name: '동티모르(티모르민주공화국)', exempt: true }, { name: '라오스', exempt: false },
+    { name: '라트비아', exempt: false }, { name: '러시아', exempt: false }, { name: '레바논', exempt: false },
+    { name: '루마니아', exempt: false }, { name: '룩셈부르크', exempt: false }, { name: '리비아', exempt: false },
+    { name: '리투아니아', exempt: false }, { name: '리히텐슈타인', exempt: false }, { name: '말레이시아', exempt: false },
+    { name: '멕시코', exempt: false }, { name: '모나코', exempt: false }, { name: '모로코', exempt: false },
+    { name: '모리셔스', exempt: false }, { name: '몬테네그로', exempt: false }, { name: '몰도바', exempt: false },
+    { name: '몰디브', exempt: true }, { name: '몰타', exempt: false }, { name: '몽골', exempt: false },
+    { name: '미국', exempt: false }, { name: '미얀마', exempt: true }, { name: '바누아투', exempt: false },
+    { name: '바베이도스', exempt: false }, { name: '바하마', exempt: false }, { name: '방글라데시', exempt: true },
+    { name: '버뮤다', exempt: false }, { name: '베네수엘라', exempt: false }, { name: '베트남', exempt: false },
+    { name: '벨기에', exempt: false }, { name: '벨라루스', exempt: true }, { name: '벨리즈', exempt: false },
+    { name: '볼리비아', exempt: false }, { name: '부룬디', exempt: false }, { name: '부탄', exempt: false },
+    { name: '북마케도니아', exempt: false }, { name: '불가리아', exempt: false }, { name: '브라질', exempt: false },
+    { name: '브루나이', exempt: true }, { name: '사우디아라비아', exempt: true }, { name: '세르비아', exempt: false },
+    { name: '세인트빈센트그레나딘', exempt: false }, { name: '솔로몬군도', exempt: false }, { name: '수단', exempt: false },
+    { name: '수리남', exempt: false }, { name: '스리랑카', exempt: false }, { name: '스와질란드(에스와티니)', exempt: true },
+    { name: '스웨덴', exempt: false }, { name: '스위스', exempt: false }, { name: '스페인', exempt: false },
+    { name: '슬로바키아', exempt: false }, { name: '슬로베니아', exempt: false }, { name: '시에라리온', exempt: false },
+    { name: '싱가포르', exempt: true }, { name: '아르메니아', exempt: true }, { name: '아르헨티나', exempt: false },
+    { name: '아제르바이잔', exempt: false },
+    { name: '아이슬란드', exempt: false }, { name: '아이티', exempt: false }, { name: '아일랜드', exempt: false },
+    { name: '알바니아', exempt: false }, { name: '알제리', exempt: false }, { name: '에콰도르', exempt: false },
+    { name: '에스토니아', exempt: false }, { name: '에티오피아', exempt: true }, { name: '엘살바도르', exempt: false },
+    { name: '영국', exempt: false }, { name: '예멘', exempt: false }, { name: '오스트리아', exempt: false },
+    { name: '오스트레일리아(호주)', exempt: false }, { name: '요르단', exempt: false }, { name: '우간다', exempt: false },
+    { name: '우루과이', exempt: false }, { name: '우즈베키스탄', exempt: false }, { name: '우크라이나', exempt: false },
+    { name: '이란', exempt: true }, { name: '이스라엘', exempt: false }, { name: '이집트', exempt: false },
+    { name: '이탈리아', exempt: false }, { name: '인도', exempt: false }, { name: '인도네시아', exempt: false },
+    { name: '일본', exempt: false }, { name: '자메이카', exempt: false }, { name: '조지아', exempt: true },
+    { name: '중국', exempt: false }, { name: '짐바브웨', exempt: false }, { name: '체코', exempt: false },
+    { name: '칠레', exempt: false }, { name: '카메룬', exempt: false }, { name: '카보베르데', exempt: false },
+    { name: '카자흐스탄', exempt: true },
+    { name: '캄보디아', exempt: false }, { name: '캐나다', exempt: false }, { name: '케냐', exempt: false },
+    { name: '코스타리카', exempt: false }, { name: '코트디부아르', exempt: false }, { name: '콜롬비아', exempt: false },
+    { name: '콩고', exempt: false }, { name: '크로아티아', exempt: false }, { name: '키르기스스탄', exempt: false },
+    { name: '키프로스', exempt: false }, { name: '타이(태국)', exempt: false }, { name: '타이완(대만)', exempt: false },
+    { name: '탄자니아', exempt: false }, { name: '토고', exempt: false }, { name: '통가', exempt: true },
+    { name: '튀니지', exempt: false }, { name: '튀르키예(터키)', exempt: false }, { name: '트리니다드토바고', exempt: false },
+    { name: '파나마', exempt: false }, { name: '파라과이', exempt: false }, { name: '파키스탄', exempt: true },
+    { name: '팔라우', exempt: false }, { name: '페루', exempt: false }, { name: '포르투갈', exempt: false },
+    { name: '폴란드', exempt: false }, { name: '프랑스', exempt: false }, { name: '피지', exempt: true },
+    { name: '핀란드', exempt: false }, { name: '필리핀', exempt: false }, { name: '헝가리', exempt: false },
+    { name: '홍콩', exempt: false },
+];
+
 // 전역 상태
 let salary = 0;
 let birthDate = null;
@@ -1130,7 +1230,91 @@ function formatRate(percentValue) {
 
 // 전문가용 진입 (추후 개발)
 function goToExpert() {
-    alert('전문가용 화면은 준비 중입니다.');
+    populateForeignerDropdowns();
+    showStep('stepExpert');
+}
+
+// 체류자격·국적 드롭다운을 페이지 로드 시 한 번만 채워두면 됨
+function populateForeignerDropdowns() {
+    const visaSelect = document.getElementById('foreignerVisa');
+    if (visaSelect.options.length === 0) {
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '체류자격을 선택해주세요';
+        visaSelect.appendChild(placeholder);
+
+        VISA_TYPES.forEach((visa, idx) => {
+            const option = document.createElement('option');
+            option.value = idx;
+            option.textContent = `${visa.code} (${visa.name})`;
+            visaSelect.appendChild(option);
+        });
+    }
+
+    const countrySelect = document.getElementById('foreignerCountry');
+    if (countrySelect.options.length === 0) {
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '국적을 선택해주세요';
+        countrySelect.appendChild(placeholder);
+
+        PENSION_COUNTRIES.forEach((country, idx) => {
+            const option = document.createElement('option');
+            option.value = idx;
+            option.textContent = country.name;
+            countrySelect.appendChild(option);
+        });
+    }
+}
+
+// "외국인 근로자인가요?" 아코디언 펼치기/접기 — 위 근로자/사업주 선택과 같은 방식
+function toggleExpertOption(type) {
+    if (type !== 'foreigner') return;
+    const expand = document.getElementById('foreignerExpand');
+    const btn = document.getElementById('foreignerOptionBtn');
+    const isOpen = expand.classList.toggle('open');
+    btn.classList.toggle('active', isOpen);
+}
+
+// 체류자격 → 국적 순서로 판단해 국민연금 당연적용 여부를 확인
+// (체류자격 자체가 제외 대상이면 국적과 무관하게 제외, 아니면 국적이 "사업장·지역 적용제외국"인지만 확인)
+function checkForeignerPension() {
+    const visaIdx = document.getElementById('foreignerVisa').value;
+    const countryIdx = document.getElementById('foreignerCountry').value;
+    const resultBox = document.getElementById('foreignerPensionResult');
+
+    if (visaIdx === '' || countryIdx === '') {
+        resultBox.style.display = 'block';
+        resultBox.innerHTML = '<p class="privacy-note input-error-note">⚠️ 체류자격과 국적을 모두 선택해주세요.</p>';
+        return;
+    }
+
+    const visa = VISA_TYPES[parseInt(visaIdx, 10)];
+    const country = PENSION_COUNTRIES[parseInt(countryIdx, 10)];
+
+    let excluded;
+    let reason;
+
+    if (visa.pensionExcluded) {
+        excluded = true;
+        reason = `체류자격 "${visa.code}(${visa.name})"은 국적과 관계없이 국민연금 당연적용 제외 대상이에요.`;
+    } else if (country.exempt) {
+        excluded = true;
+        reason = `체류자격 "${visa.code}(${visa.name})"은 당연적용 대상이지만, 국적(${country.name})이 국민연금 사회보장협정상 "사업장·지역 적용제외국"에 해당해서 제외돼요.`;
+    } else {
+        excluded = false;
+        reason = `체류자격 "${visa.code}(${visa.name})"과 국적(${country.name}) 모두 국민연금 당연적용 대상이에요.`;
+    }
+
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `
+        <div class="result-row total ${excluded ? 'result-excluded' : ''}">
+            <span>국민연금</span>
+            <span>${excluded ? '제외 대상' : '가입 대상'}</span>
+        </div>
+        <p class="privacy-note">ℹ️ ${reason}</p>
+        <p class="privacy-note">※ 이 판단은 2026.3.19. 기준 국가별 연금제도 조사 자료와 2024.4.1. 기준 체류자격별 적용 자료를 바탕으로 한 참고용이며, 실제 적용 여부는 국민연금공단에 별도로 확인해주세요.</p>
+    `;
 }
 
 // 산재보험 업종 드롭다운은 페이지 로드 시 한 번만 채워두면 됨
