@@ -1263,6 +1263,7 @@ function formatRate(percentValue) {
 // 전문가용 진입 (추후 개발)
 function goToExpert() {
     populateForeignerDropdowns();
+    clearExpertFields();
     showStep('stepExpert');
 }
 
