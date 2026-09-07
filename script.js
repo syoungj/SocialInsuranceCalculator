@@ -1165,12 +1165,14 @@ function printEmployerAll() {
 }
 
 // 처음부터 다시
-function restart() {
+function clearWorkerFields() {
     document.getElementById('workerSalary').value = '';
     document.getElementById('workerBirth').value = '';
     document.getElementById('workerInputError').style.display = 'none';
     document.getElementById('workerResultSection').style.display = 'none';
+}
 
+function clearEmployerFields() {
     document.getElementById('multiIndustryType').value = '';
     document.getElementById('multiWorkerRows').innerHTML = '';
     document.getElementById('employerInputError').style.display = 'none';
@@ -1187,9 +1189,39 @@ function restart() {
     ownerCalc = null;
     ownerDurunuriApplied = false;
     mwDurunuriApplied = { deduction: {}, burden: {} };
-
     resetEmployerSubTabs();
+}
+
+function clearExpertFields() {
+    document.getElementById('foreignerVisa').value = '';
+    document.getElementById('foreignerCountry').value = '';
+    document.getElementById('foreignerPensionResult').style.display = 'none';
+    document.getElementById('foreignerPensionResult').innerHTML = '';
+    document.getElementById('foreignerExpand').classList.remove('open');
+    document.getElementById('foreignerOptionBtn').classList.remove('active');
+}
+
+// 처음부터 다시 — 사업주/근로자 입력을 전부 지우고 첫 화면(선택 화면)으로 이동
+function restart() {
+    clearWorkerFields();
+    clearEmployerFields();
     showStep('step2');
+}
+
+// 헤더의 새로고침 버튼 — 페이지를 다시 불러오지 않고, 지금 보고 있는 화면의 입력·결과만 지움
+// (홈 화면에 추가해서 앱처럼 쓸 때 브라우저 새로고침이 없어서 대신 쓰는 버튼)
+function headerRefresh() {
+    const activeStep = document.querySelector('.step.active');
+    if (!activeStep) return;
+
+    if (activeStep.id === 'stepWorker') {
+        clearWorkerFields();
+    } else if (activeStep.id === 'stepEmployer') {
+        clearEmployerFields();
+    } else if (activeStep.id === 'stepExpert') {
+        clearExpertFields();
+    }
+    // step2(선택 화면)는 입력칸이 따로 없어서 지울 게 없음
 }
 
 // 숫자 천 단위 콤마
