@@ -1313,7 +1313,7 @@ function checkForeignerPension() {
             <span>${excluded ? '제외 대상' : '가입 대상'}</span>
         </div>
         <p class="privacy-note">ℹ️ ${reason}</p>
-        <p class="privacy-note">※ 이 판단은 국민연금공단에서 제공하는 <a href="https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0035M0.do" target="_blank" rel="noopener noreferrer">[2026.3.19]기준 국가별 연금제도 자료</a>와 [2024.4.1]기준 체류자격별 적용 자료를 바탕으로 한 참고용이며, 실제 적용 여부는 국민연금공단에 별도로 확인해주세요.</p>
+        <p class="privacy-note">※ 이 판단은 <a href="https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0035M0.do" target="_blank" rel="noopener noreferrer">국민연금공단</a>에서 제공하는 [2026.3.19]기준 국가별 연금제도 자료와 [2024.4.1]기준 체류자격별 적용 자료를 바탕으로 한 참고용이며, 실제 적용 여부는 국민연금공단에 별도로 확인해주세요.</p>
     `;
 }
 
