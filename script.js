@@ -155,9 +155,8 @@ let calc = {};                    // 근로자(단일) 계산 결과 (두루누�
 let durunuriApplied = false;
 let employerWorkersCalc = [];     // 사업주 경로 — 근로자별 계산 결과 목록 (PDF 저장 시 재사용)
 let employerIndustryIdx = '';     // 사업주 경로 — 마지막으로 계산한 업종
-let mwDurunuriApplied = { deduction: {}, burden: {} };  // 근로자 여러명 결과 — 근로자별(또는 사업주 본인) 두루누리 토글 상태
+let mwDurunuriApplied = { deduction: {}, burden: {} };  // 근로자 여러명 결과 — 근로자별 두루누리 토글 상태 (사업주 본인은 두루누리 대상이 아니라서 해당 없음)
 let ownerCalc = null;              // 사업주 경로 — 체크박스로 선택했을 때만 채워지는 "사업주 본인" 계산 결과
-let ownerDurunuriApplied = false;  // 사업주 본인 결과 — 두루누리 토글 상태 (국민연금에만 적용)
 
 function showStep(id) {
     document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
@@ -400,13 +399,16 @@ function computeEmployerShare(workerSalary, workerBirthDate, industryIdx) {
 
 // 사업주 본인 보험료 계산 — 근로자와 달리 사업주(대표자)는 고용보험·산재보험 가입 대상이 아니므로
 // 국민연금·건강보험(+장기요양)만 계산함 (고용·산재는 아예 계산하지 않음)
+// 사업주 본인은 자신을 고용하는 별도의 "사업주"가 없어서, 직원처럼 절반만 내는 게
+// 아니라 국민연금·건강보험료 전액을 본인이 부담한다 (2026-10-02 버그 수정: 그동안
+// RATES.pension/2, RATES.health/2로 절반만 계산되고 있었음)
 function computeOwnerShare(ownerSalary, ownerBirthDate) {
     const { pensionExempt, pensionExemptNextMonth } = calculateExemptions(ownerBirthDate);
 
     const pensionBase = Math.floor(ownerSalary / 1000) * 1000;
-    const pensionEmployer = pensionExempt ? 0 : Math.floor((pensionBase * RATES.pension / 2) / 10) * 10;
+    const pensionEmployer = pensionExempt ? 0 : Math.floor((pensionBase * RATES.pension) / 10) * 10;
 
-    const healthEmployer = Math.floor((ownerSalary * RATES.health / 2) / 10) * 10;
+    const healthEmployer = Math.floor((ownerSalary * RATES.health) / 10) * 10;
     const longtermEmployer = Math.floor((healthEmployer * RATES.longterm) / 10) * 10;
 
     const total = pensionEmployer + healthEmployer + longtermEmployer;
@@ -654,13 +656,14 @@ function setMwCapNotice(type, key, applied, pensionCapped, employmentCapped) {
 }
 
 // 근로자별 소소 노트 (나이 예외 / 두루누리 대상 여부) 문구 생성
-function shareNotes(share, workerSalary) {
+// includeDurunuri: 사업주 본인은 두루누리 지원 대상이 아니므로 false로 호출해서 제외함
+function shareNotes(share, workerSalary, includeDurunuri = true) {
     const notes = [];
     if (share.pensionExempt) notes.push('국민연금 면제');
     if (share.employmentExempt) notes.push('고용보험 면제');
     if (share.pensionExemptNextMonth) notes.push('다음달 국민연금 면제 예정');
     if (share.employmentExemptNextMonth) notes.push('다음달 고용보험 면제 예정');
-    if (workerSalary <= 2700000) notes.push('두루누리 지원 가능');
+    if (includeDurunuri && workerSalary <= 2700000) notes.push('두루누리 지원 가능');
     return notes.join(' · ');
 }
 
@@ -767,8 +770,7 @@ function buildBurdenItemHTML(key, label, salary, s) {
 
 // 사업주 본인 카드 HTML 생성 — 근로자와 달리 고용보험·산재보험 항목이 아예 없음 (가입 대상이 아니라서)
 function buildOwnerBurdenItemHTML(salary, s) {
-    const notes = shareNotes(s, salary);
-    const eligible = salary <= 2700000;
+    const notes = shareNotes(s, salary, false);
     return `
         <div class="mw-result-item">
             <div class="mw-result-item-clickable" onclick="toggleMwDetail('burden', 'owner')">
@@ -783,40 +785,14 @@ function buildOwnerBurdenItemHTML(salary, s) {
             </div>
             <div class="mw-result-detail" id="burdenDetailowner">
                 <div class="mw-result-detail-inner">
-                    <div class="result-row"><span>국민연금<span class="rate-tag">${s.pensionExempt ? '(면제)' : formatRate(RATES.pension / 2 * 100)}</span></span><span id="burdenPensionowner">${formatNumber(s.pensionEmployer)}원</span></div>
-                    <div class="result-row"><span>건강보험<span class="rate-tag">${formatRate(RATES.health / 2 * 100)}</span></span><span>${formatNumber(s.healthEmployer)}원</span></div>
+                    <div class="result-row"><span>국민연금<span class="rate-tag">${s.pensionExempt ? '(면제)' : formatRate(RATES.pension * 100)}</span></span><span id="burdenPensionowner">${formatNumber(s.pensionEmployer)}원</span></div>
+                    <div class="result-row"><span>건강보험<span class="rate-tag">${formatRate(RATES.health * 100)}</span></span><span>${formatNumber(s.healthEmployer)}원</span></div>
                     <div class="result-row"><span>장기요양보험<span class="rate-tag">(건강보험료 × ${roundRate(RATES.longterm * 100)}%)</span></span><span>${formatNumber(s.longtermEmployer)}원</span></div>
-                    ${eligible ? `<button class="mw-durunuri-btn" id="burdenDurunuriBtnowner" onclick="toggleOwnerDurunuri()">두루누리 지원받으면 얼마?</button>
-                    <p class="mw-owner-note" id="burdenDurunuriCapNoteowner" style="display:none;"></p>` : ''}
-                    <p class="mw-owner-note">ℹ️ 사업주는 고용산재보험 대상이 아닙니다.</p>
+                    <p class="mw-owner-note">ℹ️ 사업주는 고용산재보험 대상이 아니며, 두루누리 지원 대상도 아닙니다.</p>
                 </div>
             </div>
         </div>
     `;
-}
-
-// 사업주 본인 결과의 두루누리 토글 (근로자용과 달리 국민연금에만 적용 — 고용보험 항목이 없어서)
-function toggleOwnerDurunuri() {
-    ownerDurunuriApplied = !ownerDurunuriApplied;
-    const btn = document.getElementById('burdenDurunuriBtnowner');
-    btn.textContent = ownerDurunuriApplied ? '원래 금액 보기' : '두루누리 지원받으면 얼마?';
-    btn.classList.toggle('applied', ownerDurunuriApplied);
-
-    const s = ownerCalc.ownerShare;
-    const applyNow = ownerDurunuriApplied && !s.pensionExempt;
-    const pensionCapped = applyNow && durunuriCapApplied(s.pensionEmployer, DURUNURI_CAPS.pension);
-    const pension = applyNow
-        ? durunuriSupportedAmount(s.pensionEmployer, DURUNURI_CAPS.pension)
-        : s.pensionEmployer;
-    const total = pension + s.healthEmployer + s.longtermEmployer;
-
-    document.getElementById('burdenPensionowner').textContent = formatNumber(pension) + '원';
-    document.getElementById('burdenSummaryTotalowner').textContent = formatNumber(total) + '원';
-
-    ['burdenPensionowner', 'burdenSummaryTotalowner'].forEach(id => {
-        document.getElementById(id).classList.toggle('value-changed', ownerDurunuriApplied);
-    });
-    setMwCapNotice('burden', 'owner', ownerDurunuriApplied, pensionCapped, false);
 }
 
 // "사업주는 얼마 부담해야 하나요?" 탭 내용 생성
@@ -962,7 +938,6 @@ function calculateEmployerAll() {
     }));
     employerIndustryIdx = industryIdx;
     ownerCalc = newOwnerCalc;
-    ownerDurunuriApplied = false;
     mwDurunuriApplied = { deduction: {}, burden: {} };
 
     document.getElementById('deductionResultContent').innerHTML = renderDeductionContent(employerWorkersCalc);
@@ -1146,23 +1121,7 @@ function printEmployerAll() {
             </tr>
         `;
 
-        if (ownerCalc.salary <= 2700000 && !os.pensionExempt) {
-            const ownerPensionCapped = durunuriCapApplied(os.pensionEmployer, DURUNURI_CAPS.pension);
-            if (ownerPensionCapped) anyDurunuriCapped = true;
-            const supportedPension = durunuriSupportedAmount(os.pensionEmployer, DURUNURI_CAPS.pension);
-            const supportedTotal = supportedPension + os.healthEmployer + os.longtermEmployer;
-            burdenRows += `
-                <tr class="print-durunuri-row">
-                    <td>└ 두루누리 적용 시${ownerPensionCapped ? ' (상한 적용)' : ''}</td>
-                    <td>${formatNumber(supportedPension)}원</td>
-                    <td>${formatNumber(os.healthEmployer)}원</td>
-                    <td>${formatNumber(os.longtermEmployer)}원</td>
-                    <td>해당없음</td>
-                    <td>해당없음</td>
-                    <td>${formatNumber(supportedTotal)}원</td>
-                </tr>
-            `;
-        }
+        // 사업주 본인은 두루누리 지원 대상이 아니므로 "두루누리 적용 시" 줄을 넣지 않음
 
         sumBurden += os.total;
         sumBurdenPension += os.pensionEmployer;
@@ -1256,7 +1215,6 @@ function clearEmployerFields() {
     employerWorkersCalc = [];
     employerIndustryIdx = '';
     ownerCalc = null;
-    ownerDurunuriApplied = false;
     mwDurunuriApplied = { deduction: {}, burden: {} };
     resetEmployerSubTabs();
 }
