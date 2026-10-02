@@ -339,6 +339,7 @@ function renderResult() {
     durunuriBtn.textContent = '지원받으면 얼마?';
     durunuriBtn.classList.remove('applied');
     document.getElementById('durunuriBanner').style.display = salary <= 2700000 ? 'block' : 'none';
+    document.getElementById('durunuriCapNotice').style.display = 'none';
 }
 
 // 산재보험료율 드롭다운에 업종 목록 채우기 (최초 1회)
@@ -422,19 +423,38 @@ function durunuriSupportedAmount(original, cap) {
     return Math.floor((original * 0.2) / 10) * 10;
 }
 
+// 80% 지원금이 상한액을 넘어서, 실제로 상한액만큼만 지원된 경우인지
+function durunuriCapApplied(original, cap) {
+    return Math.floor((original * 0.8) / 10) * 10 > cap;
+}
+
+// 상한액이 적용된 항목이 있을 때만 안내 문구를 만들어 반환 (없으면 빈 문자열)
+function durunuriCapNoticeText(pensionCapped, employmentCapped) {
+    if (!pensionCapped && !employmentCapped) return '';
+    const items = [];
+    if (pensionCapped) items.push(`국민연금 ${formatNumber(DURUNURI_CAPS.pension)}원`);
+    if (employmentCapped) items.push(`고용보험 ${formatNumber(DURUNURI_CAPS.employmentWorker)}원`);
+    return `※ 월급여가 높아 지원금이 상한액(${items.join(', ')})까지만 적용됐어요.`;
+}
+
 // 두루누리 지원 토글 (근로자 단일 계산)
 function toggleDurunuri() {
     durunuriApplied = !durunuriApplied;
     const btn = document.getElementById('durunuriToggleBtn');
+    const capNotice = document.getElementById('durunuriCapNotice');
 
     let pension = calc.pension;
     let employment = calc.employment;
+    let pensionCapped = false;
+    let employmentCapped = false;
 
     if (durunuriApplied) {
         if (!calc.pensionExempt) {
+            pensionCapped = durunuriCapApplied(calc.pension, DURUNURI_CAPS.pension);
             pension = durunuriSupportedAmount(calc.pension, DURUNURI_CAPS.pension);
         }
         if (!calc.employmentExempt) {
+            employmentCapped = durunuriCapApplied(calc.employment, DURUNURI_CAPS.employmentWorker);
             employment = durunuriSupportedAmount(calc.employment, DURUNURI_CAPS.employmentWorker);
         }
         btn.textContent = '원래 금액 보기';
@@ -445,6 +465,10 @@ function toggleDurunuri() {
         btn.textContent = '지원받으면 얼마?';
         btn.classList.remove('applied');
     }
+
+    const capNoticeText = durunuriCapNoticeText(pensionCapped, employmentCapped);
+    capNotice.textContent = capNoticeText;
+    capNotice.style.display = capNoticeText ? '' : 'none';
 
     const total = pension + calc.health + calc.longterm + employment;
     const netPay = salary - total;
@@ -522,14 +546,22 @@ function getEffectiveWorkerShare(idx) {
 
     let pension = s.pension;
     let employment = s.employment;
+    let pensionCapped = false;
+    let employmentCapped = false;
     if (applied) {
-        if (!s.pensionExempt) pension = durunuriSupportedAmount(s.pension, DURUNURI_CAPS.pension);
-        if (!s.employmentExempt) employment = durunuriSupportedAmount(s.employment, DURUNURI_CAPS.employmentWorker);
+        if (!s.pensionExempt) {
+            pensionCapped = durunuriCapApplied(s.pension, DURUNURI_CAPS.pension);
+            pension = durunuriSupportedAmount(s.pension, DURUNURI_CAPS.pension);
+        }
+        if (!s.employmentExempt) {
+            employmentCapped = durunuriCapApplied(s.employment, DURUNURI_CAPS.employmentWorker);
+            employment = durunuriSupportedAmount(s.employment, DURUNURI_CAPS.employmentWorker);
+        }
     }
     const total = pension + s.health + s.longterm + employment;
     const netPay = w.salary - total;
 
-    return { pension, health: s.health, longterm: s.longterm, employment, total, netPay, applied };
+    return { pension, health: s.health, longterm: s.longterm, employment, total, netPay, applied, pensionCapped, employmentCapped };
 }
 
 // 근로자 여러명 결과 — idx번째 근로자의 "현재 화면에 보이는" 사업주 부담 내역 계산 (두루누리 토글 상태 반영)
@@ -540,31 +572,41 @@ function getEffectiveEmployerShare(idx) {
 
     let pension = s.pensionEmployer;
     let employment = s.employmentEmployer;
+    let pensionCapped = false;
+    let employmentCapped = false;
     if (applied) {
-        if (!s.pensionExempt) pension = durunuriSupportedAmount(s.pensionEmployer, DURUNURI_CAPS.pension);
+        if (!s.pensionExempt) {
+            pensionCapped = durunuriCapApplied(s.pensionEmployer, DURUNURI_CAPS.pension);
+            pension = durunuriSupportedAmount(s.pensionEmployer, DURUNURI_CAPS.pension);
+        }
+        employmentCapped = durunuriCapApplied(s.employmentEmployer, DURUNURI_CAPS.employmentWorker);
         employment = durunuriSupportedAmount(s.employmentEmployer, DURUNURI_CAPS.employmentWorker);
     }
     const accident = s.accidentEmployer || 0;
     const total = pension + s.healthEmployer + s.longtermEmployer + employment + accident;
 
-    return { pension, health: s.healthEmployer, longterm: s.longtermEmployer, employment, accident, total, applied };
+    return { pension, health: s.healthEmployer, longterm: s.longtermEmployer, employment, accident, total, applied, pensionCapped, employmentCapped };
 }
 
 // PDF 저장용 — 화면 토글 상태와 무관하게 "두루누리를 적용했다면"의 금액을 그대로 계산 (대상자는 PDF에 항상 같이 표시)
 function computeDurunuriDeduction(s, salary) {
+    const pensionCapped = !s.pensionExempt && durunuriCapApplied(s.pension, DURUNURI_CAPS.pension);
+    const employmentCapped = !s.employmentExempt && durunuriCapApplied(s.employment, DURUNURI_CAPS.employmentWorker);
     const pension = s.pensionExempt ? s.pension : durunuriSupportedAmount(s.pension, DURUNURI_CAPS.pension);
     const employment = s.employmentExempt ? s.employment : durunuriSupportedAmount(s.employment, DURUNURI_CAPS.employmentWorker);
     const total = pension + s.health + s.longterm + employment;
     const netPay = salary - total;
-    return { pension, health: s.health, longterm: s.longterm, employment, total, netPay };
+    return { pension, health: s.health, longterm: s.longterm, employment, total, netPay, pensionCapped, employmentCapped };
 }
 
 function computeDurunuriBurden(s) {
+    const pensionCapped = !s.pensionExempt && durunuriCapApplied(s.pensionEmployer, DURUNURI_CAPS.pension);
+    const employmentCapped = durunuriCapApplied(s.employmentEmployer, DURUNURI_CAPS.employmentWorker);
     const pension = s.pensionExempt ? s.pensionEmployer : durunuriSupportedAmount(s.pensionEmployer, DURUNURI_CAPS.pension);
     const employment = durunuriSupportedAmount(s.employmentEmployer, DURUNURI_CAPS.employmentWorker);
     const accident = s.accidentEmployer || 0;
     const total = pension + s.healthEmployer + s.longtermEmployer + employment + accident;
-    return { pension, health: s.healthEmployer, longterm: s.longtermEmployer, employment, accident, total };
+    return { pension, health: s.healthEmployer, longterm: s.longtermEmployer, employment, accident, total, pensionCapped, employmentCapped };
 }
 
 // 근로자 여러명 결과 — 특정 근로자 1명에 대해서만 두루누리 지원 적용 시 금액을 보여줌
@@ -587,6 +629,7 @@ function toggleMwDurunuri(type, idx) {
         [`deductionPension${idx}`, `deductionEmployment${idx}`, `deductionSummaryTotal${idx}`, `deductionSummaryNet${idx}`].forEach(id => {
             document.getElementById(id).classList.toggle('value-changed', applied);
         });
+        setMwCapNotice('deduction', idx, applied, eff.pensionCapped, eff.employmentCapped);
     } else {
         const eff = getEffectiveEmployerShare(idx);
 
@@ -597,7 +640,17 @@ function toggleMwDurunuri(type, idx) {
         [`burdenPension${idx}`, `burdenEmployment${idx}`, `burdenSummaryTotal${idx}`].forEach(id => {
             document.getElementById(id).classList.toggle('value-changed', applied);
         });
+        setMwCapNotice('burden', idx, applied, eff.pensionCapped, eff.employmentCapped);
     }
+}
+
+// 근로자 여러명 카드의 상한액 적용 안내 문구를 보이거나 숨김 (토글 끄면 항상 숨김)
+function setMwCapNotice(type, key, applied, pensionCapped, employmentCapped) {
+    const el = document.getElementById(`${type}DurunuriCapNote${key}`);
+    if (!el) return;
+    const text = applied ? durunuriCapNoticeText(pensionCapped, employmentCapped) : '';
+    el.textContent = text;
+    el.style.display = text ? '' : 'none';
 }
 
 // 근로자별 소소 노트 (나이 예외 / 두루누리 대상 여부) 문구 생성
@@ -634,7 +687,8 @@ function buildDeductionItemHTML(key, label, salary, s) {
                     <div class="result-row"><span>건강보험<span class="rate-tag">${formatRate(RATES.health / 2 * 100)}</span></span><span>${formatNumber(s.health)}원</span></div>
                     <div class="result-row"><span>장기요양보험<span class="rate-tag">(건강보험료 × ${roundRate(RATES.longterm * 100)}%)</span></span><span>${formatNumber(s.longterm)}원</span></div>
                     <div class="result-row"><span>고용보험<span class="rate-tag">${s.employmentExempt ? '(면제)' : formatRate(RATES.employmentWorker * 100)}</span></span><span id="deductionEmployment${key}">${formatNumber(s.employment)}원</span></div>
-                    ${eligible ? `<button class="mw-durunuri-btn" id="deductionDurunuriBtn${key}" onclick="toggleMwDurunuri('deduction', '${key}')">두루누리 지원받으면 얼마?</button>` : ''}
+                    ${eligible ? `<button class="mw-durunuri-btn" id="deductionDurunuriBtn${key}" onclick="toggleMwDurunuri('deduction', '${key}')">두루누리 지원받으면 얼마?</button>
+                    <p class="mw-owner-note" id="deductionDurunuriCapNote${key}" style="display:none;"></p>` : ''}
                 </div>
             </div>
         </div>
@@ -703,7 +757,8 @@ function buildBurdenItemHTML(key, label, salary, s) {
                     <div class="result-row"><span>장기요양보험<span class="rate-tag">(건강보험료 × ${roundRate(RATES.longterm * 100)}%)</span></span><span>${formatNumber(s.longtermEmployer)}원</span></div>
                     <div class="result-row"><span>고용보험<span class="rate-tag">${formatRate(s.employmentEmployerRate * 100)}</span></span><span id="burdenEmployment${key}">${formatNumber(s.employmentEmployer)}원</span></div>
                     <div class="result-row"><span>산재보험<span class="rate-tag">${s.accidentPermille === null ? '' : formatRate(s.accidentPermille / 10)}</span></span><span>${s.accidentEmployer === null ? '업종을 선택해주세요' : formatNumber(s.accidentEmployer) + '원'}</span></div>
-                    ${eligible ? `<button class="mw-durunuri-btn" id="burdenDurunuriBtn${key}" onclick="toggleMwDurunuri('burden', '${key}')">두루누리 지원받으면 얼마?</button>` : ''}
+                    ${eligible ? `<button class="mw-durunuri-btn" id="burdenDurunuriBtn${key}" onclick="toggleMwDurunuri('burden', '${key}')">두루누리 지원받으면 얼마?</button>
+                    <p class="mw-owner-note" id="burdenDurunuriCapNote${key}" style="display:none;"></p>` : ''}
                 </div>
             </div>
         </div>
@@ -731,7 +786,8 @@ function buildOwnerBurdenItemHTML(salary, s) {
                     <div class="result-row"><span>국민연금<span class="rate-tag">${s.pensionExempt ? '(면제)' : formatRate(RATES.pension / 2 * 100)}</span></span><span id="burdenPensionowner">${formatNumber(s.pensionEmployer)}원</span></div>
                     <div class="result-row"><span>건강보험<span class="rate-tag">${formatRate(RATES.health / 2 * 100)}</span></span><span>${formatNumber(s.healthEmployer)}원</span></div>
                     <div class="result-row"><span>장기요양보험<span class="rate-tag">(건강보험료 × ${roundRate(RATES.longterm * 100)}%)</span></span><span>${formatNumber(s.longtermEmployer)}원</span></div>
-                    ${eligible ? `<button class="mw-durunuri-btn" id="burdenDurunuriBtnowner" onclick="toggleOwnerDurunuri()">두루누리 지원받으면 얼마?</button>` : ''}
+                    ${eligible ? `<button class="mw-durunuri-btn" id="burdenDurunuriBtnowner" onclick="toggleOwnerDurunuri()">두루누리 지원받으면 얼마?</button>
+                    <p class="mw-owner-note" id="burdenDurunuriCapNoteowner" style="display:none;"></p>` : ''}
                     <p class="mw-owner-note">ℹ️ 사업주는 고용산재보험 대상이 아닙니다.</p>
                 </div>
             </div>
@@ -747,7 +803,9 @@ function toggleOwnerDurunuri() {
     btn.classList.toggle('applied', ownerDurunuriApplied);
 
     const s = ownerCalc.ownerShare;
-    const pension = (ownerDurunuriApplied && !s.pensionExempt)
+    const applyNow = ownerDurunuriApplied && !s.pensionExempt;
+    const pensionCapped = applyNow && durunuriCapApplied(s.pensionEmployer, DURUNURI_CAPS.pension);
+    const pension = applyNow
         ? durunuriSupportedAmount(s.pensionEmployer, DURUNURI_CAPS.pension)
         : s.pensionEmployer;
     const total = pension + s.healthEmployer + s.longtermEmployer;
@@ -758,6 +816,7 @@ function toggleOwnerDurunuri() {
     ['burdenPensionowner', 'burdenSummaryTotalowner'].forEach(id => {
         document.getElementById(id).classList.toggle('value-changed', ownerDurunuriApplied);
     });
+    setMwCapNotice('burden', 'owner', ownerDurunuriApplied, pensionCapped, false);
 }
 
 // "사업주는 얼마 부담해야 하나요?" 탭 내용 생성
@@ -937,7 +996,8 @@ function printResult(type) {
     // 두루누리 지원 가능 대상이면(급여 270만원 이하) 화면 토글 상태와 무관하게 적용 시 금액도 함께 보여줌
     const eligible = salary <= 2700000;
     const dd = eligible ? computeDurunuriDeduction(calc, salary) : null;
-    const durunuriRow = (value) => `<tr class="print-durunuri-row"><td>└ 두루누리 적용 시</td><td>${value}</td></tr>`;
+    const anyCapped = dd && (dd.pensionCapped || dd.employmentCapped);
+    const durunuriRow = (value, capped) => `<tr class="print-durunuri-row"><td>└ 두루누리 적용 시${capped ? ' (상한 적용)' : ''}</td><td>${value}</td></tr>`;
 
     printArea.innerHTML = `
         <div class="print-header">
@@ -947,18 +1007,19 @@ function printResult(type) {
         <div class="print-salary">월급여액 ${document.getElementById('displaySalary').textContent}</div>
         <table class="print-table">
             <tr class="print-total"><th>실수령액</th><td>${document.getElementById('resultNetPay').textContent}</td></tr>
-            ${dd ? durunuriRow(formatNumber(dd.netPay) + '원') : ''}
+            ${dd ? durunuriRow(formatNumber(dd.netPay) + '원', anyCapped) : ''}
             <tr><th>국민연금 ${document.getElementById('resultPensionRate').textContent}</th><td>${document.getElementById('resultPension').textContent}</td></tr>
-            ${dd ? durunuriRow(formatNumber(dd.pension) + '원') : ''}
+            ${dd ? durunuriRow(formatNumber(dd.pension) + '원', dd.pensionCapped) : ''}
             <tr><th>건강보험 ${document.getElementById('resultHealthRate').textContent}</th><td>${document.getElementById('resultHealth').textContent}</td></tr>
             <tr><th>장기요양보험 ${document.getElementById('resultLongtermRate').textContent}</th><td>${document.getElementById('resultLongterm').textContent}</td></tr>
             <tr><th>고용보험 ${document.getElementById('resultEmploymentRate').textContent}</th><td>${document.getElementById('resultEmployment').textContent}</td></tr>
-            ${dd ? durunuriRow(formatNumber(dd.employment) + '원') : ''}
+            ${dd ? durunuriRow(formatNumber(dd.employment) + '원', dd.employmentCapped) : ''}
             <tr class="print-subtotal"><th>공제 합계</th><td>${document.getElementById('resultTotal').textContent}</td></tr>
-            ${dd ? durunuriRow(formatNumber(dd.total) + '원') : ''}
+            ${dd ? durunuriRow(formatNumber(dd.total) + '원', anyCapped) : ''}
         </table>
         ${noticeHTML('ageNotice')}
         ${bannerHTML('durunuriBanner')}
+        ${anyCapped ? `<p class="print-notice">${durunuriCapNoticeText(dd.pensionCapped, dd.employmentCapped)}</p>` : ''}
         <p class="print-disclaimer">※ 이 계산 결과는 참고용이며, 실제 신고·공제 금액은 담당 기관 확인에 따라 달라질 수 있습니다.${dd ? ' "두루누리 적용 시" 줄은 급여 270만원 이하로 두루누리 지원 가능 대상일 때 참고로 함께 보여드리는 금액이며, 실제 지원 여부는 근로복지공단 확인이 필요합니다.' : ''}</p>
     `;
 
@@ -991,13 +1052,17 @@ function buildPrintRowPair(label, salary, d, b) {
         </tr>
     `;
 
+    let capped = false;
     if (salary <= 2700000) {
         const dd = computeDurunuriDeduction(d, salary);
         const bb = computeDurunuriBurden(b);
+        const ddCapped = dd.pensionCapped || dd.employmentCapped;
+        const bbCapped = bb.pensionCapped || bb.employmentCapped;
+        capped = ddCapped || bbCapped;
 
         deductionRow += `
             <tr class="print-durunuri-row">
-                <td>└ 두루누리 적용 시</td>
+                <td>└ 두루누리 적용 시${ddCapped ? ' (상한 적용)' : ''}</td>
                 <td>${formatNumber(dd.pension)}원</td>
                 <td>${formatNumber(dd.health)}원</td>
                 <td>${formatNumber(dd.longterm)}원</td>
@@ -1008,7 +1073,7 @@ function buildPrintRowPair(label, salary, d, b) {
         `;
         burdenRow += `
             <tr class="print-durunuri-row">
-                <td>└ 두루누리 적용 시</td>
+                <td>└ 두루누리 적용 시${bbCapped ? ' (상한 적용)' : ''}</td>
                 <td>${formatNumber(bb.pension)}원</td>
                 <td>${formatNumber(bb.health)}원</td>
                 <td>${formatNumber(bb.longterm)}원</td>
@@ -1019,7 +1084,7 @@ function buildPrintRowPair(label, salary, d, b) {
         `;
     }
 
-    return { deductionRow, burdenRow };
+    return { deductionRow, burdenRow, capped };
 }
 
 function printEmployerAll() {
@@ -1036,6 +1101,7 @@ function printEmployerAll() {
     let burdenRows = '';
     let sumDeduction = 0, sumDeductionPension = 0, sumDeductionHealth = 0, sumDeductionLongterm = 0, sumDeductionEmployment = 0, sumNetPay = 0;
     let sumBurden = 0, sumBurdenPension = 0, sumBurdenHealth = 0, sumBurdenLongterm = 0, sumBurdenEmployment = 0, sumBurdenAccident = 0;
+    let anyDurunuriCapped = false;
 
     employerWorkersCalc.forEach((w, idx) => {
         const d = w.workerShare;
@@ -1056,9 +1122,10 @@ function printEmployerAll() {
         sumBurdenAccident += (b.accidentEmployer || 0);
 
         const workerLabel = `근로자 ${idx + 1}<span class="print-salary-sub">${formatNumber(w.salary)}원</span>`;
-        const { deductionRow, burdenRow } = buildPrintRowPair(workerLabel, w.salary, d, b);
+        const { deductionRow, burdenRow, capped } = buildPrintRowPair(workerLabel, w.salary, d, b);
         deductionRows += deductionRow;
         burdenRows += burdenRow;
+        if (capped) anyDurunuriCapped = true;
     });
 
     // 사업주 본인은 "근로자 공제" 표에는 안 넣음(헷갈릴 수 있어서) — "사업주 부담" 표에는 넣고 합계에도 포함시킴
@@ -1080,11 +1147,13 @@ function printEmployerAll() {
         `;
 
         if (ownerCalc.salary <= 2700000 && !os.pensionExempt) {
+            const ownerPensionCapped = durunuriCapApplied(os.pensionEmployer, DURUNURI_CAPS.pension);
+            if (ownerPensionCapped) anyDurunuriCapped = true;
             const supportedPension = durunuriSupportedAmount(os.pensionEmployer, DURUNURI_CAPS.pension);
             const supportedTotal = supportedPension + os.healthEmployer + os.longtermEmployer;
             burdenRows += `
                 <tr class="print-durunuri-row">
-                    <td>└ 두루누리 적용 시</td>
+                    <td>└ 두루누리 적용 시${ownerPensionCapped ? ' (상한 적용)' : ''}</td>
                     <td>${formatNumber(supportedPension)}원</td>
                     <td>${formatNumber(os.healthEmployer)}원</td>
                     <td>${formatNumber(os.longtermEmployer)}원</td>
@@ -1158,7 +1227,7 @@ function printEmployerAll() {
             </tr>
         </table>
 
-        <p class="print-disclaimer">※ 이 계산 결과는 참고용이며, 실제 신고·공제 금액은 담당 기관 확인에 따라 달라질 수 있습니다. 위 표의 요율은 기본 요율이며, 고용보험은 만 65세 이상이면 고용안정분(0.25%)만 부과됩니다.${anyExempt ? ' 나이(60세/65세) 조건으로 면제된 근로자가 있어 해당 근로자의 실제 금액은 표시된 기본 요율과 다를 수 있습니다(금액 자체는 이미 정확히 반영되어 있습니다).' : ''} 산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액입니다. "두루누리 적용 시" 줄은 급여 270만원 이하로 두루누리 지원 가능 대상인 근로자에게 참고로 함께 보여드리는 금액이며, 실제 지원 여부는 근로복지공단 확인이 필요합니다.${ownerCalc ? ' "사업주 본인" 보험료는 국민연금·건강보험·장기요양만 계산했으며(고용보험·산재보험은 사업주 대상이 아니어서 제외), 사업주 부담 합계에는 포함되어 있고 근로자 공제 표에는 포함되지 않습니다.' : ''}</p>
+        <p class="print-disclaimer">※ 이 계산 결과는 참고용이며, 실제 신고·공제 금액은 담당 기관 확인에 따라 달라질 수 있습니다. 위 표의 요율은 기본 요율이며, 고용보험은 만 65세 이상이면 고용안정분(0.25%)만 부과됩니다.${anyExempt ? ' 나이(60세/65세) 조건으로 면제된 근로자가 있어 해당 근로자의 실제 금액은 표시된 기본 요율과 다를 수 있습니다(금액 자체는 이미 정확히 반영되어 있습니다).' : ''} 산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액입니다. "두루누리 적용 시" 줄은 급여 270만원 이하로 두루누리 지원 가능 대상인 근로자에게 참고로 함께 보여드리는 금액이며, 실제 지원 여부는 근로복지공단 확인이 필요합니다.${anyDurunuriCapped ? ' "(상한 적용)"이 표시된 경우는 월급여가 높아 두루누리 지원금이 상한액(국민연금 ' + formatNumber(DURUNURI_CAPS.pension) + '원/고용보험 ' + formatNumber(DURUNURI_CAPS.employmentWorker) + '원)까지만 지원된 것입니다.' : ''}${ownerCalc ? ' "사업주 본인" 보험료는 국민연금·건강보험·장기요양만 계산했으며(고용보험·산재보험은 사업주 대상이 아니어서 제외), 사업주 부담 합계에는 포함되어 있고 근로자 공제 표에는 포함되지 않습니다.' : ''}</p>
     `;
 
     printWithFilenameTitle(`4대보험_사업주부담_${dateSlug(today)}`);
