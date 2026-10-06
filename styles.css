@@ -587,6 +587,12 @@ header {
     color: var(--text-sub);
 }
 
+/* 라벨이 길 때(예: "총 고지 예상 금액") 좁은 화면에서 줄바꿈되더라도
+   "금액"처럼 단어 중간이 깨지지 않고 띄어쓰기 단위로만 끊어지게 함 */
+.result-row span:first-child {
+    word-break: keep-all;
+}
+
 /* 보험료 항목 이름 옆에 붙는 요율 표시 (예: "국민연금 4.75%") */
 .rate-tag {
     font-size: 12px;
@@ -821,6 +827,35 @@ footer a {
         margin-bottom: 16px;
     }
 
+    /* 라벨+값 2칸짜리 요약표(총 부과 금액) — width만으로는(auto 레이아웃이라 그냥 힌트일 뿐)
+       좁은 화면에서 라벨 칸이 눌려서 글자가 어색하게 줄바꿈되는 걸 못 막아서,
+       table-layout: fixed로 칸 너비를 강제로 고정시킴 */
+    .print-summary-table {
+        table-layout: fixed;
+    }
+
+    .print-summary-table th {
+        width: 55%;
+        white-space: nowrap;
+    }
+
+    .print-summary-table td {
+        width: 45%;
+    }
+
+    /* 두루누리 적용 시 요약표 — 원래 금액 표와 헷갈리지 않게 살짝 톤 다운 */
+    .print-durunuri-summary th,
+    .print-durunuri-summary td {
+        font-style: italic;
+        color: #555;
+        background: #f5f5f5;
+    }
+
+    .print-durunuri-summary .print-total th,
+    .print-durunuri-summary .print-total td {
+        color: #333;
+    }
+
     .print-table th,
     .print-table td {
         border: 1px solid #999;
@@ -1005,6 +1040,35 @@ footer a {
     height: 18px;
     accent-color: var(--accent);
     cursor: pointer;
+}
+
+.owner-type-radios {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 6px 0 10px;
+}
+
+.owner-type-radios label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 400;
+    color: var(--text);
+    cursor: pointer;
+}
+
+/* .input-group input 규칙(width:100%, 큰 padding/font-size)이 라디오에도 걸려서
+   거대한 투명 박스가 되는 문제를 막기 위해 크기 관련 속성을 전부 명시적으로 되돌림 */
+.owner-type-radios input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    font-size: inherit;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
 }
 
 /* 근로자 여러명 결과 안에서 "사업주 본인" 항목을 나머지 근로자 목록과 구분해주는 섹션 */

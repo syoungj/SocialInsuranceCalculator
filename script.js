@@ -157,6 +157,9 @@ let employerWorkersCalc = [];     // 사업주 경로 — 근로자별 계산 �
 let employerIndustryIdx = '';     // 사업주 경로 — 마지막으로 계산한 업종
 let mwDurunuriApplied = { deduction: {}, burden: {} };  // 근로자 여러명 결과 — 근로자별 두루누리 토글 상태 (사업주 본인은 두루누리 대상이 아니라서 해당 없음)
 let ownerCalc = null;              // 사업주 경로 — 체크박스로 선택했을 때만 채워지는 "사업주 본인" 계산 결과
+let totalBillWorkersCalc = [];    // 전문가용 "한 달 총 부과 금액" — 근로자별 계산 결과 (PDF 저장 시 재사용)
+let totalBillOwnerCalc = null;    // 전문가용 "한 달 총 부과 금액" — 사업주 본인 계산 결과
+let totalBillIndustryIdx = '';    // 전문가용 "한 달 총 부과 금액" — 마지막으로 계산한 업종
 
 function showStep(id) {
     document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
@@ -525,6 +528,206 @@ function toggleOwnerInputs() {
         document.getElementById('ownerBirth').value = '';
         document.getElementById('ownerSalary').value = '';
     }
+}
+
+// ============================================================
+// 전문가용 — "한 달 총 부과 금액" (근로자 공제분 + 사업주 부담분을 전부 합친 실제 고지서 기준 총액)
+// 사업주 화면과 별개의 독립 입력란을 씀(재입력 필요) — 기본 화면은 단순 계산 전용으로 유지하려는 설계 원칙
+// ============================================================
+function addTotalBillWorkerRow() {
+    const container = document.getElementById('totalBillWorkerRows');
+    const row = document.createElement('div');
+    row.className = 'multi-worker-row';
+    row.innerHTML = `
+        <div class="mw-row-num">${container.children.length + 1}</div>
+        <div class="mw-row-inputs">
+            <input type="text" class="mw-birth" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password">
+            <input type="number" class="mw-salary" inputmode="numeric" placeholder="월급여" autocomplete="new-password">
+        </div>
+    `;
+    container.appendChild(row);
+}
+
+// 맨 아래 줄 삭제 (최소 1줄은 남겨둠)
+function removeTotalBillWorkerRow() {
+    const container = document.getElementById('totalBillWorkerRows');
+    if (container.children.length <= 1) return;
+    container.removeChild(container.lastElementChild);
+}
+
+// 이 항목을 처음 펼쳤을 때 기본 2줄 준비 (이미 입력한 값이 있으면 그대로 유지)
+function initTotalBillWorkerRows() {
+    const container = document.getElementById('totalBillWorkerRows');
+    if (container.children.length > 0) return;
+    addTotalBillWorkerRow();
+    addTotalBillWorkerRow();
+}
+
+// 사업주 유형 선택(개인사업자/법인 유보수/법인 무보수) — 무보수는 보수 자체가 없어
+// 생년월·급여 입력칸이 필요 없으므로 숨김. 나머지 둘은 계속 입력받음(항상 필수 — 선택사항 아님)
+function toggleTotalBillOwnerInputs() {
+    const ownerType = document.querySelector('input[name="totalBillOwnerType"]:checked').value;
+    const row = document.getElementById('totalBillOwnerInputRow');
+    const isUnpaid = ownerType === 'unpaidCorp';
+    row.style.display = isUnpaid ? 'none' : 'flex';
+    if (isUnpaid) {
+        document.getElementById('totalBillOwnerBirth').value = '';
+        document.getElementById('totalBillOwnerSalary').value = '';
+    }
+}
+
+// 사업주 본인의 국민연금·건강보험료를 유형별로 계산 (기본 "사업주" 화면의 computeOwnerShare와
+// 별개 — 기본 화면은 개인사업자만 다루는 단순 계산으로 유지하고, 법인 대표 구분은 전문가용에서만 다룸)
+// - 개인사업자: 별도 고용주가 없어 전액 본인(self) 혼자 부담, 법인(company) 몫은 0
+// - 법인 대표(유보수): 일반 근로자처럼 본인(self)·법인(company)이 절반씩 — 총액(pension/health/longterm,
+//   total)은 반드시 두 몫을 합친 전체 금액이어야 함(총 부과 금액 집계에 절반만 반영되면 안 됨)
+// - 법인 대표(무보수): 보수가 없어 전부 0
+function computeOwnerShareByType(ownerType, ownerSalary, ownerBirthDate) {
+    if (ownerType === 'unpaidCorp') {
+        return {
+            selfPension: 0, selfHealth: 0, selfLongterm: 0,
+            companyPension: 0, companyHealth: 0, companyLongterm: 0,
+            pension: 0, health: 0, longterm: 0, total: 0,
+            pensionExempt: false, pensionExemptNextMonth: false
+        };
+    }
+
+    const { pensionExempt, pensionExemptNextMonth } = calculateExemptions(ownerBirthDate);
+    const pensionBase = Math.floor(ownerSalary / 1000) * 1000;
+
+    if (ownerType === 'individual') {
+        const pension = pensionExempt ? 0 : Math.floor((pensionBase * RATES.pension) / 10) * 10;
+        const health = Math.floor((ownerSalary * RATES.health) / 10) * 10;
+        const longterm = Math.floor((health * RATES.longterm) / 10) * 10;
+        return {
+            selfPension: pension, selfHealth: health, selfLongterm: longterm,
+            companyPension: 0, companyHealth: 0, companyLongterm: 0,
+            pension, health, longterm, total: pension + health + longterm,
+            pensionExempt, pensionExemptNextMonth
+        };
+    }
+
+    // paidCorp
+    const halfPension = pensionExempt ? 0 : Math.floor((pensionBase * RATES.pension / 2) / 10) * 10;
+    const halfHealth = Math.floor((ownerSalary * RATES.health / 2) / 10) * 10;
+    const halfLongterm = Math.floor((halfHealth * RATES.longterm) / 10) * 10;
+    return {
+        selfPension: halfPension, selfHealth: halfHealth, selfLongterm: halfLongterm,
+        companyPension: halfPension, companyHealth: halfHealth, companyLongterm: halfLongterm,
+        pension: halfPension * 2, health: halfHealth * 2, longterm: halfLongterm * 2,
+        total: (halfPension + halfHealth + halfLongterm) * 2,
+        pensionExempt, pensionExemptNextMonth
+    };
+}
+
+// 근로자 전원의 (공제분+부담분) + 사업주 본인 몫을 전부 합산해서, 실제 통합고지서와 맞는
+// 항목별 총액 + 전체 합계를 계산 (두루누리 지원 전의 순수 부과 기준 금액)
+function calculateTotalBill() {
+    const rows = document.querySelectorAll('#totalBillWorkerRows .multi-worker-row');
+    const industryIdx = document.getElementById('totalBillIndustryType').value;
+    const errorEl = document.getElementById('totalBillInputError');
+    const resultBox = document.getElementById('totalBillResult');
+
+    const workers = [];
+    let hasError = false;
+
+    rows.forEach(row => {
+        const birthRaw = row.querySelector('.mw-birth').value.trim();
+        const salaryRaw = row.querySelector('.mw-salary').value.trim();
+
+        if (!birthRaw && !salaryRaw) {
+            row.classList.remove('mw-row-error');
+            return; // 완전히 빈 줄은 건너뜀
+        }
+
+        const workerSalary = parseInt(salaryRaw, 10);
+        const bd = parseBirthdate(birthRaw);
+
+        if (!bd || !workerSalary || workerSalary <= 0) {
+            row.classList.add('mw-row-error');
+            hasError = true;
+            return;
+        }
+
+        row.classList.remove('mw-row-error');
+        workers.push({ salary: workerSalary, birthDate: bd });
+    });
+
+    if (hasError) {
+        errorEl.textContent = '⚠️ 빨간색으로 표시된 줄의 생년월(6자리)과 급여를 확인해주세요.';
+        errorEl.style.display = 'block';
+        resultBox.style.display = 'none';
+        return;
+    }
+
+    // 사업주 본인 몫은 선택사항이 아니라 항상 계산에 포함함 (무보수 법인 대표만 예외적으로 0원)
+    const ownerType = document.querySelector('input[name="totalBillOwnerType"]:checked').value;
+    let ownerShare;
+
+    if (ownerType === 'unpaidCorp') {
+        ownerShare = computeOwnerShareByType('unpaidCorp', 0, '');
+    } else {
+        const ownerBirthRaw = document.getElementById('totalBillOwnerBirth').value.trim();
+        const ownerSalaryRaw = document.getElementById('totalBillOwnerSalary').value.trim();
+        const ownerBd = parseBirthdate(ownerBirthRaw);
+        const ownerSalaryVal = parseInt(ownerSalaryRaw, 10);
+
+        if (!ownerBd || !ownerSalaryVal || ownerSalaryVal <= 0) {
+            errorEl.textContent = '⚠️ 사업주 본인의 생년월(6자리)과 기준급여를 올바르게 입력해주세요.';
+            errorEl.style.display = 'block';
+            resultBox.style.display = 'none';
+            return;
+        }
+
+        ownerShare = computeOwnerShareByType(ownerType, ownerSalaryVal, ownerBd);
+    }
+
+    errorEl.style.display = 'none';
+
+    // PDF 저장 시 재사용할 수 있도록 근로자별 상세 계산 결과를 그대로 보관해둠
+    totalBillWorkersCalc = workers.map(w => ({
+        salary: w.salary,
+        birthDate: w.birthDate,
+        workerShare: computeWorkerShare(w.salary, w.birthDate),
+        employerShare: computeEmployerShare(w.salary, w.birthDate, industryIdx)
+    }));
+    totalBillOwnerCalc = { ownerType, salary: ownerType === 'unpaidCorp' ? 0 : parseInt(document.getElementById('totalBillOwnerSalary').value, 10), ownerShare };
+    totalBillIndustryIdx = industryIdx;
+
+    let totalPension = 0, totalHealth = 0, totalLongterm = 0, totalEmployment = 0, totalAccident = 0;
+
+    totalBillWorkersCalc.forEach(({ workerShare, employerShare }) => {
+        totalPension += workerShare.pension + employerShare.pensionEmployer;
+        totalHealth += workerShare.health + employerShare.healthEmployer;
+        totalLongterm += workerShare.longterm + employerShare.longtermEmployer;
+        totalEmployment += workerShare.employment + employerShare.employmentEmployer;
+        totalAccident += (employerShare.accidentEmployer || 0);
+    });
+
+    // 사업주 본인은 국민연금·건강보험·장기요양만 해당(고용·산재보험 대상 아님)
+    // ownerShare.pension/health/longterm은 유형과 무관하게 항상 "본인+법인 몫을 합친 전체 금액"임
+    totalPension += ownerShare.pension;
+    totalHealth += ownerShare.health;
+    totalLongterm += ownerShare.longterm;
+
+    const grandTotal = totalPension + totalHealth + totalLongterm + totalEmployment + totalAccident;
+
+    resultBox.innerHTML = `
+        <div class="result-row total">
+            <span>총 고지 예상 금액</span>
+            <span>${formatNumber(grandTotal)}원</span>
+        </div>
+        <div class="result-table">
+            <div class="result-row"><span>국민연금</span><span>${formatNumber(totalPension)}원</span></div>
+            <div class="result-row"><span>건강보험</span><span>${formatNumber(totalHealth)}원</span></div>
+            <div class="result-row"><span>장기요양보험</span><span>${formatNumber(totalLongterm)}원</span></div>
+            <div class="result-row"><span>고용보험</span><span>${formatNumber(totalEmployment)}원</span></div>
+            <div class="result-row"><span>산재보험</span><span>${formatNumber(totalAccident)}원</span></div>
+        </div>
+        <p class="privacy-note">ℹ️ 근로자 공제분과 사업주 부담분(사업주 본인 몫 포함)을 모두 합친, 실제 4대보험 통합고지서 기준 총 부과 금액이에요. 두루누리 지원금은 반영되지 않은 금액입니다. 산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액이며, 정확한 산재보험료율은 근로복지공단(1588-0075)에 별도로 확인해주세요.</p>
+        <button class="btn-secondary" onclick="printTotalBill()">PDF로 저장 (근로자별 상세 내역 포함)</button>
+    `;
+    resultBox.style.display = 'block';
 }
 
 // 근로자 여러명 결과에서 특정 근로자 줄을 탭하면 그 자리에서 상세 항목이 펼쳐짐
@@ -1027,7 +1230,13 @@ function buildPrintRowPair(label, salary, d, b) {
         </tr>
     `;
 
+    // 두루누리 지원이 반영됐을 때의 "이 사람 몫" — 대상이 아니면(급여 270만원 초과)
+    // 원래 금액 그대로, 대상이면 지원 적용된 금액. effDeduction/effBurden은 표별
+    // 합계 줄(두루누리 적용 시)에, effPension 등 합친 값은 총 부과 금액 집계에 씀
     let capped = false;
+    let effDeduction = { pension: d.pension, health: d.health, longterm: d.longterm, employment: d.employment, total: d.total, netPay: d.netPay };
+    let effBurden = { pension: b.pensionEmployer, health: b.healthEmployer, longterm: b.longtermEmployer, employment: b.employmentEmployer, accident: b.accidentEmployer || 0, total: b.total };
+
     if (salary <= 2700000) {
         const dd = computeDurunuriDeduction(d, salary);
         const bb = computeDurunuriBurden(b);
@@ -1057,9 +1266,18 @@ function buildPrintRowPair(label, salary, d, b) {
                 <td>${formatNumber(bb.total)}원</td>
             </tr>
         `;
+
+        effDeduction = dd;
+        effBurden = bb;
     }
 
-    return { deductionRow, burdenRow, capped };
+    const effPension = effDeduction.pension + effBurden.pension;
+    const effHealth = effDeduction.health + effBurden.health;
+    const effLongterm = effDeduction.longterm + effBurden.longterm;
+    const effEmployment = effDeduction.employment + effBurden.employment;
+    const effAccident = effBurden.accident || 0;
+
+    return { deductionRow, burdenRow, capped, effDeduction, effBurden, effPension, effHealth, effLongterm, effEmployment, effAccident };
 }
 
 function printEmployerAll() {
@@ -1192,6 +1410,287 @@ function printEmployerAll() {
     printWithFilenameTitle(`4대보험_사업주부담_${dateSlug(today)}`);
 }
 
+// 전문가용 "한 달 총 부과 금액"을 PDF로 저장 — 화면에는 항목별 총합만 보이지만,
+// PDF에는 근로자별(+사업주 본인) 상세 내역까지 전부 펼쳐서 보여줌
+function printTotalBill() {
+    if (totalBillWorkersCalc.length === 0 && !totalBillOwnerCalc) return;
+
+    const printArea = document.getElementById('printArea');
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}. ${today.getMonth() + 1}. ${today.getDate()}.`;
+
+    const industry = totalBillIndustryIdx !== '' ? INDUSTRY_RATES[parseInt(totalBillIndustryIdx, 10)] : null;
+    const industryLabel = industry ? `${industry.name} (${industry.permille}/1000)` : '선택 안 함';
+
+    let deductionRows = '';
+    let burdenRows = '';
+    let sumDeduction = 0, sumDeductionPension = 0, sumDeductionHealth = 0, sumDeductionLongterm = 0, sumDeductionEmployment = 0, sumNetPay = 0;
+    let sumBurden = 0, sumBurdenPension = 0, sumBurdenHealth = 0, sumBurdenLongterm = 0, sumBurdenEmployment = 0, sumBurdenAccident = 0;
+    // 두루누리 지원이 반영됐을 때의 총 고지 금액 집계용 (대상 아닌 근로자·사업주 본인은 원래 금액 그대로 더해짐)
+    let effPension = 0, effHealth = 0, effLongterm = 0, effEmployment = 0, effAccident = 0;
+    // 두루누리 지원이 반영됐을 때의 표별(공제분/부담분) 합계 — 표 안의 "두루누리 적용 시" 합계 줄용
+    let effSumDeductionPension = 0, effSumDeductionHealth = 0, effSumDeductionLongterm = 0, effSumDeductionEmployment = 0, effSumDeduction = 0, effSumNetPay = 0;
+    let effSumBurdenPension = 0, effSumBurdenHealth = 0, effSumBurdenLongterm = 0, effSumBurdenEmployment = 0, effSumBurdenAccident = 0, effSumBurden = 0;
+    let anyDurunuriCapped = false;
+
+    totalBillWorkersCalc.forEach((w, idx) => {
+        const d = w.workerShare;
+        const b = w.employerShare;
+
+        sumDeduction += d.total;
+        sumDeductionPension += d.pension;
+        sumDeductionHealth += d.health;
+        sumDeductionLongterm += d.longterm;
+        sumDeductionEmployment += d.employment;
+        sumNetPay += d.netPay;
+
+        sumBurden += b.total;
+        sumBurdenPension += b.pensionEmployer;
+        sumBurdenHealth += b.healthEmployer;
+        sumBurdenLongterm += b.longtermEmployer;
+        sumBurdenEmployment += b.employmentEmployer;
+        sumBurdenAccident += (b.accidentEmployer || 0);
+
+        const workerLabel = `근로자 ${idx + 1}<span class="print-salary-sub">${formatNumber(w.salary)}원</span>`;
+        const result = buildPrintRowPair(workerLabel, w.salary, d, b);
+        deductionRows += result.deductionRow;
+        burdenRows += result.burdenRow;
+        if (result.capped) anyDurunuriCapped = true;
+
+        effPension += result.effPension;
+        effHealth += result.effHealth;
+        effLongterm += result.effLongterm;
+        effEmployment += result.effEmployment;
+        effAccident += result.effAccident;
+
+        effSumDeductionPension += result.effDeduction.pension;
+        effSumDeductionHealth += result.effDeduction.health;
+        effSumDeductionLongterm += result.effDeduction.longterm;
+        effSumDeductionEmployment += result.effDeduction.employment;
+        effSumDeduction += result.effDeduction.total;
+        effSumNetPay += result.effDeduction.netPay;
+
+        effSumBurdenPension += result.effBurden.pension;
+        effSumBurdenHealth += result.effBurden.health;
+        effSumBurdenLongterm += result.effBurden.longterm;
+        effSumBurdenEmployment += result.effBurden.employment;
+        effSumBurdenAccident += (result.effBurden.accident || 0);
+        effSumBurden += result.effBurden.total;
+    });
+
+    // 사업주 본인 — 유형에 따라 표에 들어가는 자리가 다름
+    // 개인사업자: 전액을 "사업주 부담" 표에만 한 줄로. 법인 유보수: 본인 몫은 "근로자 공제" 표에,
+    // 법인 몫은 "사업주 부담" 표에 각각 한 줄씩(일반 근로자와 동일한 구조). 무보수: 0원 한 줄만 참고로 표시.
+    const os = totalBillOwnerCalc.ownerShare;
+    const ownerTypeLabel = { individual: '개인사업자', paidCorp: '법인 대표(유보수)', unpaidCorp: '법인 대표(무보수)' }[totalBillOwnerCalc.ownerType];
+    const ownerSalaryLabel = totalBillOwnerCalc.ownerType === 'unpaidCorp' ? '무보수' : `${formatNumber(totalBillOwnerCalc.salary)}원`;
+    const ownerLabel = `사업주 본인(${ownerTypeLabel})<span class="print-salary-sub">${ownerSalaryLabel}</span>`;
+
+    if (totalBillOwnerCalc.ownerType === 'paidCorp') {
+        const selfTotal = os.selfPension + os.selfHealth + os.selfLongterm;
+        deductionRows += `
+            <tr>
+                <td>${ownerLabel}</td>
+                <td>${formatNumber(os.selfPension)}원</td>
+                <td>${formatNumber(os.selfHealth)}원</td>
+                <td>${formatNumber(os.selfLongterm)}원</td>
+                <td>해당없음</td>
+                <td>${formatNumber(selfTotal)}원</td>
+                <td>${formatNumber(totalBillOwnerCalc.salary - selfTotal)}원</td>
+            </tr>
+        `;
+        sumDeduction += selfTotal;
+        sumDeductionPension += os.selfPension;
+        sumDeductionHealth += os.selfHealth;
+        sumDeductionLongterm += os.selfLongterm;
+        sumNetPay += totalBillOwnerCalc.salary - selfTotal;
+        // 사업주 본인은 두루누리 대상이 아니라 "두루누리 적용 시" 합계에도 원래 금액 그대로 더함
+        effSumDeductionPension += os.selfPension;
+        effSumDeductionHealth += os.selfHealth;
+        effSumDeductionLongterm += os.selfLongterm;
+        effSumDeduction += selfTotal;
+        effSumNetPay += totalBillOwnerCalc.salary - selfTotal;
+
+        const companyTotal = os.companyPension + os.companyHealth + os.companyLongterm;
+        burdenRows += `
+            <tr>
+                <td>${ownerLabel}</td>
+                <td>${formatNumber(os.companyPension)}원</td>
+                <td>${formatNumber(os.companyHealth)}원</td>
+                <td>${formatNumber(os.companyLongterm)}원</td>
+                <td>해당없음</td>
+                <td>해당없음</td>
+                <td>${formatNumber(companyTotal)}원</td>
+            </tr>
+        `;
+        sumBurden += companyTotal;
+        sumBurdenPension += os.companyPension;
+        sumBurdenHealth += os.companyHealth;
+        sumBurdenLongterm += os.companyLongterm;
+        effSumBurdenPension += os.companyPension;
+        effSumBurdenHealth += os.companyHealth;
+        effSumBurdenLongterm += os.companyLongterm;
+        effSumBurden += companyTotal;
+    } else {
+        // 개인사업자(전액) 또는 무보수(0원) — 둘 다 "사업주 부담" 표 한 줄로
+        burdenRows += `
+            <tr>
+                <td>${ownerLabel}</td>
+                <td>${formatNumber(os.pension)}원</td>
+                <td>${formatNumber(os.health)}원</td>
+                <td>${formatNumber(os.longterm)}원</td>
+                <td>해당없음</td>
+                <td>해당없음</td>
+                <td>${formatNumber(os.total)}원</td>
+            </tr>
+        `;
+        sumBurden += os.total;
+        sumBurdenPension += os.pension;
+        sumBurdenHealth += os.health;
+        sumBurdenLongterm += os.longterm;
+        effSumBurdenPension += os.pension;
+        effSumBurdenHealth += os.health;
+        effSumBurdenLongterm += os.longterm;
+        effSumBurden += os.total;
+    }
+
+    // 사업주 본인은 어떤 유형이든 두루누리 지원 대상이 아니므로, 원래 금액(os.pension 등,
+    // 본인+법인 몫을 합친 전체 금액) 그대로 두루누리 적용 시 집계에도 똑같이 더함
+    // (고용·산재보험은 사업주 본인에게 애초에 없는 항목이라 effEmployment/effAccident는 그대로 둠)
+    effPension += os.pension;
+    effHealth += os.health;
+    effLongterm += os.longterm;
+
+    const grandTotal = sumDeductionPension + sumBurdenPension
+        + sumDeductionHealth + sumBurdenHealth
+        + sumDeductionLongterm + sumBurdenLongterm
+        + sumDeductionEmployment + sumBurdenEmployment
+        + sumBurdenAccident;
+    const grandPension = sumDeductionPension + sumBurdenPension;
+    const grandHealth = sumDeductionHealth + sumBurdenHealth;
+    const grandLongterm = sumDeductionLongterm + sumBurdenLongterm;
+    const grandEmployment = sumDeductionEmployment + sumBurdenEmployment;
+
+    const effGrandTotal = effPension + effHealth + effLongterm + effEmployment + effAccident;
+    const anyEligible = totalBillWorkersCalc.some(w => w.salary <= 2700000);
+
+    const anyExempt = totalBillWorkersCalc.some(w =>
+        w.workerShare.pensionExempt || w.workerShare.employmentExempt ||
+        w.workerShare.pensionExemptNextMonth || w.workerShare.employmentExemptNextMonth
+    ) || os.pensionExempt || os.pensionExemptNextMonth;
+    const accidentRateLabel = industry ? formatRate(industry.permille / 10) : '';
+    const ownerDisclaimer = {
+        individual: '별도 고용주가 없어 전액을 본인이 혼자 부담하는 것으로 계산했습니다.',
+        paidCorp: '일반 근로자와 동일하게 본인·법인이 절반씩 부담하는 것으로 계산했습니다.',
+        unpaidCorp: '보수가 없는 무보수 대표로 선택하셔서 보험료를 0원으로 계산했습니다.'
+    }[totalBillOwnerCalc.ownerType];
+
+    printArea.innerHTML = `
+        <div class="print-header">
+            <h2>한 달 총 부과 금액</h2>
+            <p>국민노무법인 4대보험 계산 결과 · ${dateStr} 기준 · 업종: ${industryLabel}</p>
+        </div>
+
+        <table class="print-table print-summary-table">
+            <tr class="print-total">
+                <th>총 고지 예상 금액</th>
+                <td>${formatNumber(grandTotal)}원</td>
+            </tr>
+            <tr><th>국민연금</th><td>${formatNumber(grandPension)}원</td></tr>
+            <tr><th>건강보험</th><td>${formatNumber(grandHealth)}원</td></tr>
+            <tr><th>장기요양보험</th><td>${formatNumber(grandLongterm)}원</td></tr>
+            <tr><th>고용보험</th><td>${formatNumber(grandEmployment)}원</td></tr>
+            <tr><th>산재보험</th><td>${formatNumber(sumBurdenAccident)}원</td></tr>
+        </table>
+
+        ${anyEligible ? `
+        <table class="print-table print-summary-table print-durunuri-summary">
+            <tr class="print-total">
+                <th>두루누리 적용 시 총액</th>
+                <td>${formatNumber(effGrandTotal)}원</td>
+            </tr>
+            <tr><th>국민연금</th><td>${formatNumber(effPension)}원</td></tr>
+            <tr><th>건강보험</th><td>${formatNumber(effHealth)}원</td></tr>
+            <tr><th>장기요양보험</th><td>${formatNumber(effLongterm)}원</td></tr>
+            <tr><th>고용보험</th><td>${formatNumber(effEmployment)}원</td></tr>
+            <tr><th>산재보험</th><td>${formatNumber(effAccident)}원</td></tr>
+        </table>
+        <p class="print-notice">ℹ️ 급여 270만원 이하 근로자는 두루누리 지원 가능 대상이라, 그 근로자의 국민연금·고용보험만 지원금이 반영된 금액입니다(사업주 본인·건강보험·장기요양·산재보험은 지원 대상이 아니라 원래 금액 그대로). 실제 지원 여부는 근로복지공단 확인이 필요합니다.</p>
+        ` : ''}
+
+        <h3 class="print-subheader">근로자별 상세 — 공제분(근로자 본인 몫)</h3>
+        <table class="print-table">
+            <tr>
+                <th>근로자</th>
+                <th>국민연금${formatRate(RATES.pension / 2 * 100)}</th>
+                <th>건강보험${formatRate(RATES.health / 2 * 100)}</th>
+                <th>장기요양(건강보험료×${roundRate(RATES.longterm * 100)}%)</th>
+                <th>고용보험${formatRate(RATES.employmentWorker * 100)}</th>
+                <th>공제 합계</th><th>실수령액</th>
+            </tr>
+            ${deductionRows}
+            <tr class="print-total">
+                <th>합계</th>
+                <td>${formatNumber(sumDeductionPension)}원</td>
+                <td>${formatNumber(sumDeductionHealth)}원</td>
+                <td>${formatNumber(sumDeductionLongterm)}원</td>
+                <td>${formatNumber(sumDeductionEmployment)}원</td>
+                <td>${formatNumber(sumDeduction)}원</td>
+                <td>${formatNumber(sumNetPay)}원</td>
+            </tr>
+            ${anyEligible ? `
+            <tr class="print-durunuri-row">
+                <th>└ 두루누리 적용 시 합계</th>
+                <td>${formatNumber(effSumDeductionPension)}원</td>
+                <td>${formatNumber(effSumDeductionHealth)}원</td>
+                <td>${formatNumber(effSumDeductionLongterm)}원</td>
+                <td>${formatNumber(effSumDeductionEmployment)}원</td>
+                <td>${formatNumber(effSumDeduction)}원</td>
+                <td>${formatNumber(effSumNetPay)}원</td>
+            </tr>
+            ` : ''}
+        </table>
+
+        <h3 class="print-subheader">근로자별 상세 — 사업주 부담분</h3>
+        <table class="print-table">
+            <tr>
+                <th>근로자</th>
+                <th>국민연금${formatRate(RATES.pension / 2 * 100)}</th>
+                <th>건강보험${formatRate(RATES.health / 2 * 100)}</th>
+                <th>장기요양(건강보험료×${roundRate(RATES.longterm * 100)}%)</th>
+                <th>고용보험(${roundRate(RATES.employmentWorker * 100)}%+${roundRate(RATES.employmentStability * 100)}%)</th>
+                <th>산재보험${accidentRateLabel}</th>
+                <th>사업주 부담 합계</th>
+            </tr>
+            ${burdenRows}
+            <tr class="print-total">
+                <th>합계</th>
+                <td>${formatNumber(sumBurdenPension)}원</td>
+                <td>${formatNumber(sumBurdenHealth)}원</td>
+                <td>${formatNumber(sumBurdenLongterm)}원</td>
+                <td>${formatNumber(sumBurdenEmployment)}원</td>
+                <td>${formatNumber(sumBurdenAccident)}원</td>
+                <td>${formatNumber(sumBurden)}원</td>
+            </tr>
+            ${anyEligible ? `
+            <tr class="print-durunuri-row">
+                <th>└ 두루누리 적용 시 합계</th>
+                <td>${formatNumber(effSumBurdenPension)}원</td>
+                <td>${formatNumber(effSumBurdenHealth)}원</td>
+                <td>${formatNumber(effSumBurdenLongterm)}원</td>
+                <td>${formatNumber(effSumBurdenEmployment)}원</td>
+                <td>${formatNumber(effSumBurdenAccident)}원</td>
+                <td>${formatNumber(effSumBurden)}원</td>
+            </tr>
+            ` : ''}
+        </table>
+
+        <p class="print-disclaimer">※ 이 계산 결과는 참고용이며, 실제 신고·공제 금액은 담당 기관 확인에 따라 달라질 수 있습니다. 맨 위 "총 고지 예상 금액"은 두루누리 지원금이 반영되지 않은 순수 부과 기준 금액이며, 그 아래 "두루누리 적용 시" 금액은 대상 근로자의 국민연금·고용보험에 지원금을 반영한 참고용 금액입니다(실제 지원 여부는 근로복지공단 확인 필요). 위 표의 요율은 기본 요율이며, 고용보험은 만 65세 이상이면 고용안정분(0.25%)만 부과됩니다.${anyExempt ? ' 나이(60세/65세) 조건으로 면제된 근로자가 있어 해당 근로자의 실제 금액은 표시된 기본 요율과 다를 수 있습니다(금액 자체는 이미 정확히 반영되어 있습니다).' : ''} 산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액입니다.${anyDurunuriCapped ? ' "(상한 적용)"이 표시된 경우는 월급여가 높아 두루누리 지원금이 상한액(국민연금 ' + formatNumber(DURUNURI_CAPS.pension) + '원/고용보험 ' + formatNumber(DURUNURI_CAPS.employmentWorker) + '원)까지만 지원된 것입니다.' : ''} "사업주 본인" 보험료는 국민연금·건강보험·장기요양만 계산했으며(고용보험·산재보험은 대상이 아니어서 제외), ${ownerDisclaimer}</p>
+    `;
+
+    printWithFilenameTitle(`4대보험_총부과금액_${dateSlug(today)}`);
+}
+
 // 처음부터 다시
 function clearWorkerFields() {
     document.getElementById('workerSalary').value = '';
@@ -1226,6 +1725,22 @@ function clearExpertFields() {
     document.getElementById('foreignerPensionResult').innerHTML = '';
     document.getElementById('foreignerExpand').classList.remove('open');
     document.getElementById('foreignerOptionBtn').classList.remove('active');
+
+    document.getElementById('totalBillIndustryType').value = '';
+    document.querySelector('input[name="totalBillOwnerType"][value="individual"]').checked = true;
+    document.getElementById('totalBillOwnerInputRow').style.display = 'flex';
+    document.getElementById('totalBillOwnerBirth').value = '';
+    document.getElementById('totalBillOwnerSalary').value = '';
+    document.getElementById('totalBillWorkerRows').innerHTML = '';
+    document.getElementById('totalBillInputError').style.display = 'none';
+    document.getElementById('totalBillResult').style.display = 'none';
+    document.getElementById('totalBillResult').innerHTML = '';
+    document.getElementById('totalBillExpand').classList.remove('open');
+    document.getElementById('totalBillOptionBtn').classList.remove('active');
+
+    totalBillWorkersCalc = [];
+    totalBillOwnerCalc = null;
+    totalBillIndustryIdx = '';
 }
 
 // 처음부터 다시 — 사업주/근로자 입력을 전부 지우고 첫 화면(선택 화면)으로 이동
@@ -1329,11 +1844,15 @@ function populateForeignerDropdowns() {
 
 // "외국인 근로자인가요?" 아코디언 펼치기/접기 — 위 근로자/사업주 선택과 같은 방식
 function toggleExpertOption(type) {
-    if (type !== 'foreigner') return;
-    const expand = document.getElementById('foreignerExpand');
-    const btn = document.getElementById('foreignerOptionBtn');
+    const expand = document.getElementById(`${type}Expand`);
+    const btn = document.getElementById(`${type}OptionBtn`);
+    if (!expand || !btn) return;
     const isOpen = expand.classList.toggle('open');
     btn.classList.toggle('active', isOpen);
+
+    if (type === 'totalBill' && isOpen) {
+        initTotalBillWorkerRows();
+    }
 }
 
 // 체류자격 → 국적 순서로 판단해 국민연금 당연적용 여부를 확인
@@ -1380,6 +1899,7 @@ function checkForeignerPension() {
 // 산재보험 업종 드롭다운은 페이지 로드 시 한 번만 채워두면 됨
 // (스크립트 태그가 body 맨 끝에 있어 이 시점엔 이미 DOM이 준비되어 있음)
 populateIndustryOptions('multiIndustryType');
+populateIndustryOptions('totalBillIndustryType');
 
 // 페이지 로드 시 서비스 워커 등록 (PWA)
 window.addEventListener('load', () => {

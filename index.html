@@ -212,6 +212,55 @@
             <h2>전문가용 계산기</h2>
             <p class="privacy-note">🔒 입력하신 정보는 계산에만 사용되고 저장되거나 기록되지 않습니다.</p>
 
+            <div class="option-block" id="totalBillBlock">
+                <button class="btn-option" id="totalBillOptionBtn" onclick="toggleExpertOption('totalBill')">
+                    <div class="option-title">한 달 총 부과 금액</div>
+                    <div class="option-desc">근로자 공제분 + 사업주 부담분을 합친 실제 고지서 기준 총액을 계산해요</div>
+                </button>
+
+                <div class="option-expand" id="totalBillExpand">
+                    <div class="option-expand-inner">
+                        <div class="input-group">
+                            <label for="totalBillIndustryType">업종을 선택해주세요 (산재보험료 계산용)</label>
+                            <select id="totalBillIndustryType"></select>
+                        </div>
+
+                        <div class="owner-section">
+                            <div class="input-group">
+                                <label>사업주 유형을 선택해주세요 (총 부과 금액에는 사업주 본인 몫도 항상 포함돼요)</label>
+                                <div class="owner-type-radios">
+                                    <label><input type="radio" name="totalBillOwnerType" value="individual" checked onchange="toggleTotalBillOwnerInputs()"> 개인사업자 (본인이 전액 부담)</label>
+                                    <label><input type="radio" name="totalBillOwnerType" value="paidCorp" onchange="toggleTotalBillOwnerInputs()"> 법인 대표(유보수) — 근로자처럼 절반만 부담</label>
+                                    <label><input type="radio" name="totalBillOwnerType" value="unpaidCorp" onchange="toggleTotalBillOwnerInputs()"> 법인 대표(무보수) — 보수가 없어 0원</label>
+                                </div>
+                            </div>
+                            <div id="totalBillOwnerInputRow" class="multi-worker-row">
+                                <div class="mw-row-inputs">
+                                    <input type="text" id="totalBillOwnerBirth" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password">
+                                    <input type="number" id="totalBillOwnerSalary" inputmode="numeric" placeholder="사업주 기준급여" autocomplete="new-password">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mw-rows-header">
+                            <span class="mw-rows-label">근로자 명단</span>
+                            <div class="mw-rows-controls">
+                                <button class="mw-icon-btn" onclick="removeTotalBillWorkerRow()" aria-label="근로자 줄 삭제">−</button>
+                                <button class="mw-icon-btn" onclick="addTotalBillWorkerRow()" aria-label="근로자 줄 추가">+</button>
+                            </div>
+                        </div>
+
+                        <div id="totalBillWorkerRows" class="multi-worker-rows"></div>
+
+                        <p id="totalBillInputError" class="privacy-note input-error-note" style="display:none;"></p>
+
+                        <button class="btn-primary" onclick="calculateTotalBill()">계산하기</button>
+
+                        <div id="totalBillResult" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="option-block" id="foreignerBlock">
                 <button class="btn-option" id="foreignerOptionBtn" onclick="toggleExpertOption('foreigner')">
                     <div class="option-title">외국인 근로자인가요?</div>
