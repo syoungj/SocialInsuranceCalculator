@@ -49,48 +49,51 @@ const INDUSTRY_RATES = [
 ];
 
 // ========================================
-// 외국인 근로자 — 국민연금 적용 판단용 자료
+// 외국인 근로자 — 국민연금·고용보험 적용 판단용 자료
 // ========================================
 
-// 체류자격별 국민연금 당연적용 여부 (2024.4.1. 기준) — 국적과 무관하게 여기서 먼저 걸러짐
+// pensionExcluded: 체류자격별 국민연금 당연적용 제외 여부 (2024.4.1. 기준) — 국적보다 먼저 걸러짐
+// employment: 체류자격별 고용보험 적용 (2026.10. 기준)
+//   full = 당연 적용, reciprocal = 상호주의 충족 시 당연 적용, partial = 고용안정·직능만 당연(실업급여는 신청 시),
+//   optional = 근로자 신청 시 전부 적용, excluded = 적용 제외
 const VISA_TYPES = [
-    { code: 'A-1', name: '외교', pensionExcluded: true },
-    { code: 'A-2', name: '공무', pensionExcluded: true },
-    { code: 'A-3', name: '협정', pensionExcluded: true },
-    { code: 'B-1', name: '사증면제', pensionExcluded: true },
-    { code: 'B-2', name: '관광통과', pensionExcluded: true },
-    { code: 'C-1', name: '일시취재', pensionExcluded: true },
-    { code: 'C-3', name: '단기방문', pensionExcluded: true },
-    { code: 'C-4', name: '단기취업', pensionExcluded: true },
-    { code: 'D-1', name: '문화예술', pensionExcluded: true },
-    { code: 'D-2', name: '유학', pensionExcluded: true },
-    { code: 'D-3', name: '기술연수', pensionExcluded: true },
-    { code: 'D-4', name: '일반연수', pensionExcluded: true },
-    { code: 'D-5', name: '취재', pensionExcluded: false },
-    { code: 'D-6', name: '종교', pensionExcluded: true },
-    { code: 'D-7', name: '주재', pensionExcluded: false },
-    { code: 'D-8', name: '기업투자', pensionExcluded: false },
-    { code: 'D-9', name: '무역경영', pensionExcluded: false },
-    { code: 'D-10', name: '구직', pensionExcluded: false },
-    { code: 'E-1', name: '교수', pensionExcluded: false },
-    { code: 'E-2', name: '회화', pensionExcluded: false },
-    { code: 'E-3', name: '연구', pensionExcluded: false },
-    { code: 'E-4', name: '기술지도', pensionExcluded: false },
-    { code: 'E-5', name: '전문직업', pensionExcluded: false },
-    { code: 'E-6', name: '예술흥행', pensionExcluded: false },
-    { code: 'E-7', name: '특정활동', pensionExcluded: false },
-    { code: 'E-8', name: '계절근로', pensionExcluded: false },
-    { code: 'E-9', name: '비전문취업', pensionExcluded: false },
-    { code: 'E-10', name: '선원취업', pensionExcluded: false },
-    { code: 'F-1', name: '방문동거', pensionExcluded: true },
-    { code: 'F-2', name: '거주', pensionExcluded: false },
-    { code: 'F-3', name: '동반', pensionExcluded: true },
-    { code: 'F-4', name: '재외동포', pensionExcluded: false },
-    { code: 'F-5', name: '영주', pensionExcluded: false },
-    { code: 'F-6', name: '결혼이민', pensionExcluded: false },
-    { code: 'G-1', name: '기타', pensionExcluded: true },
-    { code: 'H-1', name: '관광취업', pensionExcluded: false },
-    { code: 'H-2', name: '방문취업', pensionExcluded: false },
+    { code: 'A-1', name: '외교', pensionExcluded: true, employment: 'excluded' },
+    { code: 'A-2', name: '공무', pensionExcluded: true, employment: 'excluded' },
+    { code: 'A-3', name: '협정', pensionExcluded: true, employment: 'excluded' },
+    { code: 'B-1', name: '사증면제', pensionExcluded: true, employment: 'excluded' },
+    { code: 'B-2', name: '관광통과', pensionExcluded: true, employment: 'excluded' },
+    { code: 'C-1', name: '일시취재', pensionExcluded: true, employment: 'excluded' },
+    { code: 'C-3', name: '단기방문', pensionExcluded: true, employment: 'excluded' },
+    { code: 'C-4', name: '단기취업', pensionExcluded: true, employment: 'optional' },
+    { code: 'D-1', name: '문화예술', pensionExcluded: true, employment: 'excluded' },
+    { code: 'D-2', name: '유학', pensionExcluded: true, employment: 'excluded' },
+    { code: 'D-3', name: '기술연수', pensionExcluded: true, employment: 'excluded' },
+    { code: 'D-4', name: '일반연수', pensionExcluded: true, employment: 'excluded' },
+    { code: 'D-5', name: '취재', pensionExcluded: false, employment: 'excluded' },
+    { code: 'D-6', name: '종교', pensionExcluded: true, employment: 'excluded' },
+    { code: 'D-7', name: '주재', pensionExcluded: false, employment: 'reciprocal' },
+    { code: 'D-8', name: '기업투자', pensionExcluded: false, employment: 'reciprocal' },
+    { code: 'D-9', name: '무역경영', pensionExcluded: false, employment: 'reciprocal' },
+    { code: 'D-10', name: '구직', pensionExcluded: false, employment: 'excluded' },
+    { code: 'E-1', name: '교수', pensionExcluded: false, employment: 'optional' },
+    { code: 'E-2', name: '회화', pensionExcluded: false, employment: 'optional' },
+    { code: 'E-3', name: '연구', pensionExcluded: false, employment: 'optional' },
+    { code: 'E-4', name: '기술지도', pensionExcluded: false, employment: 'optional' },
+    { code: 'E-5', name: '전문직업', pensionExcluded: false, employment: 'optional' },
+    { code: 'E-6', name: '예술흥행', pensionExcluded: false, employment: 'optional' },
+    { code: 'E-7', name: '특정활동', pensionExcluded: false, employment: 'optional' },
+    { code: 'E-8', name: '계절근로', pensionExcluded: false, employment: 'optional' },
+    { code: 'E-9', name: '비전문취업', pensionExcluded: false, employment: 'partial' },
+    { code: 'E-10', name: '선원취업', pensionExcluded: false, employment: 'optional' },
+    { code: 'F-1', name: '방문동거', pensionExcluded: true, employment: 'excluded' },
+    { code: 'F-2', name: '거주', pensionExcluded: false, employment: 'full' },
+    { code: 'F-3', name: '동반', pensionExcluded: true, employment: 'excluded' },
+    { code: 'F-4', name: '재외동포', pensionExcluded: false, employment: 'optional' },
+    { code: 'F-5', name: '영주', pensionExcluded: false, employment: 'full' },
+    { code: 'F-6', name: '결혼이민', pensionExcluded: false, employment: 'full' },
+    { code: 'G-1', name: '기타', pensionExcluded: true, employment: 'excluded' },
+    { code: 'H-1', name: '관광취업', pensionExcluded: false, employment: 'excluded' },
+    { code: 'H-2', name: '방문취업', pensionExcluded: false, employment: 'partial' },
 ];
 
 // 국가별 국민연금 적용 여부 (2026.3.19. 기준, 136개국).
@@ -1721,8 +1724,8 @@ function clearEmployerFields() {
 function clearExpertFields() {
     document.getElementById('foreignerVisa').value = '';
     document.getElementById('foreignerCountry').value = '';
-    document.getElementById('foreignerPensionResult').style.display = 'none';
-    document.getElementById('foreignerPensionResult').innerHTML = '';
+    document.getElementById('foreignerResult').style.display = 'none';
+    document.getElementById('foreignerResult').innerHTML = '';
     document.getElementById('foreignerExpand').classList.remove('open');
     document.getElementById('foreignerOptionBtn').classList.remove('active');
 
@@ -1855,12 +1858,54 @@ function toggleExpertOption(type) {
     }
 }
 
-// 체류자격 → 국적 순서로 판단해 국민연금 당연적용 여부를 확인
-// (체류자격 자체가 제외 대상이면 국적과 무관하게 제외, 아니면 국적이 "사업장·지역 적용제외국"인지만 확인)
-function checkForeignerPension() {
+function buildForeignerEmploymentHTML(visa) {
+    const label = `"${visa.code}(${visa.name})"`;
+    let status;
+    let excluded = false;
+    let details = '';
+    let reason;
+
+    switch (visa.employment) {
+        case 'full':
+            status = '가입 대상';
+            reason = `체류자격 ${label}은 고용보험 당연 적용 대상이에요. 사업주가 일반 피보험자격 취득신고를 하면 돼요.`;
+            break;
+        case 'reciprocal':
+            status = '가입 대상 (상호주의 확인)';
+            reason = `체류자격 ${label}은 상호주의를 충족하면 고용보험 당연 적용 대상이에요. 근로자의 본국 법령이 대한민국 국민에게 고용보험에 상응하는 보험료·급여를 적용하지 않는 나라라면 적용되지 않으니, 취득신고 전에 국적별 상호주의 여부를 꼭 확인해주세요.`;
+            break;
+        case 'partial':
+            status = '일부 가입 대상';
+            details = `
+                <div class="result-row"><span>고용안정·직업능력개발</span><span>의무 가입</span></div>
+                <div class="result-row"><span>실업급여</span><span>근로자 신청 시 가입</span></div>`;
+            reason = `체류자격 ${label}은 고용안정·직업능력개발사업만 당연 적용이고, 실업급여는 근로자가 별도로 가입을 신청한 경우에만 적용돼요. 취득신고 시 실업급여 희망 여부를 따로 확인해주세요. 실업급여에 가입하지 않으면 근로자 공제분(실업급여 요율)은 없고, 사업주는 고용안정·직업능력개발 부분만 부담해요.`;
+            break;
+        case 'optional':
+            status = '근로자 신청 시 가입';
+            reason = `체류자격 ${label}은 고용보험 임의 적용 대상이에요. 근로자가 가입을 원하면 「외국인 고용보험 가입신청서」를 제출해야 하고, 신청하면 고용보험 전부(실업급여 포함)가 적용돼요.`;
+            break;
+        default:
+            status = '제외 대상';
+            excluded = true;
+            reason = `체류자격 ${label}은 원칙적으로 고용보험 적용 제외 대상이에요.`;
+    }
+
+    return `
+        <div class="result-row total ${excluded ? 'result-excluded' : ''}">
+            <span>고용보험</span>
+            <span>${status}</span>
+        </div>
+        ${details}
+        <p class="privacy-note">ℹ️ ${reason}</p>`;
+}
+
+// 체류자격 → 국적 순서로 국민연금 당연적용 여부를 판단하고, 고용보험은 체류자격만으로 판단
+// (국민연금: 체류자격 자체가 제외 대상이면 국적과 무관하게 제외, 아니면 국적이 "사업장·지역 적용제외국"인지만 확인)
+function checkForeignerInsurance() {
     const visaIdx = document.getElementById('foreignerVisa').value;
     const countryIdx = document.getElementById('foreignerCountry').value;
-    const resultBox = document.getElementById('foreignerPensionResult');
+    const resultBox = document.getElementById('foreignerResult');
 
     if (visaIdx === '' || countryIdx === '') {
         resultBox.style.display = 'block';
@@ -1892,7 +1937,9 @@ function checkForeignerPension() {
             <span>${excluded ? '제외 대상' : '가입 대상'}</span>
         </div>
         <p class="privacy-note">ℹ️ ${reason}</p>
-        <p class="privacy-note">※ 이 판단은 <a href="https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0035M0.do" target="_blank" rel="noopener noreferrer">국민연금공단</a>에서 제공하는 [2026.3.19]기준 국가별 연금제도 자료와 [2024.4.1]기준 체류자격별 적용 자료를 바탕으로 한 참고용이며, 실제 적용 여부는 국민연금공단에 별도로 확인해주세요.</p>
+        ${buildForeignerEmploymentHTML(visa)}
+        <p class="privacy-note">※ 고용보험은 체류자격 외에도 65세 이후 신규 고용, 월 소정근로시간 60시간 미만 등 일반 적용제외 사유를 별도로 확인해야 해요.</p>
+        <p class="privacy-note">※ 국민연금 판단은 <a href="https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0035M0.do" target="_blank" rel="noopener noreferrer">국민연금공단</a>에서 제공하는 [2026.3.19]기준 국가별 연금제도 자료와 [2024.4.1]기준 체류자격별 적용 자료를, 고용보험 판단은 「고용보험법」 제10조의2 및 같은 법 시행령에 따른 [2026.10]기준 체류자격별 적용 내용을 바탕으로 한 참고용이에요. 실제 적용 여부는 국민연금공단과 관할 근로복지공단 지사에 별도로 확인해주세요.</p>
     `;
 }
 

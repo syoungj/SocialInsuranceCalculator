@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#f5f6f8">
     <title>4대보험 계산기 - 국민노무법인</title>
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -264,7 +266,7 @@
             <div class="option-block" id="foreignerBlock">
                 <button class="btn-option" id="foreignerOptionBtn" onclick="toggleExpertOption('foreigner')">
                     <div class="option-title">외국인 근로자인가요?</div>
-                    <div class="option-desc">체류자격·국적에 따라 국민연금 적용 여부가 달라져요</div>
+                    <div class="option-desc">체류자격·국적에 따라 국민연금·고용보험 적용 여부가 달라져요</div>
                 </button>
 
                 <div class="option-expand" id="foreignerExpand">
@@ -279,9 +281,9 @@
                             <select id="foreignerCountry"></select>
                         </div>
 
-                        <button class="btn-primary" onclick="checkForeignerPension()">국민연금 대상 확인하기</button>
+                        <button class="btn-primary" onclick="checkForeignerInsurance()">국민연금·고용보험 대상 확인하기</button>
 
-                        <div id="foreignerPensionResult" style="display:none;"></div>
+                        <div id="foreignerResult" style="display:none;"></div>
                     </div>
                 </div>
             </div>
