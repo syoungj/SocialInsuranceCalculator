@@ -58,7 +58,7 @@
 
             <div class="input-group">
                 <label for="workerSalary">월급여액</label>
-                <input type="number" id="workerSalary" inputmode="numeric" placeholder="예: 3000000" autocomplete="new-password">
+                <input type="text" id="workerSalary" class="money-input" inputmode="numeric" placeholder="예: 3,000,000" autocomplete="new-password">
                 <span class="unit">원</span>
             </div>
 
@@ -134,6 +134,10 @@
 
             <button class="btn-secondary" onclick="showStep('step2')">이전</button>
         </div>
+
+        <div class="expert-entry">
+            <a href="#" onclick="goToExpert(); return false;">전문가용으로 보기</a>
+        </div>
     </div>
 
     <!-- 사업주 화면: 직원이 1명이든 여러 명이든 같은 방식 — 줄을 추가/삭제해서 인원수를 맞춤. 계산 결과도 같은 화면 안에 이어서 표시 -->
@@ -155,7 +159,7 @@
                 <div id="ownerInputRow" class="multi-worker-row" style="display:none;">
                     <div class="mw-row-inputs">
                         <input type="text" id="ownerBirth" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password">
-                        <input type="number" id="ownerSalary" inputmode="numeric" placeholder="사업주 기준급여" autocomplete="new-password">
+                        <input type="text" id="ownerSalary" class="money-input" inputmode="numeric" placeholder="사업주 기준급여" autocomplete="new-password">
                     </div>
                 </div>
             </div>
@@ -206,6 +210,10 @@
 
             <button class="btn-secondary" onclick="showStep('step2')">이전</button>
         </div>
+
+        <div class="expert-entry">
+            <a href="#" onclick="goToExpert(); return false;">전문가용으로 보기</a>
+        </div>
     </div>
 
     <!-- 전문가용 화면 -->
@@ -239,7 +247,7 @@
                             <div id="totalBillOwnerInputRow" class="multi-worker-row">
                                 <div class="mw-row-inputs">
                                     <input type="text" id="totalBillOwnerBirth" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password">
-                                    <input type="number" id="totalBillOwnerSalary" inputmode="numeric" placeholder="사업주 기준급여" autocomplete="new-password">
+                                    <input type="text" id="totalBillOwnerSalary" class="money-input" inputmode="numeric" placeholder="사업주 기준급여" autocomplete="new-password">
                                 </div>
                             </div>
                         </div>

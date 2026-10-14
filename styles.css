@@ -764,10 +764,9 @@ footer a {
     display: none;
 }
 
-/* 표 칸이 많은(사업주 결과) PDF는 세로보다 가로가 더 여유 있어서 가로로 인쇄되게 함 */
 @page {
-    size: landscape;
-    margin: 15mm;
+    size: A4 portrait;
+    margin: 16mm;
 }
 
 @media print {
@@ -784,129 +783,302 @@ footer a {
 
     body {
         background: #fff;
+        padding: 0;
     }
 
-    .print-header {
-        text-align: center;
-        margin-bottom: 20px;
-        border-bottom: 2px solid #000;
-        padding-bottom: 12px;
+    /* 배경색(두루누리 초록 줄, 합계 줄)이 인쇄에서 빠지지 않게 */
+    #printArea, #printArea * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 
-    .print-header h2 {
-        font-size: 20px;
-        margin: 0 0 6px;
+    #printArea {
+        color: #1f1e1c;
+        font-variant-numeric: tabular-nums;
+        word-break: keep-all;
     }
 
-    .print-header p {
-        font-size: 13px;
-        color: #333;
+    /* 문서 머리: 왼쪽 제목, 오른쪽 기준일·업종 */
+    .pr-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 16px;
+        padding-bottom: 14px;
+        border-bottom: 1.5px solid #1f1e1c;
+    }
+
+    .pr-kicker {
+        font-size: 11px;
+        color: #6f6c66;
+        margin-bottom: 6px;
+    }
+
+    .pr-title {
         margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.4px;
     }
 
-    .print-salary {
-        font-size: 15px;
-        margin-bottom: 14px;
-    }
-
-    .print-subheader {
-        font-size: 15px;
-        margin: 18px 0 8px;
-        padding-top: 12px;
-        border-top: 1px solid #ccc;
-    }
-
-    .print-subheader:first-of-type {
-        border-top: none;
-        padding-top: 0;
-    }
-
-    .print-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 16px;
-    }
-
-    /* 라벨+값 2칸짜리 요약표(총 부과 금액) — width만으로는(auto 레이아웃이라 그냥 힌트일 뿐)
-       좁은 화면에서 라벨 칸이 눌려서 글자가 어색하게 줄바꿈되는 걸 못 막아서,
-       table-layout: fixed로 칸 너비를 강제로 고정시킴 */
-    .print-summary-table {
-        table-layout: fixed;
-    }
-
-    .print-summary-table th {
-        width: 55%;
-        white-space: nowrap;
-    }
-
-    .print-summary-table td {
-        width: 45%;
-    }
-
-    /* 두루누리 적용 시 요약표 — 원래 금액 표와 헷갈리지 않게 살짝 톤 다운 */
-    .print-durunuri-summary th,
-    .print-durunuri-summary td {
-        font-style: italic;
-        color: #555;
-        background: #f5f5f5;
-    }
-
-    .print-durunuri-summary .print-total th,
-    .print-durunuri-summary .print-total td {
-        color: #333;
-    }
-
-    .print-table th,
-    .print-table td {
-        border: 1px solid #999;
-        padding: 6px 7px;
-        font-size: 12px;
-        text-align: left;
-    }
-
-    .print-table td {
+    .pr-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 3px;
+        font-size: 11px;
+        color: #6f6c66;
         text-align: right;
     }
 
-    .print-table .print-total th,
-    .print-table .print-total td {
+    /* 맨 위 요약 카드 (총액 / 두루누리 적용 시) */
+    .pr-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 20px;
+        break-inside: avoid;
+    }
+
+    .pr-card {
+        border: 1px solid #dcdad3;
+        border-radius: 4px;
+        padding: 16px 18px;
+    }
+
+    .pr-card-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #6f6c66;
+    }
+
+    .pr-card-total {
+        font-size: 24px;
         font-weight: 700;
-        font-size: 16px;
+        letter-spacing: -0.5px;
+        margin: 4px 0 12px;
+        color: #a3392f;
     }
 
-    .print-table .print-subtotal th,
-    .print-table .print-subtotal td {
+    .pr-card-total small {
+        font-size: 13px;
+        font-weight: 500;
+        color: #6f6c66;
+        margin-left: 3px;
+    }
+
+    .pr-card-list {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        row-gap: 6px;
+        font-size: 12.5px;
+        border-top: 1px solid #ecebe6;
+        padding-top: 10px;
+    }
+
+    .pr-card-list span:nth-child(odd) {
+        color: #3d3b37;
+    }
+
+    .pr-card.dn {
+        border-color: #c9d8cf;
+        background: #f6f9f7;
+    }
+
+    .pr-card.dn .pr-card-label,
+    .pr-card.dn .pr-card-total {
+        color: #2f6b4f;
+    }
+
+    .pr-card.dn .pr-card-list {
+        border-top-color: #dbe6df;
+    }
+
+    /* 근로자(단일) PDF 맨 위 핵심 숫자 3칸: 월급여 / 공제 합계 / 실수령액 */
+    .pr-keys {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        margin-top: 20px;
+        border: 1px solid #dcdad3;
+        border-radius: 4px;
+        break-inside: avoid;
+    }
+
+    .pr-key {
+        padding: 14px 18px;
+    }
+
+    .pr-key + .pr-key {
+        border-left: 1px solid #ecebe6;
+    }
+
+    .pr-key-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #6f6c66;
+    }
+
+    .pr-key-value {
+        margin-top: 4px;
+        font-size: 22px;
         font-weight: 700;
-        border-top: 2px solid #000;
+        letter-spacing: -0.4px;
     }
 
-    .print-table .print-durunuri-row td {
-        font-style: italic;
-        color: #555;
-        background: #f5f5f5;
-        border-top: none;
+    .pr-key-value.pr-accent {
+        color: #a3392f;
     }
 
-    .print-salary-sub {
+    .pr-key-value small {
+        font-size: 13px;
+        font-weight: 500;
+        color: #6f6c66;
+        margin-left: 3px;
+    }
+
+    .pr-caption {
+        margin: 10px 0 0;
+        font-size: 11px;
+        line-height: 1.6;
+        color: #6f6c66;
+    }
+
+    /* 표 제목 */
+    .pr-h2 {
+        margin: 28px 0 8px;
+        font-size: 14px;
+        font-weight: 700;
+        break-after: avoid;
+    }
+
+    .pr-h2 span {
+        font-weight: 500;
+        color: #6f6c66;
+    }
+
+    /* 상세 표: 세로줄 없이 위아래 굵은 선만 */
+    .pr-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+
+    .pr-table tr {
+        break-inside: avoid;
+    }
+
+    .pr-table th,
+    .pr-table td {
+        padding: 8px 6px;
+        text-align: right;
+        font-weight: 400;
+        border-bottom: 1px solid #ecebe6;
+    }
+
+    .pr-table th:first-child,
+    .pr-table td:first-child {
+        text-align: left;
+    }
+
+    .pr-table thead th {
+        padding: 7px 6px;
+        font-weight: 600;
+        border-top: 1px solid #1f1e1c;
+        border-bottom: 1px solid #1f1e1c;
+        vertical-align: bottom;
+    }
+
+    .pr-rate {
         display: block;
         font-size: 10px;
         font-weight: 400;
-        color: #666;
-        margin-top: 2px;
+        color: #8a8780;
     }
 
-    .print-notice {
-        font-size: 13px;
-        color: #333;
-        margin: 6px 0;
+    .pr-who {
+        display: block;
+        font-size: 10.5px;
+        color: #8a8780;
     }
 
-    .print-disclaimer {
-        font-size: 12px;
-        color: #555;
-        margin-top: 18px;
-        border-top: 1px solid #ccc;
-        padding-top: 10px;
+    .pr-table .pr-strong {
+        font-weight: 600;
+    }
+
+    .pr-table .pr-na {
+        color: #9a978f;
+    }
+
+    /* 두루누리 줄이 바로 아래 붙는 사람 줄은 점선으로 묶어 보이게 */
+    .pr-table tr.pr-has-dn th,
+    .pr-table tr.pr-has-dn td {
+        border-bottom: 1px dotted #dcdad3;
+    }
+
+    .pr-table tr.pr-dn th,
+    .pr-table tr.pr-dn td {
+        padding: 5px 6px;
+        font-size: 11.5px;
+        color: #2f6b4f;
+        background: #f6f9f7;
+    }
+
+    .pr-table tr.pr-dn th:first-child,
+    .pr-table tr.pr-dn td:first-child {
+        padding-left: 14px;
+    }
+
+    .pr-dn-cap {
+        color: #8a8780;
+    }
+
+    /* 근로자(단일) PDF의 "두루누리 적용 시" 세로 칸 */
+    .pr-table .pr-dn-col {
+        color: #2f6b4f;
+        background: #f6f9f7;
+    }
+
+    .pr-table tr.pr-sum th,
+    .pr-table tr.pr-sum td {
+        padding: 9px 6px;
+        font-weight: 700;
+        background: #f7f6f2;
+        border-top: 1px solid #1f1e1c;
+        border-bottom: 1px solid #1f1e1c;
+    }
+
+    .pr-table tr.pr-sum .pr-accent {
+        color: #a3392f;
+    }
+
+    /* 합계 줄 바로 아래 두루누리 합계 줄이 오면, 굵은 아래 선은 두루누리 줄로 넘김 */
+    .pr-table tr.pr-sum.pr-has-dn th,
+    .pr-table tr.pr-sum.pr-has-dn td {
+        border-bottom: none;
+    }
+
+    .pr-table tr.pr-dn.pr-sum-dn th,
+    .pr-table tr.pr-dn.pr-sum-dn td {
+        padding: 6px;
+        font-weight: 600;
+        border-bottom: 1px solid #1f1e1c;
+    }
+
+    /* 맨 아래 안내: 한 문단으로 몰지 않고 ※ 한 줄씩 */
+    .pr-notes {
+        margin-top: 24px;
+        padding-top: 12px;
+        border-top: 1px solid #ecebe6;
+        font-size: 10.5px;
+        line-height: 1.7;
+        color: #6f6c66;
+    }
+
+    .pr-notes p {
+        break-inside: avoid;
+        margin: 0;
+        padding-left: 1.2em;
+        text-indent: -1.2em;
     }
 }
 
