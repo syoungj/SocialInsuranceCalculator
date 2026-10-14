@@ -15,6 +15,12 @@ const DURUNURI_CAPS = {
     employmentWorker: 16560,
 };
 
+// 10원 미만 절사. 0.009 같은 요율은 컴퓨터가 정확히 저장하지 못해 3,000,000×0.009가
+// 26,999.999…로 계산되므로, 그냥 내림하면 27,000이 아니라 26,990이 됨 — 아주 작은 값을 더해 보정
+function floor10(x) {
+    return Math.floor(x / 10 + 1e-9) * 10;
+}
+
 // 2024년 산재보험료율표 (업종별, 천분율 → rate는 /1000 값)
 // 실제로는 근로복지공단이 사업 내용을 보고 업종을 판단하므로, 이 선택은 참고용 추정치임
 const INDUSTRY_RATES = [
@@ -269,12 +275,12 @@ function computeWorkerShare(workerSalary, workerBirthDate) {
 
     // 국민연금: 보수월액을 천원 단위로 절사 후 계산, 최종 금액도 일의 단위(10원 미만) 절사
     const pensionBase = Math.floor(workerSalary / 1000) * 1000;
-    const pension = pensionExempt ? 0 : Math.floor((pensionBase * RATES.pension / 2) / 10) * 10;
+    const pension = pensionExempt ? 0 : floor10(pensionBase * RATES.pension / 2);
 
     // 건강보험 · 장기요양보험: 둘 다 일의 단위(10원 미만) 절사
-    const health = Math.floor((workerSalary * RATES.health / 2) / 10) * 10;
-    const longterm = Math.floor((health * RATES.longterm) / 10) * 10;
-    const employment = employmentExempt ? 0 : Math.floor((workerSalary * RATES.employmentWorker) / 10) * 10;
+    const health = floor10(workerSalary * RATES.health / 2);
+    const longterm = floor10(health * RATES.longterm);
+    const employment = employmentExempt ? 0 : floor10(workerSalary * RATES.employmentWorker);
     const total = pension + health + longterm + employment;
     const netPay = workerSalary - total;
 
@@ -371,26 +377,26 @@ function computeEmployerShare(workerSalary, workerBirthDate, industryIdx) {
     const { pensionExempt, employmentExempt, pensionExemptNextMonth, employmentExemptNextMonth } = calculateExemptions(workerBirthDate);
 
     const pensionBase = Math.floor(workerSalary / 1000) * 1000;
-    const pensionEmployer = pensionExempt ? 0 : Math.floor((pensionBase * RATES.pension / 2) / 10) * 10;
+    const pensionEmployer = pensionExempt ? 0 : floor10(pensionBase * RATES.pension / 2);
 
-    const healthWorkerHalf = Math.floor((workerSalary * RATES.health / 2) / 10) * 10;
+    const healthWorkerHalf = floor10(workerSalary * RATES.health / 2);
     const healthEmployer = healthWorkerHalf; // 건강보험은 나이 제한 없이 계속 부과됨 (근로자·사업주 절반씩 동일)
 
-    const longtermEmployer = Math.floor((healthWorkerHalf * RATES.longterm) / 10) * 10;
+    const longtermEmployer = floor10(healthWorkerHalf * RATES.longterm);
 
     // 고용보험 사업주 몫: 실업급여분(0.9%, 65세 이상 제외)은 근로자와 동일하게 나이 영향을 받고,
     // 고용안정·직업능력개발사업분(0.25%)은 사업주 전용이라 나이와 무관하게 계속 부과됨
     const employmentEmployerRate = employmentExempt
         ? RATES.employmentStability
         : RATES.employmentWorker + RATES.employmentStability;
-    const employmentEmployer = Math.floor((workerSalary * employmentEmployerRate) / 10) * 10;
+    const employmentEmployer = floor10(workerSalary * employmentEmployerRate);
 
     // 산재보험 — 업종을 선택했을 때만 계산 (선택 전에는 총액에서 제외)
     let accidentEmployer = null;
     let accidentPermille = null;
     if (industryIdx !== '' && industryIdx !== null && industryIdx !== undefined) {
         const industry = INDUSTRY_RATES[parseInt(industryIdx, 10)];
-        accidentEmployer = Math.floor((workerSalary * industry.permille / 1000) / 10) * 10;
+        accidentEmployer = floor10(workerSalary * industry.permille / 1000);
         accidentPermille = industry.permille;
     }
 
@@ -412,10 +418,10 @@ function computeOwnerShare(ownerSalary, ownerBirthDate) {
     const { pensionExempt, pensionExemptNextMonth } = calculateExemptions(ownerBirthDate);
 
     const pensionBase = Math.floor(ownerSalary / 1000) * 1000;
-    const pensionEmployer = pensionExempt ? 0 : Math.floor((pensionBase * RATES.pension) / 10) * 10;
+    const pensionEmployer = pensionExempt ? 0 : floor10(pensionBase * RATES.pension);
 
-    const healthEmployer = Math.floor((ownerSalary * RATES.health) / 10) * 10;
-    const longtermEmployer = Math.floor((healthEmployer * RATES.longterm) / 10) * 10;
+    const healthEmployer = floor10(ownerSalary * RATES.health);
+    const longtermEmployer = floor10(healthEmployer * RATES.longterm);
 
     const total = pensionEmployer + healthEmployer + longtermEmployer;
 
@@ -424,16 +430,16 @@ function computeOwnerShare(ownerSalary, ownerBirthDate) {
 
 // 두루누리 지원 적용 시 본인 부담액 (80% 지원, 상한액 있으면 상한액만큼만 지원)
 function durunuriSupportedAmount(original, cap) {
-    const support80 = Math.floor((original * 0.8) / 10) * 10;
+    const support80 = floor10(original * 0.8);
     if (support80 > cap) {
         return original - cap;
     }
-    return Math.floor((original * 0.2) / 10) * 10;
+    return floor10(original * 0.2);
 }
 
 // 80% 지원금이 상한액을 넘어서, 실제로 상한액만큼만 지원된 경우인지
 function durunuriCapApplied(original, cap) {
-    return Math.floor((original * 0.8) / 10) * 10 > cap;
+    return floor10(original * 0.8) > cap;
 }
 
 // 상한액이 적용된 항목이 있을 때만 안내 문구를 만들어 반환 (없으면 빈 문자열)
@@ -599,9 +605,9 @@ function computeOwnerShareByType(ownerType, ownerSalary, ownerBirthDate) {
     const pensionBase = Math.floor(ownerSalary / 1000) * 1000;
 
     if (ownerType === 'individual') {
-        const pension = pensionExempt ? 0 : Math.floor((pensionBase * RATES.pension) / 10) * 10;
-        const health = Math.floor((ownerSalary * RATES.health) / 10) * 10;
-        const longterm = Math.floor((health * RATES.longterm) / 10) * 10;
+        const pension = pensionExempt ? 0 : floor10(pensionBase * RATES.pension);
+        const health = floor10(ownerSalary * RATES.health);
+        const longterm = floor10(health * RATES.longterm);
         return {
             selfPension: pension, selfHealth: health, selfLongterm: longterm,
             companyPension: 0, companyHealth: 0, companyLongterm: 0,
@@ -611,9 +617,9 @@ function computeOwnerShareByType(ownerType, ownerSalary, ownerBirthDate) {
     }
 
     // paidCorp
-    const halfPension = pensionExempt ? 0 : Math.floor((pensionBase * RATES.pension / 2) / 10) * 10;
-    const halfHealth = Math.floor((ownerSalary * RATES.health / 2) / 10) * 10;
-    const halfLongterm = Math.floor((halfHealth * RATES.longterm) / 10) * 10;
+    const halfPension = pensionExempt ? 0 : floor10(pensionBase * RATES.pension / 2);
+    const halfHealth = floor10(ownerSalary * RATES.health / 2);
+    const halfLongterm = floor10(halfHealth * RATES.longterm);
     return {
         selfPension: halfPension, selfHealth: halfHealth, selfLongterm: halfLongterm,
         companyPension: halfPension, companyHealth: halfHealth, companyLongterm: halfLongterm,
