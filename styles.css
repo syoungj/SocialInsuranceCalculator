@@ -534,6 +534,12 @@ header {
     max-height: 2400px;
 }
 
+/* 전문가용은 계산 결과(외국인 판정+보험료, 근로자 여러 명)가 2400px보다 길어질 수 있어
+   높이 한도를 두면 아래가 잘림 → 한도 없이 펼침 (대신 펼침 애니메이션은 없음) */
+#stepExpert .option-expand.open {
+    max-height: none;
+}
+
 .option-expand-inner {
     padding-top: 16px;
 }
@@ -791,8 +797,10 @@ footer a {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
+}
 
-    #printArea {
+/* 아래 보고서 모양(.pr-*)은 인쇄(#printArea)와 화면 미리보기(.pdf-content)가 같이 씀 */
+    #printArea, .pdf-content {
         color: #1f1e1c;
         font-variant-numeric: tabular-nums;
         word-break: keep-all;
@@ -878,6 +886,11 @@ footer a {
 
     .pr-card-list span:nth-child(odd) {
         color: #3d3b37;
+    }
+
+    /* 두루누리 카드를 끄면 카드가 하나만 남음 → 폭을 꽉 채움 */
+    .pr-card:only-child {
+        grid-column: 1 / -1;
     }
 
     .pr-card.dn {
@@ -1064,6 +1077,11 @@ footer a {
         border-bottom: 1px solid #1f1e1c;
     }
 
+    /* 짧은 표는 장이 넘어갈 때 중간에서 잘리지 않고 제목과 함께 통째로 넘어가게 */
+    .pr-keep {
+        break-inside: avoid;
+    }
+
     /* 맨 아래 안내: 한 문단으로 몰지 않고 ※ 한 줄씩 */
     .pr-notes {
         margin-top: 24px;
@@ -1080,6 +1098,101 @@ footer a {
         padding-left: 1.2em;
         text-indent: -1.2em;
     }
+
+/* ========================================
+   PDF 미리보기 (계산기 위에 A4 종이 모양으로 띄움)
+   ======================================== */
+.pdf-preview {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    background: #d9dce2;
+}
+
+.pdf-preview-bar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 12px 6px;
+    background: #fff;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+}
+
+.pdf-btn {
+    flex: 1;
+    padding: 11px 8px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    border: 1.5px solid rgba(23, 24, 28, 0.15);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.pdf-btn.primary {
+    flex: 1.6;
+    border-color: transparent;
+    background: var(--accent);
+    color: #fff;
+}
+
+.pdf-btn:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.pdf-dn-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 2px 12px 6px;
+    background: #fff;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.pdf-dn-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent);
+}
+
+.pdf-preview-hint {
+    margin: 0;
+    padding: 0 12px 10px;
+    background: #fff;
+    font-size: 12px;
+    color: var(--text-sub);
+    text-align: center;
+}
+
+.pdf-preview-scroll {
+    flex: 1;
+    overflow: auto;
+    padding: 12px;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 종이는 실제 A4 크기로 그리고, 화면이 좁으면 JS에서 비율만큼 줄여 보여줌 */
+.pdf-sheet-wrap {
+    margin: 0 auto;
+}
+
+.pdf-sheet {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 16mm;
+    box-sizing: border-box;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    transform-origin: top left;
 }
 
 /* ========================================
@@ -1141,6 +1254,57 @@ footer a {
     font-weight: 500;
     opacity: 0.6;
     font-size: 12.5px;
+}
+
+/* 한 달 총 부과 금액 — 명단 줄의 외국인 표시 */
+.tb-row-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tb-foreign-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--text-sub);
+    cursor: pointer;
+    align-self: flex-start;
+}
+
+.tb-foreign-toggle input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: var(--accent);
+}
+
+.tb-foreign-panel {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px;
+}
+
+.tb-foreign-panel select {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    border: 1.5px solid rgba(23, 24, 28, 0.15);
+    border-radius: 10px;
+    background: rgba(26, 109, 255, 0.06);
+    color: var(--text);
+}
+
+.tb-foreign-panel .tb-join {
+    grid-column: 1 / -1;
+}
+
+.multi-worker-row.mw-row-error .tb-foreign-panel select {
+    border-color: #e0554f;
 }
 
 .multi-worker-row.mw-row-error .mw-row-inputs input {
@@ -1255,6 +1419,11 @@ footer a {
     font-weight: 700;
     color: var(--accent-dark);
     margin-bottom: 4px;
+}
+
+/* 외국인 결과는 안내 상자가 여러 개 이어져서, 위로 당겨 붙이면 앞 글자와 겹침 → 당기지 않고 간격만 둠 */
+#foreignerResult .privacy-note {
+    margin: 10px 0 12px;
 }
 
 .mw-owner-note {

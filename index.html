@@ -274,14 +274,14 @@
             <div class="option-block" id="foreignerBlock">
                 <button class="btn-option" id="foreignerOptionBtn" onclick="toggleExpertOption('foreigner')">
                     <div class="option-title">외국인 근로자인가요?</div>
-                    <div class="option-desc">체류자격·국적에 따라 국민연금·고용보험 적용 여부가 달라져요</div>
+                    <div class="option-desc">체류자격·국적에 따라 국민연금·고용보험 적용 여부와 보험료가 달라져요</div>
                 </button>
 
                 <div class="option-expand" id="foreignerExpand">
                     <div class="option-expand-inner">
                         <div class="input-group">
                             <label for="foreignerVisa">체류자격을 선택해주세요</label>
-                            <select id="foreignerVisa"></select>
+                            <select id="foreignerVisa" onchange="toggleForeignerJoinRow()"></select>
                         </div>
 
                         <div class="input-group">
@@ -289,7 +289,30 @@
                             <select id="foreignerCountry"></select>
                         </div>
 
-                        <button class="btn-primary" onclick="checkForeignerInsurance()">국민연금·고용보험 대상 확인하기</button>
+                        <div class="input-group" id="foreignerJoinRow" style="display:none;">
+                            <label id="foreignerJoinLabel">고용보험(실업급여) 가입을 신청했나요?</label>
+                            <div class="owner-type-radios">
+                                <label><input type="radio" name="foreignerJoin" value="yes"> 가입 신청함</label>
+                                <label><input type="radio" name="foreignerJoin" value="no" checked> 가입 신청 안 함</label>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>보험료까지 계산하려면 생년월과 월급여를 입력하세요 (선택)</label>
+                            <div class="multi-worker-row">
+                                <div class="mw-row-inputs">
+                                    <input type="text" id="foreignerBirth" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password">
+                                    <input type="text" id="foreignerSalary" class="money-input" inputmode="numeric" placeholder="월급여" autocomplete="new-password">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="foreignerIndustryType">업종을 선택해주세요 (산재보험료 계산용, 선택)</label>
+                            <select id="foreignerIndustryType"></select>
+                        </div>
+
+                        <button class="btn-primary" onclick="checkForeignerInsurance()">대상 확인 및 보험료 계산</button>
 
                         <div id="foreignerResult" style="display:none;"></div>
                     </div>
@@ -308,6 +331,21 @@
     </footer>
 
     <!-- PDF 저장(인쇄) 시에만 보이는 영역 — 화면에는 항상 숨겨져 있음 -->
+    <div id="pdfPreview" class="pdf-preview" style="display:none;">
+        <div class="pdf-preview-bar">
+            <button class="pdf-btn primary" id="pdfSaveBtn" onclick="savePdfFile()" disabled>PDF 준비 중…</button>
+            <button class="pdf-btn" id="pdfPrintBtn" onclick="printFromPreview()">인쇄</button>
+            <button class="pdf-btn" onclick="closePdfPreview()">닫기</button>
+        </div>
+        <label class="pdf-dn-toggle" id="pdfDnToggleRow"><input type="checkbox" id="pdfDnToggle" checked onchange="togglePdfDurunuri(this.checked)"> 두루누리 적용 금액 표시</label>
+        <p class="pdf-preview-hint">확대해서 보거나 화면을 캡처해도 돼요.</p>
+        <div class="pdf-preview-scroll" id="pdfPreviewScroll">
+            <div class="pdf-sheet-wrap" id="pdfSheetWrap">
+                <div class="pdf-sheet" id="pdfSheet"><div class="pdf-content" id="pdfContent"></div></div>
+            </div>
+        </div>
+    </div>
+
     <div id="printArea" class="print-only"></div>
 
     <script src="script.js"></script>
