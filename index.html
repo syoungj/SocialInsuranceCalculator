@@ -3,330 +3,401 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#f5f6f8">
+    <meta name="theme-color" content="#f3f6fb">
     <title>4대보험 계산기 - 국민노무법인</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-    <!-- 움직이는 배경 원 (블러 처리된 색 얼룩) -->
-    <div class="bg-blobs">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
+<body data-step="step2">
+    <!-- 움직이는 배경 공 (파란 공·초록 공이 화면 전체를 돌며 서로 자리를 바꿈) -->
+    <div class="bg-blobs" aria-hidden="true">
+        <div class="blob blob-blue"></div>
+        <div class="blob blob-green"></div>
     </div>
 
-    <!-- 로고 및 헤더 -->
-    <header>
-        <div class="logo-container">
-            <h1>4대보험 계산기</h1>
+    <!-- 상단 떠 있는 유리 막대: 왼쪽 앱 이름, 오른쪽은 화면에 따라 상담/이전 버튼 (body의 data-step으로 전환) -->
+    <header class="app-bar">
+        <a class="app-brand" href="#" onclick="showStep('step2'); return false;">
+            <img src="icon-192.png" alt="" width="44" height="44">
+            <span class="app-brand-text">
+                <span class="app-name">4대보험 계산기</span>
+                <span class="app-org">국민노무법인</span>
+            </span>
+        </a>
+        <div class="app-bar-actions">
+            <a class="bar-call" href="tel:02-2671-0091">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></svg><span class="bar-call-long">상담 02-2671-0091</span><span class="bar-call-short">상담</span>
+            </a>
+            <button class="header-refresh-btn" onclick="headerRefresh()" aria-label="지금 화면 초기화">⟳</button>
+            <button class="bar-back" onclick="showStep('step2')">
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>이전
+            </button>
         </div>
-        <button class="header-refresh-btn" onclick="headerRefresh()" aria-label="지금 화면 초기화">⟳</button>
     </header>
 
     <!-- 선택 화면 (앱 첫 화면): 근로자·사업주 중 선택하면 화면이 전환되어 각각의 입력 화면으로 이동 -->
     <div id="step2" class="step active">
-        <div class="card">
-            <h2>무엇이 궁금하세요?</h2>
-
-            <div class="option-block" id="workerBlock">
-                <button class="btn-option" id="workerOptionBtn" onclick="goToWorkerStep()">
-                    <div class="option-title">내 월급에서 얼마 떼나요?</div>
-                    <div class="option-desc">실제로 받는 금액을 확인해요</div>
-                </button>
+        <div class="home">
+            <div class="home-intro">
+                <p class="home-kicker">2026년 보험료율 기준</p>
+                <h2 class="home-title">무엇이 <br class="pc-only">궁금하세요?</h2>
             </div>
 
-            <div class="option-block" id="employerBlock">
-                <button class="btn-option" id="employerOptionBtn" onclick="goToEmployerStep()">
-                    <div class="option-title">직원 채용하면 제가 얼마 내나요?</div>
-                    <div class="option-desc">사업주가 실제로 부담하는 총 금액이에요</div>
-                </button>
+            <div class="home-choices">
+                <div class="choice-grid">
+                    <button class="choice-card" id="workerOptionBtn" onclick="goToWorkerStep()">
+                        <span class="choice-arrow" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+                        <span class="choice-text">
+                            <span class="option-title">내 월급에서 <br class="pc-only">얼마 떼나요?</span>
+                            <span class="option-desc">실제로 받는 금액을 확인해요</span>
+                        </span>
+                    </button>
+                    <button class="choice-card" id="employerOptionBtn" onclick="goToEmployerStep()">
+                        <span class="choice-arrow" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+                        <span class="choice-text">
+                            <span class="option-title">직원 채용하면 <br class="pc-only">제가 얼마 내나요?</span>
+                            <span class="option-desc">사업주가 실제로 부담하는 총 금액이에요</span>
+                        </span>
+                    </button>
+                </div>
+
+                <div class="expert-entry">
+                    <a href="#" onclick="goToExpert(); return false;">전문가용으로 보기<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+                </div>
+            </div>
+
+            <!-- 요율 한 줄 요약 — script.js의 RATES 값으로 채움 (요율이 바뀌면 여기도 자동으로 바뀜) -->
+            <p class="rate-summary">
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+                <span id="rateSummary"></span>
+            </p>
+        </div>
+    </div>
+
+    <!-- 근로자 화면: 급여·생년월을 입력하고 계산하면 같은 화면 안에 결과가 이어서 나타남 (급여를 고쳐 다시 계산하기 편하도록)
+         PC에서는 왼쪽 입력, 오른쪽 결과로 나란히 보임 -->
+    <div id="stepWorker" class="step">
+        <!-- 두 계산 전환 버튼 — 처음 화면으로 돌아가지 않고 바로 다른 계산으로 (입력해 둔 값은 그대로 남음) -->
+        <div class="calc-layout">
+            <div class="calc-left">
+                <nav class="calc-switch" aria-label="계산 종류">
+                    <button class="calc-switch-btn current" aria-current="page" onclick="goToWorkerStep()">내 월급에서<br>얼마 떼나요?</button>
+                    <button class="calc-switch-btn" onclick="goToEmployerStep()">직원 채용하면<br>제가 얼마 내나요?</button>
+                </nav>
+
+                <div class="card calc-input">
+                    <h2 class="sr-only">내 월급에서 얼마 떼나요?</h2>
+                    <div class="input-pair">
+                        <div class="input-group">
+                            <label for="workerSalary">월급여액</label>
+                            <input type="text" id="workerSalary" class="money-input" inputmode="numeric" placeholder="예: 3,000,000" autocomplete="new-password">
+                            <span class="unit">원</span>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="workerBirth">태어난 년월<span class="label-hint"> (6자리)</span></label>
+                            <input type="text" id="workerBirth" inputmode="numeric" placeholder="예: 199001" maxlength="6" autocomplete="new-password">
+                        </div>
+                    </div>
+
+                    <p id="workerInputError" class="privacy-note input-error-note" style="display:none;">⚠️ 급여와 태어난 년월(6자리)을 올바르게 입력해주세요.</p>
+
+                    <button class="btn-primary" onclick="calculateWorkerResult()">계산하기</button>
+                    <p class="input-footnote">입력하신 정보는 계산에만 사용되고 저장되거나 기록되지 않습니다.</p>
+                </div>
+            </div>
+
+            <div class="calc-output">
+                <!-- 근로자 결과 -->
+                <div id="workerResultSection" style="display:none;">
+                    <section class="result-card" aria-labelledby="netPayLabel">
+                        <div class="net-band">
+                            <h3 id="netPayLabel">실수령액</h3>
+                            <p class="net-amount" id="resultNetPay">0원</p>
+                            <p class="net-caption">월급여액 <b id="displaySalary">0원</b></p>
+                        </div>
+
+                        <div class="result-table worker-table">
+                            <div class="result-row worker-table-head" aria-hidden="true">
+                                <span>항목</span><span>요율</span><span>공제액</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="r-name">국민연금</span><span id="resultPensionRate" class="rate-tag"></span>
+                                <span class="r-amount" id="resultPension">0원</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="r-name">건강보험</span><span id="resultHealthRate" class="rate-tag"></span>
+                                <span class="r-amount" id="resultHealth">0원</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="r-name">장기요양보험</span><span id="resultLongtermRate" class="rate-tag"></span>
+                                <span class="r-amount" id="resultLongterm">0원</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="r-name">고용보험</span><span id="resultEmploymentRate" class="rate-tag"></span>
+                                <span class="r-amount" id="resultEmployment">0원</span>
+                            </div>
+                        </div>
+
+                        <div class="result-row subtotal">
+                            <span>공제 합계</span>
+                            <span id="resultTotal">0원</span>
+                        </div>
+                    </section>
+
+                    <p id="ageNotice" class="privacy-note" style="display:none;"></p>
+
+                    <div class="result-actions">
+                    <!-- 두루누리 지원 토글 -->
+                    <div id="durunuriBanner" class="durunuri-banner" style="display:none;">
+                        <svg class="banner-check" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>
+                        <div class="banner-body">
+                            <div class="banner-content">
+                                <div class="banner-title">
+                                    두루누리 사회보험료 지원 가능 대상이에요
+                                    <a href="https://insurancesupport.or.kr/durunuri/intro.php" target="_blank" rel="noopener noreferrer" class="banner-info-link" aria-label="두루누리 사회보험료 지원사업 자세히 보기 (새 창)">ⓘ</a>
+                                </div>
+                                <div class="banner-desc">월급여 270만원 이하면 보험료의 80%를 지원받을 수 있어요.</div>
+                                <div class="banner-note">※ 이 외에도 취득 전 1년간 고용보험 가입 이력이 없어야 하는 등 추가 조건이 있어요. 정확한 대상 여부는 위 안내 페이지에서 확인해주세요.</div>
+                                <div id="durunuriCapNotice" class="banner-note" style="display:none;"></div>
+                            </div>
+                            <div class="banner-buttons">
+                                <button id="durunuriToggleBtn" class="banner-button" onclick="toggleDurunuri()">지원받으면 얼마?</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="btn-primary btn-pdf" onclick="printResult('worker')"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>PDF로 저장</button>
+                        <button class="btn-secondary" onclick="restart()">처음부터 다시</button>
+                    </div>
+                    </div>
+                </div>
+
+                <!-- PC에서 계산 전에 오른쪽 칸이 비어 보이지 않게 하는 자리 표시 (결과가 나오면 CSS로 숨김) -->
+                <div class="result-empty">월급여액과 태어난 년월을 넣고<br>계산하기를 누르면 여기에 결과가 나와요</div>
             </div>
         </div>
 
         <div class="expert-entry">
-            <a href="#" onclick="goToExpert(); return false;">전문가용으로 보기</a>
+            <a href="#" onclick="goToExpert(); return false;">전문가용으로 보기<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
         </div>
     </div>
 
-    <!-- 근로자 화면: 급여·생년월을 입력하고 계산하면 같은 화면 안에 결과가 이어서 나타남 (급여를 고쳐 다시 계산하기 편하도록) -->
-    <div id="stepWorker" class="step">
-        <div class="card">
-            <h2>내 월급에서 얼마 떼나요?</h2>
-            <p class="privacy-note">🔒 입력하신 정보는 계산에만 사용되고 저장되거나 기록되지 않습니다.</p>
+    <!-- 사업주 화면: 직원이 1명이든 여러 명이든 같은 방식 — 줄을 추가/삭제해서 인원수를 맞춤. 계산 결과도 같은 화면 안에 이어서 표시
+         PC에서는 왼쪽 입력, 오른쪽 결과로 나란히 보임 -->
+    <div id="stepEmployer" class="step">
+        <div class="calc-layout">
+            <div class="calc-left">
+                <nav class="calc-switch" aria-label="계산 종류">
+                    <button class="calc-switch-btn" onclick="goToWorkerStep()">내 월급에서<br>얼마 떼나요?</button>
+                    <button class="calc-switch-btn current" aria-current="page" onclick="goToEmployerStep()">직원 채용하면<br>제가 얼마 내나요?</button>
+                </nav>
 
-            <div class="input-group">
-                <label for="workerSalary">월급여액</label>
-                <input type="text" id="workerSalary" class="money-input" inputmode="numeric" placeholder="예: 3,000,000" autocomplete="new-password">
-                <span class="unit">원</span>
-            </div>
-
-            <div class="input-group">
-                <label for="workerBirth">태어난 년월 (6자리)</label>
-                <input type="text" id="workerBirth" inputmode="numeric" placeholder="예: 199001" maxlength="6" autocomplete="new-password">
-            </div>
-
-            <p id="workerInputError" class="privacy-note input-error-note" style="display:none;">⚠️ 급여와 태어난 년월(6자리)을 올바르게 입력해주세요.</p>
-
-            <button class="btn-primary" onclick="calculateWorkerResult()">계산하기</button>
-
-            <!-- 근로자 결과 -->
-            <div id="workerResultSection" style="display:none;">
-                <div class="result-summary">
-                    <div class="salary-info">
-                        <span>월급여액</span>
-                        <span id="displaySalary">0원</span>
+                <div class="card calc-input">
+                    <h2 class="sr-only">직원 채용하면 제가 얼마 내나요?</h2>
+                    <div class="input-group">
+                        <label for="multiIndustryType">업종을 선택해주세요 (산재보험료 계산용)</label>
+                        <select id="multiIndustryType"></select>
                     </div>
-                </div>
 
-                <div class="result-row total">
-                    <span>실수령액</span>
-                    <span id="resultNetPay">0원</span>
-                </div>
-
-                <div class="result-table">
-                    <div class="result-row">
-                        <span>국민연금<span id="resultPensionRate" class="rate-tag"></span></span>
-                        <span id="resultPension">0원</span>
-                    </div>
-                    <div class="result-row">
-                        <span>건강보험<span id="resultHealthRate" class="rate-tag"></span></span>
-                        <span id="resultHealth">0원</span>
-                    </div>
-                    <div class="result-row">
-                        <span>장기요양보험<span id="resultLongtermRate" class="rate-tag"></span></span>
-                        <span id="resultLongterm">0원</span>
-                    </div>
-                    <div class="result-row">
-                        <span>고용보험<span id="resultEmploymentRate" class="rate-tag"></span></span>
-                        <span id="resultEmployment">0원</span>
-                    </div>
-                    <div class="result-row subtotal">
-                        <span>공제 합계</span>
-                        <span id="resultTotal">0원</span>
-                    </div>
-                </div>
-
-                <p id="ageNotice" class="privacy-note" style="display:none;"></p>
-
-                <!-- 두루누리 지원 토글 -->
-                <div id="durunuriBanner" class="durunuri-banner" style="display:none;">
-                    <div class="banner-content">
-                        <div class="banner-title">
-                            두루누리 사회보험료 지원 가능 대상이에요
-                            <a href="https://insurancesupport.or.kr/durunuri/intro.php" target="_blank" rel="noopener noreferrer" class="banner-info-link" aria-label="두루누리 사회보험료 지원사업 자세히 보기 (새 창)">ⓘ</a>
+                    <div class="owner-section">
+                        <label class="owner-toggle-label">
+                            <input type="checkbox" id="includeOwnerCheckbox" onchange="toggleOwnerInputs()">
+                            <span>사업주 본인 보험료도 함께 계산</span>
+                        </label>
+                        <div id="ownerInputRow" class="multi-worker-row" style="display:none;">
+                            <div class="mw-row-inputs">
+                                <input type="text" id="ownerBirth" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password">
+                                <input type="text" id="ownerSalary" class="money-input" inputmode="numeric" placeholder="사업주 기준급여" autocomplete="new-password">
+                            </div>
                         </div>
-                        <div class="banner-desc">월급여 270만원 이하면 보험료의 80%를 지원받을 수 있어요.</div>
-                        <div class="banner-note">※ 이 외에도 취득 전 1년간 고용보험 가입 이력이 없어야 하는 등 추가 조건이 있어요. 정확한 대상 여부는 위 안내 페이지에서 확인해주세요.</div>
-                        <div id="durunuriCapNotice" class="banner-note" style="display:none;"></div>
                     </div>
-                    <div class="banner-buttons">
-                        <button id="durunuriToggleBtn" class="banner-button" onclick="toggleDurunuri()">지원받으면 얼마?</button>
+
+                    <div class="mw-rows-header">
+                        <span class="mw-rows-label">근로자 명단</span>
+                        <div class="mw-rows-controls">
+                            <button class="mw-icon-btn" onclick="removeMultiWorkerRow()" aria-label="근로자 줄 삭제">−</button>
+                            <button class="mw-icon-btn" onclick="addMultiWorkerRow()" aria-label="근로자 줄 추가">+</button>
+                        </div>
+                    </div>
+
+                    <div id="multiWorkerRows" class="multi-worker-rows"></div>
+
+                    <p id="employerInputError" class="privacy-note input-error-note" style="display:none;"></p>
+
+                    <button class="btn-primary" onclick="calculateEmployerAll()">계산하기</button>
+                    <p class="input-footnote">입력하신 정보는 계산에만 사용되고 저장되거나 기록되지 않습니다.</p>
+                    <p class="input-footnote">근로자가 실제로 부담하는 몫과 사업주가 실제로 부담하는 몫을 각각 따로 보여드려요. 산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액이에요 — 근로복지공단이 실제 사업 내용을 보고 다른 업종으로 분류할 수 있어 정확하지 않을 수 있으니, 정확한 산재보험료율은 근로복지공단(1588-0075)에 별도로 확인해주세요.</p>
+                </div>
+            </div>
+
+            <div class="calc-output">
+                <!-- 계산 결과: 근로자 공제분 / 사업주 부담분 두 탭으로 나눠서 그 자리에 펼쳐짐 -->
+                <div id="employerResultTabs" style="display:none;">
+                    <div class="option-block option-block-sub" id="deductionBlock">
+                        <button class="btn-option" id="deductionOptionBtn" onclick="toggleEmployerSubTab('deduction')">
+                            <div class="option-title">근로자 월급에서 얼마 공제하나요?</div>
+                            <div class="option-desc">각 근로자가 실제로 받는 금액을 확인해요</div>
+                        </button>
+                        <div class="option-expand" id="deductionExpand">
+                            <div class="option-expand-inner" id="deductionResultContent"></div>
+                        </div>
+                    </div>
+
+                    <div class="option-block option-block-sub" id="burdenBlock">
+                        <button class="btn-option" id="burdenOptionBtn" onclick="toggleEmployerSubTab('burden')">
+                            <div class="option-title">사업주는 얼마 부담해야 하나요?</div>
+                            <div class="option-desc">직원 채용으로 실제 지출하는 총 금액이에요</div>
+                        </button>
+                        <div class="option-expand" id="burdenExpand">
+                            <div class="option-expand-inner" id="burdenResultContent"></div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="button-row">
-                    <button class="btn-secondary" onclick="printResult('worker')">PDF로 저장</button>
+                <div class="button-row" id="employerButtonRow" style="display:none;">
+                    <button class="btn-primary btn-pdf" onclick="printEmployerAll()"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>PDF로 저장</button>
                     <button class="btn-secondary" onclick="restart()">처음부터 다시</button>
                 </div>
-            </div>
 
-            <button class="btn-secondary" onclick="showStep('step2')">이전</button>
+                <div class="result-empty">업종과 근로자 명단을 넣고<br>계산하기를 누르면 여기에 결과가 나와요</div>
+            </div>
         </div>
 
         <div class="expert-entry">
-            <a href="#" onclick="goToExpert(); return false;">전문가용으로 보기</a>
+            <a href="#" onclick="goToExpert(); return false;">전문가용으로 보기<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
         </div>
     </div>
 
-    <!-- 사업주 화면: 직원이 1명이든 여러 명이든 같은 방식 — 줄을 추가/삭제해서 인원수를 맞춤. 계산 결과도 같은 화면 안에 이어서 표시 -->
-    <div id="stepEmployer" class="step">
-        <div class="card">
-            <h2>직원 채용하면 제가 얼마 내나요?</h2>
-            <p class="privacy-note">🔒 입력하신 정보는 계산에만 사용되고 저장되거나 기록되지 않습니다.</p>
-
-            <div class="input-group">
-                <label for="multiIndustryType">업종을 선택해주세요 (산재보험료 계산용)</label>
-                <select id="multiIndustryType"></select>
-            </div>
-
-            <div class="owner-section">
-                <label class="owner-toggle-label">
-                    <input type="checkbox" id="includeOwnerCheckbox" onchange="toggleOwnerInputs()">
-                    <span>사업주 본인 보험료도 함께 계산</span>
-                </label>
-                <div id="ownerInputRow" class="multi-worker-row" style="display:none;">
-                    <div class="mw-row-inputs">
-                        <input type="text" id="ownerBirth" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password">
-                        <input type="text" id="ownerSalary" class="money-input" inputmode="numeric" placeholder="사업주 기준급여" autocomplete="new-password">
-                    </div>
-                </div>
-            </div>
-
-            <div class="mw-rows-header">
-                <span class="mw-rows-label">근로자 명단</span>
-                <div class="mw-rows-controls">
-                    <button class="mw-icon-btn" onclick="removeMultiWorkerRow()" aria-label="근로자 줄 삭제">−</button>
-                    <button class="mw-icon-btn" onclick="addMultiWorkerRow()" aria-label="근로자 줄 추가">+</button>
-                </div>
-            </div>
-
-            <div id="multiWorkerRows" class="multi-worker-rows"></div>
-
-            <p id="employerInputError" class="privacy-note input-error-note" style="display:none;"></p>
-
-            <button class="btn-primary" onclick="calculateEmployerAll()">계산하기</button>
-
-            <!-- 계산 결과: 근로자 공제분 / 사업주 부담분 두 탭으로 나눠서 그 자리에 펼쳐짐 -->
-            <div id="employerResultTabs" style="display:none;">
-                <div class="option-block option-block-sub" id="deductionBlock">
-                    <button class="btn-option" id="deductionOptionBtn" onclick="toggleEmployerSubTab('deduction')">
-                        <div class="option-title">근로자 월급에서 얼마 공제하나요?</div>
-                        <div class="option-desc">각 근로자가 실제로 받는 금액을 확인해요</div>
-                    </button>
-                    <div class="option-expand" id="deductionExpand">
-                        <div class="option-expand-inner" id="deductionResultContent"></div>
-                    </div>
-                </div>
-
-                <div class="option-block option-block-sub" id="burdenBlock">
-                    <button class="btn-option" id="burdenOptionBtn" onclick="toggleEmployerSubTab('burden')">
-                        <div class="option-title">사업주는 얼마 부담해야 하나요?</div>
-                        <div class="option-desc">직원 채용으로 실제 지출하는 총 금액이에요</div>
-                    </button>
-                    <div class="option-expand" id="burdenExpand">
-                        <div class="option-expand-inner" id="burdenResultContent"></div>
-                    </div>
-                </div>
-            </div>
-
-            <p class="privacy-note">ℹ️ 근로자가 실제로 부담하는 몫과 사업주가 실제로 부담하는 몫을 각각 따로 보여드려요. 산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액이에요 — 근로복지공단이 실제 사업 내용을 보고 다른 업종으로 분류할 수 있어 정확하지 않을 수 있으니, 정확한 산재보험료율은 근로복지공단(1588-0075)에 별도로 확인해주세요.</p>
-
-            <div class="button-row" id="employerButtonRow" style="display:none;">
-                <button class="btn-secondary" onclick="printEmployerAll()">PDF로 저장</button>
-                <button class="btn-secondary" onclick="restart()">처음부터 다시</button>
-            </div>
-
-            <button class="btn-secondary" onclick="showStep('step2')">이전</button>
-        </div>
-
-        <div class="expert-entry">
-            <a href="#" onclick="goToExpert(); return false;">전문가용으로 보기</a>
-        </div>
-    </div>
-
-    <!-- 전문가용 화면 -->
+    <!-- 전문가용 화면: 두 항목은 아코디언 (그 자리에서 펼쳐지고 한 번에 하나만 열림) -->
     <div id="stepExpert" class="step">
-        <div class="card">
-            <h2>전문가용 계산기</h2>
-            <p class="privacy-note">🔒 입력하신 정보는 계산에만 사용되고 저장되거나 기록되지 않습니다.</p>
+        <div class="xp-head">
+            <h2 class="xp-title">전문가용 계산기</h2>
+            <p class="xp-privacy"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>입력하신 정보는 계산에만 사용되고 저장되거나 기록되지 않습니다.</span></p>
+        </div>
 
-            <div class="option-block" id="totalBillBlock">
-                <button class="btn-option" id="totalBillOptionBtn" onclick="toggleExpertOption('totalBill')">
-                    <div class="option-title">한 달 총 부과 금액</div>
-                    <div class="option-desc">근로자 공제분 + 사업주 부담분을 합친 실제 고지서 기준 총액을 계산해요</div>
+        <div class="xp-list">
+            <section class="xp-item" id="totalBillBlock">
+                <button class="xp-toggle" id="totalBillOptionBtn" onclick="toggleExpertOption('totalBill')" aria-expanded="false" aria-controls="totalBillExpand">
+                    <span class="xp-toggle-text">
+                        <span class="xp-toggle-title">한 달 총 부과 금액</span>
+                        <span class="xp-toggle-desc">근로자 공제분 + 사업주 부담분을 합친 실제 고지서 기준 총액을 계산해요</span>
+                    </span>
+                    <span class="xp-arrow" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
                 </button>
 
                 <div class="option-expand" id="totalBillExpand">
-                    <div class="option-expand-inner">
-                        <div class="input-group">
-                            <label for="totalBillIndustryType">업종을 선택해주세요 (산재보험료 계산용)</label>
-                            <select id="totalBillIndustryType"></select>
+                    <div class="xp-form tb-form">
+                        <div class="tb-ind">
+                            <label class="xp-label" for="totalBillIndustryType">업종 <span class="xp-label-sub">(산재보험료 계산용)</span></label>
+                            <select id="totalBillIndustryType" class="xp-input"></select>
                         </div>
 
-                        <div class="owner-section">
-                            <div class="input-group">
-                                <label>사업주 유형을 선택해주세요 (총 부과 금액에는 사업주 본인 몫도 항상 포함돼요)</label>
-                                <div class="owner-type-radios">
-                                    <label><input type="radio" name="totalBillOwnerType" value="individual" checked onchange="toggleTotalBillOwnerInputs()"> 개인사업자 (본인이 전액 부담)</label>
-                                    <label><input type="radio" name="totalBillOwnerType" value="paidCorp" onchange="toggleTotalBillOwnerInputs()"> 법인 대표(유보수) — 근로자처럼 절반만 부담</label>
-                                    <label><input type="radio" name="totalBillOwnerType" value="unpaidCorp" onchange="toggleTotalBillOwnerInputs()"> 법인 대표(무보수) — 보수가 없어 0원</label>
-                                </div>
+                        <fieldset class="tb-type">
+                            <legend class="xp-label">사업주 유형 <span class="xp-label-sub">— 총 부과 금액에는 사업주 본인 몫도 항상 포함돼요</span></legend>
+                            <div class="radio-cards">
+                                <label class="radio-card"><input type="radio" name="totalBillOwnerType" value="individual" checked onchange="toggleTotalBillOwnerInputs()"><span><b>개인사업자</b> <span class="radio-card-desc">— 본인이 전액 부담</span></span></label>
+                                <label class="radio-card"><input type="radio" name="totalBillOwnerType" value="paidCorp" onchange="toggleTotalBillOwnerInputs()"><span><b>법인 대표(유보수)</b> <span class="radio-card-desc">— 근로자처럼 절반만 부담</span></span></label>
+                                <label class="radio-card"><input type="radio" name="totalBillOwnerType" value="unpaidCorp" onchange="toggleTotalBillOwnerInputs()"><span><b>법인 대표(무보수)</b> <span class="radio-card-desc">— 보수가 없어 0원</span></span></label>
                             </div>
-                            <div id="totalBillOwnerInputRow" class="multi-worker-row">
-                                <div class="mw-row-inputs">
-                                    <input type="text" id="totalBillOwnerBirth" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password">
-                                    <input type="text" id="totalBillOwnerSalary" class="money-input" inputmode="numeric" placeholder="사업주 기준급여" autocomplete="new-password">
-                                </div>
-                            </div>
-                        </div>
+                        </fieldset>
 
-                        <div class="mw-rows-header">
-                            <span class="mw-rows-label">근로자 명단</span>
-                            <div class="mw-rows-controls">
-                                <button class="mw-icon-btn" onclick="removeTotalBillWorkerRow()" aria-label="근로자 줄 삭제">−</button>
-                                <button class="mw-icon-btn" onclick="addTotalBillWorkerRow()" aria-label="근로자 줄 추가">+</button>
+                        <!-- 무보수를 고르면 script.js가 display를 none으로 바꿈 -->
+                        <div id="totalBillOwnerInputRow" class="tb-owner">
+                            <div class="tb-owner-birth">
+                                <label class="xp-label" for="totalBillOwnerBirth">사업주 생년월</label>
+                                <input type="text" id="totalBillOwnerBirth" class="xp-input" inputmode="numeric" placeholder="예: 197503" maxlength="6" autocomplete="new-password">
+                            </div>
+                            <div class="tb-owner-salary">
+                                <label class="xp-label" for="totalBillOwnerSalary">사업주 기준급여</label>
+                                <input type="text" id="totalBillOwnerSalary" class="xp-input money-input" inputmode="numeric" placeholder="예: 4,000,000" autocomplete="new-password">
                             </div>
                         </div>
+                        <p class="tb-hint">법인 대표(무보수)를 고르면 사업주 생년월·기준급여 칸은 숨겨져요.</p>
 
-                        <div id="totalBillWorkerRows" class="multi-worker-rows"></div>
+                        <div class="tb-roster">
+                            <div class="tb-roster-head">
+                                <span class="xp-label">근로자 명단 <span class="tb-count" id="totalBillCount">0명</span> <span class="xp-label-sub pc-only-inline">· 외국인을 체크하면 오른쪽 칸이 열려요</span></span>
+                                <span class="stepper">
+                                    <button type="button" onclick="removeTotalBillWorkerRow()" aria-label="근로자 줄 삭제">−</button>
+                                    <span class="stepper-line" aria-hidden="true"></span>
+                                    <button type="button" class="stepper-add" onclick="addTotalBillWorkerRow()" aria-label="근로자 줄 추가">+</button>
+                                </span>
+                            </div>
+                            <div class="tb-row tb-cols" aria-hidden="true">
+                                <span class="tb-c-num">#</span><span>생년월</span><span>월급여</span><span class="tb-c-chk">외국인</span>
+                                <span class="tb-c-pc">체류자격</span><span class="tb-c-pc">국적</span><span class="tb-c-pc">실업급여 가입</span>
+                            </div>
+                            <div id="totalBillWorkerRows" class="tb-rows"></div>
+                            <p id="totalBillInputError" class="privacy-note input-error-note tb-error" style="display:none;"></p>
+                        </div>
 
-                        <p id="totalBillInputError" class="privacy-note input-error-note" style="display:none;"></p>
-
-                        <button class="btn-primary" onclick="calculateTotalBill()">계산하기</button>
-
-                        <div id="totalBillResult" style="display:none;"></div>
+                        <button class="btn-primary tb-submit" onclick="calculateTotalBill()">계산하기</button>
                     </div>
-                </div>
-            </div>
 
-            <div class="option-block" id="foreignerBlock">
-                <button class="btn-option" id="foreignerOptionBtn" onclick="toggleExpertOption('foreigner')">
-                    <div class="option-title">외국인 근로자인가요?</div>
-                    <div class="option-desc">체류자격·국적에 따라 국민연금·고용보험 적용 여부와 보험료가 달라져요</div>
+                    <div id="totalBillResult" class="xp-result" style="display:none;"></div>
+                </div>
+            </section>
+
+            <section class="xp-item" id="foreignerBlock">
+                <button class="xp-toggle" id="foreignerOptionBtn" onclick="toggleExpertOption('foreigner')" aria-expanded="false" aria-controls="foreignerExpand">
+                    <span class="xp-toggle-text">
+                        <span class="xp-toggle-title">외국인 근로자인가요?</span>
+                        <span class="xp-toggle-desc">체류자격·국적에 따라 국민연금·고용보험 적용 여부와 보험료가 달라져요</span>
+                    </span>
+                    <span class="xp-arrow" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
                 </button>
 
                 <div class="option-expand" id="foreignerExpand">
-                    <div class="option-expand-inner">
-                        <div class="input-group">
-                            <label for="foreignerVisa">체류자격을 선택해주세요</label>
-                            <select id="foreignerVisa" onchange="toggleForeignerJoinRow()"></select>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="foreignerCountry">국적을 선택해주세요</label>
-                            <select id="foreignerCountry"></select>
-                        </div>
-
-                        <div class="input-group" id="foreignerJoinRow" style="display:none;">
-                            <label id="foreignerJoinLabel">고용보험(실업급여) 가입을 신청했나요?</label>
-                            <div class="owner-type-radios">
-                                <label><input type="radio" name="foreignerJoin" value="yes"> 가입 신청함</label>
-                                <label><input type="radio" name="foreignerJoin" value="no" checked> 가입 신청 안 함</label>
+                    <div class="fr-grid">
+                        <div class="xp-form fr-form">
+                            <div>
+                                <label class="xp-label" for="foreignerVisa">체류자격</label>
+                                <select id="foreignerVisa" class="xp-input" onchange="toggleForeignerJoinRow()"></select>
                             </div>
-                        </div>
 
-                        <div class="input-group">
-                            <label>보험료까지 계산하려면 생년월과 월급여를 입력하세요 (선택)</label>
-                            <div class="multi-worker-row">
-                                <div class="mw-row-inputs">
-                                    <input type="text" id="foreignerBirth" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password">
-                                    <input type="text" id="foreignerSalary" class="money-input" inputmode="numeric" placeholder="월급여" autocomplete="new-password">
+                            <div>
+                                <label class="xp-label" for="foreignerCountry">국적</label>
+                                <select id="foreignerCountry" class="xp-input"></select>
+                            </div>
+
+                            <fieldset id="foreignerJoinRow" class="fr-join" style="display:none;">
+                                <legend class="xp-label" id="foreignerJoinLabel">고용보험(실업급여) 가입을 신청했나요?</legend>
+                                <div class="seg">
+                                    <label><input type="radio" name="foreignerJoin" value="yes">가입 신청함</label>
+                                    <label><input type="radio" name="foreignerJoin" value="no" checked>가입 신청 안 함</label>
                                 </div>
+                                <p class="fr-join-hint">E-9, H-2 등 일부 체류자격일 때만 나타나요</p>
+                            </fieldset>
+
+                            <div class="fr-optional">
+                                <p class="fr-optional-title">보험료까지 계산하려면 생년월과 월급여를 입력하세요 <span>(선택)</span></p>
+                                <div class="fr-pair">
+                                    <input type="text" id="foreignerBirth" class="xp-input" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password" aria-label="생년월">
+                                    <input type="text" id="foreignerSalary" class="xp-input money-input" inputmode="numeric" placeholder="월급여" autocomplete="new-password" aria-label="월급여">
+                                </div>
+                                <select id="foreignerIndustryType" class="xp-input" aria-label="업종 (산재보험료 계산용, 선택)"></select>
                             </div>
+
+                            <button class="btn-primary" onclick="checkForeignerInsurance()">대상 확인 및 보험료 계산</button>
                         </div>
 
-                        <div class="input-group">
-                            <label for="foreignerIndustryType">업종을 선택해주세요 (산재보험료 계산용, 선택)</label>
-                            <select id="foreignerIndustryType"></select>
+                        <div class="fr-result-col">
+                            <div id="foreignerResult" style="display:none;"></div>
+                            <div class="result-empty">체류자격과 국적을 고르고<br>대상 확인을 누르면 여기에 판정 결과가 나와요</div>
                         </div>
-
-                        <button class="btn-primary" onclick="checkForeignerInsurance()">대상 확인 및 보험료 계산</button>
-
-                        <div id="foreignerResult" style="display:none;"></div>
                     </div>
                 </div>
-            </div>
-
-            <button class="btn-secondary" onclick="showStep('step2')">이전</button>
+            </section>
         </div>
     </div>
 
     <!-- 푸터 -->
     <footer>
-        <p>이 계산기는 <a href="http://www.gmlabor.co.kr/" target="_blank" rel="noopener noreferrer">국민노무법인</a>에서 제공합니다</p>
-        <p class="footer-contact"><a href="tel:02-2671-0091">사무실 02-2671-0091</a> · <a href="tel:010-5284-0091">휴대폰 010-5284-0091</a></p>
+        <p class="footer-main">이 계산기는 <a class="footer-org" href="http://www.gmlabor.co.kr/" target="_blank" rel="noopener noreferrer">국민노무법인</a>에서 제공합니다<span class="footer-sep"> · </span><span class="footer-contact">사무실 <a href="tel:02-2671-0091">02-2671-0091</a> · 휴대폰 <a href="tel:010-5284-0091">010-5284-0091</a></span></p>
         <p class="note">※ 2026년 요율 기준 (고용보험 2025년)</p>
     </footer>
 
