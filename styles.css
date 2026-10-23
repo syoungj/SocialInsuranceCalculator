@@ -534,9 +534,10 @@ header {
     max-height: 2400px;
 }
 
-/* 전문가용은 계산 결과(외국인 판정+보험료, 근로자 여러 명)가 2400px보다 길어질 수 있어
+/* 전문가용과 사업주 화면은 계산 결과(외국인 판정+보험료, 근로자 여러 명)가 2400px보다 길어질 수 있어
    높이 한도를 두면 아래가 잘림 → 한도 없이 펼침 (대신 펼침 애니메이션은 없음) */
-#stepExpert .option-expand.open {
+#stepExpert .option-expand.open,
+#stepEmployer .option-expand.open {
     max-height: none;
 }
 
