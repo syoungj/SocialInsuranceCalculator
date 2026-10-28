@@ -373,11 +373,14 @@ function renderResult() {
         ageNotice.style.display = 'none';
     }
 
-    // 두루누리 배너: 월급여 270만원 이하일 때만 표시
+    // 두루누리 안내: 앱이 대상 여부를 판단하지 않도록 누구에게나 제도 안내는 보여주고,
+    // "적용해 보기" 버튼은 제도 기준(월급여 270만원 이하)일 때만 — 초과면 버튼 대신 기준 안내
     const durunuriBtn = document.getElementById('durunuriToggleBtn');
-    durunuriBtn.textContent = '지원받으면 얼마?';
+    durunuriBtn.textContent = '두루누리 적용해 보기';
     durunuriBtn.classList.remove('applied');
-    document.getElementById('durunuriBanner').style.display = salary <= 2700000 ? 'block' : 'none';
+    durunuriBtn.style.display = salary <= 2700000 ? '' : 'none';
+    document.getElementById('durunuriSalaryNote').style.display = salary <= 2700000 ? 'none' : 'block';
+    document.getElementById('durunuriBanner').style.display = 'block';
     document.getElementById('durunuriCapNotice').style.display = 'none';
 }
 
@@ -506,7 +509,7 @@ function toggleDurunuri() {
     } else {
         pension = calc.pension;
         employment = calc.employment;
-        btn.textContent = '지원받으면 얼마?';
+        btn.textContent = '두루누리 적용해 보기';
         btn.classList.remove('applied');
     }
 
@@ -930,7 +933,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
 
     const dnBlock = durunuriNums.length ? `
         <div class="xp-total-dn">
-            <span class="xp-total-dn-label"><span class="xp-tag dn">두루누리 적용 시</span><span class="xp-total-dn-who">대상 ${durunuriNums.length}명 · ${durunuriNums.join(', ')}</span></span>
+            <span class="xp-total-dn-label"><span class="xp-tag dn">두루누리 적용 시</span><span class="xp-total-dn-who">월급여 270만원 이하 ${durunuriNums.length}명 · ${durunuriNums.join(', ')}</span></span>
             <span class="xp-total-dn-amount">${n(grandTotal - durunuriSaving)}원</span>
         </div>` : '';
 
@@ -1094,7 +1097,7 @@ function toggleMwDurunuri(type, idx) {
 
     const btn = document.getElementById(`${type}DurunuriBtn${idx}`);
     const applied = mwDurunuriApplied[type][idx];
-    btn.textContent = applied ? '원래 금액 보기' : '두루누리 지원받으면 얼마?';
+    btn.textContent = applied ? '원래 금액 보기' : '두루누리 적용해 보기';
     btn.classList.toggle('applied', applied);
 
     if (type === 'deduction') {
@@ -1132,15 +1135,15 @@ function setMwCapNotice(type, key, applied, pensionCapped, employmentCapped) {
     el.style.display = text ? '' : 'none';
 }
 
-// 근로자별 소소 노트 (나이 예외 / 두루누리 대상 여부) 문구 생성
-// includeDurunuri: 사업주 본인은 두루누리 지원 대상이 아니므로 false로 호출해서 제외함
+// 근로자별 소소 노트 (나이 예외) 문구 생성
+// 예전엔 "두루누리 지원 가능"도 붙였지만, 앱이 대상 여부를 판단하는 것처럼 보여서 뺌
+// (월급여 270만원 이하면 "두루누리 적용해 보기" 버튼만 나옴) — 인자는 호출부 호환용으로 남겨 둠
 function shareNotes(share, workerSalary, includeDurunuri = true) {
     const notes = [];
     if (share.pensionExempt) notes.push('국민연금 면제');
     if (share.employmentExempt) notes.push('고용보험 면제');
     if (share.pensionExemptNextMonth) notes.push('다음달 국민연금 면제 예정');
     if (share.employmentExemptNextMonth) notes.push('다음달 고용보험 면제 예정');
-    if (includeDurunuri && workerSalary <= 2700000) notes.push('두루누리 지원 가능');
     return notes.join(' · ');
 }
 
@@ -1167,7 +1170,7 @@ function buildDeductionItemHTML(key, label, salary, s) {
                     <div class="result-row"><span>건강보험<span class="rate-tag">${formatRate(RATES.health / 2 * 100)}</span></span><span>${formatNumber(s.health)}원</span></div>
                     <div class="result-row"><span>장기요양보험<span class="rate-tag">(건강보험료 × ${roundRate(RATES.longterm * 100)}%)</span></span><span>${formatNumber(s.longterm)}원</span></div>
                     <div class="result-row"><span>고용보험<span class="rate-tag">${s.employmentExempt ? '(면제)' : formatRate(RATES.employmentWorker * 100)}</span></span><span id="deductionEmployment${key}">${formatNumber(s.employment)}원</span></div>
-                    ${eligible ? `<button class="mw-durunuri-btn" id="deductionDurunuriBtn${key}" onclick="toggleMwDurunuri('deduction', '${key}')">두루누리 지원받으면 얼마?</button>
+                    ${eligible ? `<button class="mw-durunuri-btn" id="deductionDurunuriBtn${key}" onclick="toggleMwDurunuri('deduction', '${key}')">두루누리 적용해 보기</button>
                     <p class="mw-owner-note" id="deductionDurunuriCapNote${key}" style="display:none;"></p>` : ''}
                 </div>
             </div>
@@ -1210,7 +1213,11 @@ function renderDeductionContent(workersCalc) {
         </div>
         ${anyExempt ? '<p class="privacy-note">ℹ️ 위 요율은 기본 요율이에요. 나이(60세/65세) 조건으로 면제된 근로자가 있어 실제 합계에는 이미 반영되어 있습니다.</p>' : ''}
         <div class="mw-result-list">${itemsHTML}</div>
-        <p class="privacy-note">ℹ️ 급여 270만원 이하 근로자는 두루누리 지원 가능 대상이에요 (취득 전 1년간 고용보험 가입 이력이 없는 등 추가 조건 있음 — 대상이 되면 보험료의 80%를 지원받을 수 있어요). 정확한 대상 여부는 <a href="https://insurancesupport.or.kr/durunuri/intro.php" target="_blank" rel="noopener noreferrer">두루누리 안내 페이지</a>에서 확인해주세요.</p>
+        <details class="mw-dn-info">
+            <summary><span>ⓘ 두루누리 사회보험료 지원이란?</span><span class="mw-dn-more">자세히</span></summary>
+            <p>근로자 10명 미만 사업장에서 월급여 270만원 이하인 근로자의 국민연금·고용보험료 80%를 지원하는 제도예요. 월급여 270만원 이하인 근로자는 펼쳐서 "두루누리 적용해 보기"로 금액을 볼 수 있어요.</p>
+            <p>※ 취득 전 1년간 고용보험 가입 이력이 없어야 하는 등 다른 조건도 있어요. 실제 지원 여부는 <a href="https://insurancesupport.or.kr/durunuri/intro.php" target="_blank" rel="noopener noreferrer">두루누리 안내 페이지</a>에서 확인해주세요.</p>
+        </details>
     `;
 }
 
@@ -1237,7 +1244,7 @@ function buildBurdenItemHTML(key, label, salary, s) {
                     <div class="result-row"><span>장기요양보험<span class="rate-tag">(건강보험료 × ${roundRate(RATES.longterm * 100)}%)</span></span><span>${formatNumber(s.longtermEmployer)}원</span></div>
                     <div class="result-row"><span>고용보험<span class="rate-tag">${formatRate(s.employmentEmployerRate * 100)}</span></span><span id="burdenEmployment${key}">${formatNumber(s.employmentEmployer)}원</span></div>
                     <div class="result-row"><span>산재보험<span class="rate-tag">${s.accidentPermille === null ? '' : formatRate(s.accidentPermille / 10)}</span></span><span>${s.accidentEmployer === null ? '업종을 선택해주세요' : formatNumber(s.accidentEmployer) + '원'}</span></div>
-                    ${eligible ? `<button class="mw-durunuri-btn" id="burdenDurunuriBtn${key}" onclick="toggleMwDurunuri('burden', '${key}')">두루누리 지원받으면 얼마?</button>
+                    ${eligible ? `<button class="mw-durunuri-btn" id="burdenDurunuriBtn${key}" onclick="toggleMwDurunuri('burden', '${key}')">두루누리 적용해 보기</button>
                     <p class="mw-owner-note" id="burdenDurunuriCapNote${key}" style="display:none;"></p>` : ''}
                 </div>
             </div>
@@ -1256,7 +1263,7 @@ function buildOwnerBurdenItemHTML(salary, s) {
                     <span class="mw-toggle-icon" id="burdenIconowner">자세히 ▾</span>
                 </div>
                 <div class="mw-result-item-body">
-                    <span>사업주 본인 부담 <span id="burdenSummaryTotalowner">${formatNumber(s.total)}원</span></span>
+                    <span>사업주 본인 보험료 <span id="burdenSummaryTotalowner">${formatNumber(s.total)}원</span></span>
                 </div>
                 ${notes ? `<div class="mw-result-item-note">ℹ️ ${notes}</div>` : ''}
             </div>
@@ -1326,7 +1333,11 @@ function renderBurdenContent(workersCalc, owner) {
         ${anyExempt ? '<p class="privacy-note">ℹ️ 위 요율은 기본 요율이에요. 나이(60세/65세) 조건으로 면제된 근로자가 있어 실제 합계에는 이미 반영되어 있습니다.</p>' : ''}
         ${ownerHTML}
         <div class="mw-result-list">${itemsHTML}</div>
-        <p class="privacy-note">ℹ️ 급여 270만원 이하 근로자는 국민연금·고용보험 사업주 부담분도 두루누리 지원 가능 대상이에요 (취득 전 1년간 고용보험 가입 이력이 없는 등 추가 조건 있음 — 대상이 되면 보험료의 80%를 지원받을 수 있어요). 정확한 대상 여부는 <a href="https://insurancesupport.or.kr/durunuri/intro.php" target="_blank" rel="noopener noreferrer">두루누리 안내 페이지</a>에서 확인해주세요.</p>
+        <details class="mw-dn-info">
+            <summary><span>ⓘ 두루누리 사회보험료 지원이란?</span><span class="mw-dn-more">자세히</span></summary>
+            <p>근로자 10명 미만 사업장에서 월급여 270만원 이하인 근로자의 국민연금·고용보험료 80%를 지원하는 제도예요(사업주 부담분 포함). 월급여 270만원 이하인 근로자는 펼쳐서 "두루누리 적용해 보기"로 금액을 볼 수 있어요.</p>
+            <p>※ 취득 전 1년간 고용보험 가입 이력이 없어야 하는 등 다른 조건도 있어요. 실제 지원 여부는 <a href="https://insurancesupport.or.kr/durunuri/intro.php" target="_blank" rel="noopener noreferrer">두루누리 안내 페이지</a>에서 확인해주세요.</p>
+        </details>
     `;
 }
 
@@ -2754,11 +2765,6 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         setTimeout(moveBlob, 300);
     });
 }
-
-// 첫 화면의 요율 한 줄 요약 — RATES 값으로 채워서, 요율을 고치면 여기도 같이 바뀌게 함
-document.getElementById('rateSummary').textContent =
-    `2026년 요율 · 국민연금 ${roundRate(RATES.pension / 2 * 100)}% · 건강 ${roundRate(RATES.health / 2 * 100)}% · ` +
-    `장기요양 건보료의 ${roundRate(RATES.longterm * 100)}% · 고용 ${roundRate(RATES.employmentWorker * 100)}%`;
 
 // 페이지 로드 시 서비스 워커 등록 (PWA)
 window.addEventListener('load', () => {

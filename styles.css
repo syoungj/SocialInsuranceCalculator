@@ -188,7 +188,8 @@ br.pc-only {
 
 .app-name {
     font-size: 17px;
-    font-weight: 800;
+    font-weight: 600;
+    color: var(--text-2);
     letter-spacing: -0.02em;
 }
 
@@ -335,23 +336,42 @@ body:not([data-step="step2"]) .app-brand img {
     display: grid;
     grid-template-areas:
         "intro"
-        "choices"
-        "rates";
-    padding-top: 28px;
+        "choices";
+    padding: 24px 0 40px;
+}
+
+/* 첫 화면은 내용을 상단 막대와 맨 아래 연락처 사이 가운데에 둬서, 남는 공간이
+   맨 아래에만 몰리지 않고 위아래로 나뉘게 함 (연락처는 화면 맨 아래에 붙음) */
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+.app-bar,
+.step,
+footer {
+    width: 100%;
+}
+
+/* 화면 내용과 맨 아래 연락처 사이 최소 간격 */
+.step.active {
+    margin-bottom: 28px;
+}
+
+#step2.active {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .home-intro {
     grid-area: intro;
 }
 
-.home-kicker {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--accent);
-}
-
 .home-title {
-    margin-top: 8px;
     font-size: 28px;
     font-weight: 800;
     line-height: 1.3;
@@ -360,13 +380,13 @@ body:not([data-step="step2"]) .app-brand img {
 
 .home-choices {
     grid-area: choices;
-    margin-top: 24px;
+    margin-top: 52px;
 }
 
 .choice-grid {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 26px;
 }
 
 /* 계산 버튼: 유리 카드 + 오른쪽 파란 원형 화살표 (화살표가 HTML에서 먼저라 폰에서는 순서를 뒤집어 오른쪽에 둠) */
@@ -377,7 +397,7 @@ body:not([data-step="step2"]) .app-brand img {
     justify-content: space-between;
     gap: 12px;
     width: 100%;
-    padding: 20px;
+    padding: 24px 20px;
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.38);
     backdrop-filter: blur(18px) saturate(150%);
@@ -426,7 +446,9 @@ body:not([data-step="step2"]) .app-brand img {
     margin: 0;
 }
 
+/* 첫 화면 카드 설명 — 휴대폰은 화면이 좁아 숨기고(제목만), PC는 카드가 커서 보여줌 */
 .choice-card .option-desc {
+    display: none;
     font-size: 14px;
     line-height: 1.5;
     color: var(--text-2);
@@ -437,7 +459,7 @@ body:not([data-step="step2"]) .app-brand img {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-top: 10px;
+    margin-top: 20px;
 }
 
 .expert-entry::before,
@@ -461,24 +483,19 @@ body:not([data-step="step2"]) .app-brand img {
     text-decoration: none;
 }
 
-.step > .expert-entry {
-    margin-top: 20px;
-}
-
-.rate-summary {
-    grid-area: rates;
+/* 근로자·사업주 화면: "전문가용으로 보기"는 계산 내용 바로 아래가 아니라
+   화면 맨 아래 국민노무법인 안내 바로 위에 붙임 */
+#stepWorker.active,
+#stepEmployer.active {
+    flex: 1;
     display: flex;
-    gap: 6px;
-    align-items: flex-start;
-    margin-top: 18px;
-    font-size: 12px;
-    line-height: 1.6;
-    color: var(--text-sub);
+    flex-direction: column;
+    margin-bottom: 4px;
 }
 
-.rate-summary svg {
-    flex: none;
-    margin-top: 3px;
+.step > .expert-entry {
+    margin-top: auto;
+    padding-top: 20px;
 }
 
 /* ========================================
@@ -511,13 +528,13 @@ body:not([data-step="step2"]) .app-brand img {
 }
 
 .calc-switch-btn {
-    min-height: 54px;
+    min-height: 44px;
     padding: 6px 4px;
     border: none;
     border-radius: 12px;
     background: transparent;
     font-family: inherit;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
     line-height: 1.35;
     color: var(--text-2);
@@ -1115,7 +1132,8 @@ footer {
     flex-direction: column;
     gap: 8px;
     max-width: 1120px;
-    margin: 28px auto 0;
+    /* margin-top: auto — 내용이 짧아도 연락처 안내는 항상 화면 맨 아래에 붙음 (body가 세로 flex) */
+    margin: auto auto 0;
     padding: 20px 8px 28px;
     border-top: 1px solid #dce3ef;
     font-size: 13px;
@@ -1219,21 +1237,13 @@ footer .footer-org {
     /* 첫 화면: 왼쪽 칸에 제목, 오른쪽 칸에 카드 두 개 나란히 */
     .home {
         grid-template-columns: 5fr 7fr;
-        grid-template-rows: auto 1fr;
-        grid-template-areas:
-            "intro choices"
-            "rates choices";
+        grid-template-areas: "intro choices";
         column-gap: 56px;
-        align-items: start;
-        padding-top: 48px;
-    }
-
-    .home-kicker {
-        font-size: 14px;
+        align-items: center;
+        padding: 48px 0 64px;
     }
 
     .home-title {
-        margin-top: 10px;
         font-size: 44px;
         line-height: 1.25;
         letter-spacing: -0.04em;
@@ -1279,6 +1289,7 @@ footer .footer-org {
     }
 
     .choice-card .option-desc {
+        display: block;
         font-size: 15px;
         line-height: 1.6;
     }
@@ -1291,16 +1302,6 @@ footer .footer-org {
 
     .home .expert-entry::after {
         display: none;
-    }
-
-    .rate-summary {
-        margin-top: 32px;
-        font-size: 13px;
-    }
-
-    .rate-summary svg {
-        width: 15px;
-        height: 15px;
     }
 
     /* 계산 화면: 왼쪽 칸에 전환 버튼 + 입력, 오른쪽 칸에 결과 */
@@ -1317,8 +1318,8 @@ footer .footer-org {
     }
 
     .calc-switch-btn {
-        min-height: 56px;
-        font-size: 14px;
+        min-height: 48px;
+        font-size: 15px;
     }
 
     .calc-input {
@@ -1483,8 +1484,11 @@ footer .footer-org {
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        margin-top: 48px;
         padding: 22px 0 28px;
+    }
+
+    .step.active {
+        margin-bottom: 48px;
     }
 
     .footer-sep {
@@ -3764,4 +3768,133 @@ select.xp-input {
         height: 52px;
         padding: 0 28px;
     }
+}
+
+/* 두루누리 안내의 접힌 설명 — "자세히"는 상자 오른쪽 위 모서리에 고정 */
+.durunuri-banner .banner-title {
+    padding-right: 44px;
+}
+
+.banner-more summary {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--dn-text);
+    text-decoration: underline;
+    cursor: pointer;
+    list-style: none;
+}
+
+.banner-more summary::-webkit-details-marker {
+    display: none;
+}
+
+.banner-more[open] {
+    margin-top: 10px;
+}
+
+/* 월급여 270만원 초과일 때 "적용해 보기" 버튼 대신 나오는 기준 안내 */
+.banner-salary-note {
+    font-size: 12.5px;
+    color: var(--dn-text);
+}
+
+/* 사업주 결과의 두루누리 안내 — 제목 한 줄, 설명은 "자세히"로 펼침 */
+.mw-dn-info {
+    margin-top: 16px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--dn-bg);
+    border: 1px solid var(--dn-line);
+    color: var(--dn-text);
+}
+
+.mw-dn-info summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+}
+
+.mw-dn-info summary::-webkit-details-marker {
+    display: none;
+}
+
+.mw-dn-more {
+    flex: none;
+    font-size: 12px;
+    text-decoration: underline;
+}
+
+.mw-dn-info p {
+    margin-top: 8px;
+    font-size: 12.5px;
+    line-height: 1.6;
+}
+
+.mw-dn-info a {
+    font-weight: 700;
+    color: var(--dn-text);
+}
+
+/* "입력값은 저장되지 않아요" — 자물쇠 아이콘 + 한 줄로 작게 */
+.privacy-line {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.privacy-line svg {
+    flex: none;
+}
+
+/* 사업주 입력 칸 아래 산재 안내 — 한 줄만 보이고 "자세히"로 펼침 */
+.calc-info {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-sub);
+}
+
+.calc-info summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.calc-info summary::-webkit-details-marker {
+    display: none;
+}
+
+.calc-info summary > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.calc-info-more {
+    flex: none;
+    text-decoration: underline;
+}
+
+.calc-info p {
+    margin-top: 6px;
+}
+
+.calc-info a {
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.label-sub {
+    font-weight: 500;
+    color: var(--text-sub);
 }
