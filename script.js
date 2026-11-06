@@ -2723,7 +2723,7 @@ function checkForeignerInsurance() {
     const shortNotes = [];
     if (excluded) shortNotes.push(visa.pensionExcluded ? '국민연금: 이 체류자격은 적용 제외예요.' : `국민연금: ${country.name}은 사회보장협정상 적용 제외국이에요.`);
     const employmentNote = {
-        partial: '실업급여는 근로자가 원하면 가입',
+        partial: '고용보험: 고용안정·직업능력개발은 의무, 실업급여는 근로자가 원하면 가입',
         optional: '고용보험: 근로자가 원하면 가입',
         reciprocal: '고용보험: 본국 법령이 상호주의를 충족해야 가입 대상이에요.',
     }[visa.employment];
