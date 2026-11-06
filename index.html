@@ -351,7 +351,7 @@
                 <button class="xp-toggle" id="foreignerOptionBtn" onclick="toggleExpertOption('foreigner')" aria-expanded="false" aria-controls="foreignerExpand">
                     <span class="xp-toggle-text">
                         <span class="xp-toggle-title">외국인 근로자인가요?</span>
-                        <span class="xp-toggle-desc">체류자격·국적에 따라 국민연금·고용보험 적용 여부와 보험료가 달라져요</span>
+                        <span class="xp-toggle-desc">체류자격·국적별 4대보험 적용 여부를 확인하고, 원하면 보험료도 계산해요</span>
                     </span>
                     <span class="xp-arrow" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
                 </button>
@@ -361,38 +361,44 @@
                         <div class="xp-form fr-form">
                             <div>
                                 <label class="xp-label" for="foreignerVisa">체류자격</label>
-                                <select id="foreignerVisa" class="xp-input" onchange="toggleForeignerJoinRow()"></select>
+                                <select id="foreignerVisa" class="xp-input" onchange="resetForeignerResult()"></select>
                             </div>
 
                             <div>
                                 <label class="xp-label" for="foreignerCountry">국적</label>
-                                <select id="foreignerCountry" class="xp-input"></select>
+                                <select id="foreignerCountry" class="xp-input" onchange="resetForeignerResult()"></select>
                             </div>
 
-                            <fieldset id="foreignerJoinRow" class="fr-join" style="display:none;">
-                                <legend class="xp-label" id="foreignerJoinLabel">고용보험(실업급여) 가입을 신청했나요?</legend>
-                                <div class="seg">
-                                    <label><input type="radio" name="foreignerJoin" value="yes">가입 신청함</label>
-                                    <label><input type="radio" name="foreignerJoin" value="no" checked>가입 신청 안 함</label>
-                                </div>
-                                <p class="fr-join-hint">E-9, H-2 등 일부 체류자격일 때만 나타나요</p>
-                            </fieldset>
-
-                            <div class="fr-optional">
-                                <p class="fr-optional-title">보험료까지 계산하려면 생년월과 월급여를 입력하세요 <span>(선택)</span></p>
-                                <div class="fr-pair">
-                                    <input type="text" id="foreignerBirth" class="xp-input" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password" aria-label="생년월">
-                                    <input type="text" id="foreignerSalary" class="xp-input money-input" inputmode="numeric" placeholder="월급여" autocomplete="new-password" aria-label="월급여">
-                                </div>
-                                <select id="foreignerIndustryType" class="xp-input" aria-label="업종 (산재보험료 계산용, 선택)"></select>
-                            </div>
-
-                            <button class="btn-primary" onclick="checkForeignerInsurance()">대상 확인 및 보험료 계산</button>
+                            <button class="btn-primary" onclick="checkForeignerInsurance()">4대보험 대상 확인</button>
                         </div>
 
                         <div class="fr-result-col">
                             <div id="foreignerResult" style="display:none;"></div>
-                            <div class="result-empty">체류자격과 국적을 고르고<br>대상 확인을 누르면 여기에 판정 결과가 나와요</div>
+                            <div id="foreignerCalcAsk" class="fr-calc-box" style="display:none;">
+                                <button class="btn-secondary fr-calc-btn" onclick="showForeignerCalcForm()">보험료도 계산하기</button>
+                            </div>
+                            <div id="foreignerCalcBox" class="fr-calc-box" style="display:none;">
+                                <div class="fr-optional">
+                                    <p class="fr-optional-title">보험료도 계산하려면 생년월과 월급여를 입력하세요</p>
+                                    <fieldset id="foreignerJoinRow" class="fr-join" style="display:none;">
+                                        <legend class="xp-label" id="foreignerJoinLabel">고용보험(실업급여) 가입을 신청했나요?</legend>
+                                        <div class="seg">
+                                            <label><input type="radio" name="foreignerJoin" value="yes">가입 신청함</label>
+                                            <label><input type="radio" name="foreignerJoin" value="no" checked>가입 신청 안 함</label>
+                                        </div>
+                                    </fieldset>
+                                    <div class="fr-pair">
+                                        <input type="text" id="foreignerBirth" class="xp-input" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password" aria-label="생년월">
+                                        <input type="text" id="foreignerSalary" class="xp-input money-input" inputmode="numeric" placeholder="월급여" autocomplete="new-password" aria-label="월급여">
+                                    </div>
+                                    <select id="foreignerIndustryType" class="xp-input" aria-label="업종 (산재보험료 계산용, 선택)"></select>
+                                    <p id="foreignerCalcError" class="privacy-note input-error-note" style="display:none;"></p>
+                                    <button class="btn-primary fr-calc-btn" onclick="calculateForeignerPremium()">보험료 계산</button>
+                                </div>
+                            </div>
+                            <div id="foreignerCalcResult" class="fr-calc-result" style="display:none;"></div>
+                            <div id="foreignerNotes" class="fr-source-box" style="display:none;"></div>
+                            <div class="result-empty">체류자격과 국적을 고르고<br>대상 확인을 누르면 여기에 4대보험 판정 결과가 나와요</div>
                         </div>
                     </div>
                 </div>
@@ -414,6 +420,7 @@
             <button class="pdf-btn" onclick="closePdfPreview()">닫기</button>
         </div>
         <label class="pdf-dn-toggle" id="pdfDnToggleRow"><input type="checkbox" id="pdfDnToggle" checked onchange="togglePdfDurunuri(this.checked)"> 두루누리 적용 금액 표시</label>
+        <div class="pdf-dn-workers" id="pdfDnWorkers" style="display:none;"></div>
         <p class="pdf-preview-hint">확대해서 보거나 화면을 캡처해도 돼요.</p>
         <div class="pdf-preview-scroll" id="pdfPreviewScroll">
             <div class="pdf-sheet-wrap" id="pdfSheetWrap">

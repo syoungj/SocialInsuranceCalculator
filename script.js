@@ -1521,6 +1521,7 @@ function prDurunuriCapNote(anyCapped) {
 function printResult(type) {
     if (type !== 'worker') return;
     lastPdfRender = () => printResult(type);
+    pdfDnWorkers = null;
 
     const printArea = document.getElementById('printArea');
     const today = new Date();
@@ -1592,8 +1593,8 @@ function printResult(type) {
 
 // 사업주 경로(근로자 여러명) 계산 결과를 PDF로 저장 — 근로자 공제분/사업주 부담분 표를 함께 출력
 // PDF용 표 한 줄(근로자 또는 사업주 본인) 생성 — 두루누리 대상이면 바로 아래에 적용 시 금액 줄도 같이 만듦
-function buildPrintRowPair(label, salary, d, b) {
-    const eligible = pdfShowDurunuri && hasDurunuri(salary, d);
+function buildPrintRowPair(label, salary, d, b, dnOff = false) {
+    const eligible = !dnOff && pdfShowDurunuri && hasDurunuri(salary, d);
     const rowClass = eligible ? ' class="pr-has-dn"' : '';
     const accidentCell = value => b.accidentEmployer === null
         ? '<td class="pr-na">업종 미선택</td>'
@@ -1672,6 +1673,7 @@ function buildPrintRowPair(label, salary, d, b) {
 function printEmployerAll() {
     if (employerWorkersCalc.length === 0 && !ownerCalc) return;
     lastPdfRender = printEmployerAll;
+    pdfDnWorkers = employerWorkersCalc;
 
     const printArea = document.getElementById('printArea');
     const today = new Date();
@@ -1693,7 +1695,7 @@ function printEmployerAll() {
         addTo(sumD, [d.pension, d.health, d.longterm, d.employment, d.total, d.netPay]);
         addTo(sumB, [b.pensionEmployer, b.healthEmployer, b.longtermEmployer, b.employmentEmployer, b.accidentEmployer || 0, b.total]);
 
-        const r = buildPrintRowPair(prWhoHTML(`근로자 ${idx + 1}`, `월 ${formatNumber(w.salary)}`), w.salary, d, b);
+        const r = buildPrintRowPair(prWhoHTML(`근로자 ${idx + 1}`, `월 ${formatNumber(w.salary)}`), w.salary, d, b, w.dnOff);
         deductionRows += r.deductionRow;
         burdenRows += r.burdenRow;
         if (r.capped) anyDurunuriCapped = true;
@@ -1720,7 +1722,7 @@ function printEmployerAll() {
         addTo(effB, ownerValues);
     }
 
-    const anyEligible = pdfShowDurunuri && employerWorkersCalc.some(w => hasDurunuri(w.salary, w.workerShare));
+    const anyEligible = pdfShowDurunuri && employerWorkersCalc.some(w => !w.dnOff && hasDurunuri(w.salary, w.workerShare));
     const anyExempt = employerWorkersCalc.some(w =>
         w.workerShare.pensionExempt || w.workerShare.employmentExempt ||
         w.workerShare.pensionExemptNextMonth || w.workerShare.employmentExemptNextMonth
@@ -1763,7 +1765,7 @@ function printEmployerAll() {
             '고용보험은 만 65세 이상이면 사업주 고용안정·직업능력개발분(0.25%)만 부과됩니다.',
             anyExempt ? '나이(만 60세·65세) 조건으로 제외된 항목이 있는 경우, 금액에는 이미 반영되어 있어 표의 기본 요율과 다를 수 있습니다.' : '',
             industry ? '산재보험료는 선택한 업종 요율로 계산한 참고 금액이며, 실제 업종 분류는 근로복지공단이 정합니다.' : '업종을 선택하지 않아 산재보험료는 계산하지 않았습니다.',
-            anyEligible ? '두루누리 적용 금액은 월급여 270만원 이하 근로자의 국민연금·고용보험에 지원금을 반영한 참고 금액입니다.' : '',
+            anyEligible ? '두루누리 적용 금액은 표에 두루누리 적용 줄이 있는 근로자의 국민연금·고용보험에 지원금을 반영한 참고 금액입니다.' : '',
             anyEligible ? '사업주 고용보험은 실업급여분(0.9%)에만 두루누리가 적용되고, 고용안정·직업능력개발분(0.25%)은 지원 대상이 아닙니다.' : '',
             anyEligible ? '실제 두루누리 지원 여부는 근로복지공단 확인이 필요합니다.' : '',
             prDurunuriCapNote(anyDurunuriCapped),
@@ -1782,6 +1784,7 @@ function printEmployerAll() {
 function printTotalBill() {
     if (totalBillWorkersCalc.length === 0 && !totalBillOwnerCalc) return;
     lastPdfRender = printTotalBill;
+    pdfDnWorkers = totalBillWorkersCalc;
 
     const printArea = document.getElementById('printArea');
     const today = new Date();
@@ -1818,7 +1821,7 @@ function printTotalBill() {
         sumBurdenAccident += (b.accidentEmployer || 0);
 
         const foreignTag = w.foreign ? ` · 외국인 ${w.foreign.visa.code} ${w.foreign.country.name}` : '';
-        const result = buildPrintRowPair(prWhoHTML(`근로자 ${idx + 1}`, `월 ${formatNumber(w.salary)}${foreignTag}`), w.salary, d, b);
+        const result = buildPrintRowPair(prWhoHTML(`근로자 ${idx + 1}`, `월 ${formatNumber(w.salary)}${foreignTag}`), w.salary, d, b, w.dnOff);
         deductionRows += result.deductionRow;
         burdenRows += result.burdenRow;
         if (result.capped) anyDurunuriCapped = true;
@@ -1935,7 +1938,7 @@ function printTotalBill() {
     const grandEmployment = sumDeductionEmployment + sumBurdenEmployment;
 
     const effGrandTotal = effPension + effHealth + effLongterm + effEmployment + effAccident;
-    const anyEligible = pdfShowDurunuri && totalBillWorkersCalc.some(w => hasDurunuri(w.salary, w.workerShare));
+    const anyEligible = pdfShowDurunuri && totalBillWorkersCalc.some(w => !w.dnOff && hasDurunuri(w.salary, w.workerShare));
     const anyForeign = totalBillWorkersCalc.some(w => w.foreign);
     const anyReciprocal = totalBillWorkersCalc.some(w => w.foreign && w.foreign.visa.employment === 'reciprocal');
 
@@ -1966,7 +1969,7 @@ function printTotalBill() {
                 ['고용보험', effEmployment], ['산재보험', effAccident],
             ], true) : ''}
         </section>
-        ${anyEligible ? '<p class="pr-caption">두루누리 적용 시 총액은 월급여 270만원 이하 근로자의 국민연금·고용보험에만 지원금을 반영한 금액입니다.</p>' : ''}
+        ${anyEligible ? '<p class="pr-caption">두루누리 적용 시 총액은 아래 표에 두루누리 적용 줄이 있는 근로자의 국민연금·고용보험에만 지원금을 반영한 금액입니다.</p>' : ''}
 
         <h2 class="pr-h2">근로자별 상세 <span>· 공제분(근로자 본인 몫)</span></h2>
         <table class="pr-table">
@@ -2052,9 +2055,7 @@ function clearExpertFields() {
     document.getElementById('foreignerIndustryType').value = '';
     document.querySelector('input[name="foreignerJoin"][value="no"]').checked = true;
     document.getElementById('foreignerJoinRow').style.display = 'none';
-    foreignerCalc = null;
-    document.getElementById('foreignerResult').style.display = 'none';
-    document.getElementById('foreignerResult').innerHTML = '';
+    resetForeignerResult();
     document.getElementById('foreignerExpand').classList.remove('open');
     document.getElementById('foreignerOptionBtn').classList.remove('active');
     document.getElementById('foreignerOptionBtn').setAttribute('aria-expanded', 'false');
@@ -2124,6 +2125,31 @@ let pdfState = { filename: '', file: null, job: 0 };
 let pdfShowDurunuri = true;
 let lastPdfRender = null;  // 체크박스를 바꾸면 같은 PDF를 다시 그리기 위해 마지막으로 연 PDF 함수를 기억
 
+let pdfDnWorkers = null;   // 근로자별 두루누리 체크 대상 (여러 명 PDF일 때만). 고른 값은 다시 계산하면 초기화됨
+
+// 금액상 지원 가능해도 실제 대상이 아닌 근로자는 PDF에서 뺄 수 있게 함
+function togglePdfWorkerDurunuri(idx, checked) {
+    pdfDnWorkers[idx].dnOff = !checked;
+    const scroll = document.getElementById('pdfPreviewScroll');
+    const top = scroll.scrollTop;
+    if (lastPdfRender) lastPdfRender();
+    scroll.scrollTop = top;
+    document.getElementById(`pdfDnWorker${idx}`).focus({ preventScroll: true });
+}
+
+// 2명 이상 대상일 때만 근로자 체크를 보여줌 (1명이면 위의 체크박스와 같은 일을 함)
+function renderPdfDnWorkers() {
+    const box = document.getElementById('pdfDnWorkers');
+    const eligible = (pdfDnWorkers || []).map((w, idx) => ({ w, idx })).filter(({ w }) => hasDurunuri(w.salary, w.workerShare));
+    if (!pdfShowDurunuri || eligible.length < 2) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        return;
+    }
+    box.innerHTML = eligible.map(({ w, idx }) => `<label><input type="checkbox" id="pdfDnWorker${idx}"${w.dnOff ? '' : ' checked'} onchange="togglePdfWorkerDurunuri(${idx}, this.checked)">근로자 ${idx + 1}</label>`).join('');
+    box.style.display = '';
+}
+
 function togglePdfDurunuri(on) {
     pdfShowDurunuri = on;
     if (lastPdfRender) lastPdfRender();
@@ -2132,9 +2158,12 @@ function togglePdfDurunuri(on) {
 function showPdfPreview(filename) {
     document.getElementById('pdfContent').innerHTML = document.getElementById('printArea').innerHTML;
     // 두루누리 대상자가 아예 없는 보고서에서는 체크박스를 숨김 (꺼 둔 상태면 다시 켤 수 있게 보여줌)
-    const hasDurunuri = document.querySelector('#printArea .pr-dn, #printArea .pr-card.dn, #printArea .pr-dn-col');
+    const hasDnContent = document.querySelector('#printArea .pr-dn, #printArea .pr-card.dn, #printArea .pr-dn-col');
     document.getElementById('pdfDnToggle').checked = pdfShowDurunuri;
-    document.getElementById('pdfDnToggleRow').style.display = (!pdfShowDurunuri || hasDurunuri) ? '' : 'none';
+    // 근로자를 전부 빼서 두루누리 줄이 없어져도 다시 고를 수 있게 체크박스는 남김
+    const anyWorkerDn = (pdfDnWorkers || []).some(w => hasDurunuri(w.salary, w.workerShare));
+    document.getElementById('pdfDnToggleRow').style.display = (!pdfShowDurunuri || hasDnContent || anyWorkerDn) ? '' : 'none';
+    renderPdfDnWorkers();
     document.getElementById('pdfPreview').style.display = 'flex';
     document.body.style.overflow = 'hidden';
     document.getElementById('pdfPreviewScroll').scrollTop = 0;
@@ -2549,6 +2578,7 @@ let foreignerCalc = null;  // 외국인 단독 계산 결과 (PDF 저장 시 재
 function printForeigner() {
     if (!foreignerCalc) return;
     lastPdfRender = printForeigner;
+    pdfDnWorkers = null;
     const { visa, country, joined, pensionApplies, employmentMode, salary, industry, w, e } = foreignerCalc;
     const today = new Date();
     const dn = pdfShowDurunuri ? computeForeignerDurunuri(salary, w, e) : null;
@@ -2640,26 +2670,31 @@ function printForeigner() {
 // 체류자격 → 국적 순서로 국민연금 당연적용 여부를 판단하고, 고용보험은 체류자격만으로 판단
 // (국민연금: 체류자격 자체가 제외 대상이면 국적과 무관하게 제외, 아니면 국적이 "사업장·지역 적용제외국"인지만 확인)
 // 생년월·월급여까지 입력하면 그 판정대로 보험료도 이어서 계산함
+let foreignerVerdict = null;  // 마지막 판정 (체류자격·국적을 바꾸면 지움). 보험료 계산은 이 판정대로 함
+
+// 체류자격·국적을 바꾸면 이전 판정과 보험료를 지움 (옛 판정으로 계산하는 일이 없도록). 입력한 급여는 남겨 둠
+function resetForeignerResult() {
+    foreignerVerdict = null;
+    foreignerCalc = null;
+    ['foreignerResult', 'foreignerCalcAsk', 'foreignerCalcBox', 'foreignerCalcResult', 'foreignerNotes'].forEach(id => {
+        const el = document.getElementById(id);
+        el.style.display = 'none';
+        if (id !== 'foreignerCalcBox' && id !== 'foreignerCalcAsk') el.innerHTML = '';
+    });
+    document.getElementById('foreignerCalcError').style.display = 'none';
+}
+
+// 1단계: 체류자격·국적으로 4대보험 적용 여부만 판정
 function checkForeignerInsurance() {
     const visaIdx = document.getElementById('foreignerVisa').value;
     const countryIdx = document.getElementById('foreignerCountry').value;
     const resultBox = document.getElementById('foreignerResult');
 
+    resetForeignerResult();
+
     if (visaIdx === '' || countryIdx === '') {
         resultBox.style.display = 'block';
         resultBox.innerHTML = '<p class="privacy-note input-error-note">⚠️ 체류자격과 국적을 모두 선택해주세요.</p>';
-        return;
-    }
-
-    const birthRaw = document.getElementById('foreignerBirth').value.trim();
-    const salaryRaw = document.getElementById('foreignerSalary').value.trim();
-    const wantsCalc = birthRaw !== '' || salaryRaw !== '';
-    const birthDate = parseBirthdate(birthRaw);
-    const salaryVal = parseMoney(salaryRaw);
-
-    if (wantsCalc && (!birthDate || !salaryVal || salaryVal <= 0)) {
-        resultBox.style.display = 'block';
-        resultBox.innerHTML = '<p class="privacy-note input-error-note">⚠️ 보험료를 계산하려면 생년월(6자리)과 월급여를 모두 올바르게 입력해주세요. 판정만 보려면 두 칸을 비워 두세요.</p>';
         return;
     }
 
@@ -2680,22 +2715,19 @@ function checkForeignerInsurance() {
         reason = `체류자격 "${visa.code}(${visa.name})"과 국적(${country.name}) 모두 국민연금 당연적용 대상이에요.`;
     }
 
-    const joinedChoice = document.querySelector('input[name="foreignerJoin"]:checked');
-    const employmentMode = foreignerEmploymentMode(visa, joinedChoice && joinedChoice.value === 'yes');
-    const industryIdx = document.getElementById('foreignerIndustryType').value;
-    const shares = wantsCalc
-        ? computeForeignerShares(salaryVal, birthDate, industryIdx, !excluded, employmentMode)
-        : null;
-    foreignerCalc = wantsCalc ? {
-        visa, country,
-        joined: !!(joinedChoice && joinedChoice.value === 'yes'),
-        pensionApplies: !excluded, employmentMode,
-        salary: salaryVal,
-        industry: industryIdx === '' ? null : INDUSTRY_RATES[parseInt(industryIdx, 10)],
-        w: shares.w, e: shares.e,
-    } : null;
+    foreignerVerdict = { visa, country, excluded };
+    toggleForeignerJoinRow();
 
     const emp = buildForeignerEmploymentHTML(visa);
+    // 칸 아래에는 표시만으로 알 수 없는 것만 짧게. 자세한 설명은 접힌 칸에 둠
+    const shortNotes = [];
+    if (excluded) shortNotes.push(visa.pensionExcluded ? '국민연금: 이 체류자격은 적용 제외예요.' : `국민연금: ${country.name}은 사회보장협정상 적용 제외국이에요.`);
+    const employmentNote = {
+        partial: '고용보험: 고용안정·직업능력개발은 의무, 실업급여는 근로자가 신청해야 가입돼요.',
+        optional: '고용보험: 근로자가 가입을 신청해야 적용돼요.',
+        reciprocal: '고용보험: 본국 법령이 상호주의를 충족해야 가입 대상이에요.',
+    }[visa.employment];
+    if (employmentNote) shortNotes.push(employmentNote);
     const NPS_URL = 'https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0035M0.do';
 
     resultBox.style.display = 'block';
@@ -2709,21 +2741,30 @@ function checkForeignerInsurance() {
 
         <div class="fr-verdicts">
             <div class="fr-verdict">
-                <div class="fr-verdict-head"><span class="fr-verdict-name">국민연금</span>${frBadge(excluded ? 'out' : 'in', excluded ? '제외 대상' : '가입 대상')}</div>
-                <p class="fr-verdict-reason">${reason}</p>
+                <span class="fr-verdict-name">국민연금</span>
+                ${frBadge(excluded ? 'out' : 'in', excluded ? '제외 대상' : '가입 대상')}
             </div>
             <div class="fr-verdict">
-                <div class="fr-verdict-head"><span class="fr-verdict-name">${emp.title}</span>${emp.badge}</div>
-                ${emp.details}
+                <span class="fr-verdict-name">건강보험<span class="fr-verdict-sub">장기요양 포함</span></span>
+                ${frBadge('in', '가입 대상')}
+            </div>
+            <div class="fr-verdict">
+                <span class="fr-verdict-name">${emp.title}</span>
+                ${emp.badge}
+            </div>
+            <div class="fr-verdict">
+                <span class="fr-verdict-name">산재보험</span>
+                ${frBadge('in', '가입 대상')}
             </div>
         </div>
-        <p class="fr-emp-reason">${emp.reason}</p>
+        ${shortNotes.length ? `<div class="fr-short-notes">${shortNotes.map(t => `<p>${t}</p>`).join('')}</div>` : ''}
+    `;
 
-        ${wantsCalc ? buildForeignerCalcHTML(salaryVal, visa, !excluded, employmentMode, shares.w, shares.e)
-            : `<p class="fr-info">${XP_INFO_ICON}<span>생년월과 월급여를 입력하면 이 판정대로 보험료도 계산해 드려요.</span></p>`}
-
-        <details class="fr-details" open>
-            <summary>확인할 점과 근거 자료<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></summary>
+    const notes = document.getElementById('foreignerNotes');
+    notes.innerHTML = `
+        <details class="fr-details">
+            <summary>자세한 설명과 근거 자료<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></summary>
+            <div class="fr-detail-reasons"><p>${reason}</p><p>${emp.reason}</p></div>
             <div class="fr-details-body">
                 <p>※ 고용보험은 체류자격 외에도 <b>65세 이후 신규 고용</b>, <b>월 소정근로시간 60시간 미만</b> 등 일반 적용제외 사유를 별도로 확인해야 해요.</p>
                 <div class="fr-sources">
@@ -2731,6 +2772,10 @@ function checkForeignerInsurance() {
                     <dl>
                         <dt>국민연금</dt>
                         <dd>국민연금공단에서 제공하는 <a href="${NPS_URL}" target="_blank" rel="noopener noreferrer">[2026.3.19]기준 국가별 연금제도 자료</a>와 <a href="${NPS_URL}" target="_blank" rel="noopener noreferrer">[2024.4.1]기준 체류자격별 적용 자료</a></dd>
+                        <dt>건강보험</dt>
+                        <dd>「국민건강보험법」 제109조제2항 (2026.10.8. 시행)</dd>
+                        <dt>산재보험</dt>
+                        <dd>「산업재해보상보험법」 제6조 (2026.7.1. 시행). 대통령령으로 정하는 일부 사업은 적용 제외</dd>
                         <dt>고용보험</dt>
                         <dd>「고용보험법」 제10조의2 및 같은 법 시행령에 따른 [2026.10]기준 체류자격별 적용 내용</dd>
                     </dl>
@@ -2738,9 +2783,54 @@ function checkForeignerInsurance() {
                 </div>
             </div>
         </details>
-
-        ${wantsCalc ? `<div class="fr-actions"><button class="btn-primary xp-pdf-btn" onclick="printForeigner()">${XP_PDF_ICON}PDF로 저장</button></div>` : ''}
     `;
+    notes.style.display = 'block';
+    document.getElementById('foreignerCalcAsk').style.display = 'block';
+}
+
+// 판정을 본 뒤 보험료도 알고 싶을 때만 입력칸을 펼침
+function showForeignerCalcForm() {
+    document.getElementById('foreignerCalcAsk').style.display = 'none';
+    document.getElementById('foreignerCalcBox').style.display = 'block';
+}
+
+// 2단계: 원할 때만 생년월·월급여를 넣어 위 판정대로 보험료 계산
+function calculateForeignerPremium() {
+    if (!foreignerVerdict) return;
+    const { visa, country, excluded } = foreignerVerdict;
+    const errorEl = document.getElementById('foreignerCalcError');
+    const resultEl = document.getElementById('foreignerCalcResult');
+    const birthDate = parseBirthdate(document.getElementById('foreignerBirth').value.trim());
+    const salaryVal = parseMoney(document.getElementById('foreignerSalary').value.trim());
+
+    if (!birthDate || !salaryVal || salaryVal <= 0) {
+        errorEl.textContent = '⚠️ 생년월(6자리)과 월급여를 모두 올바르게 입력해주세요.';
+        errorEl.style.display = 'block';
+        foreignerCalc = null;
+        resultEl.style.display = 'none';
+        resultEl.innerHTML = '';
+        return;
+    }
+    errorEl.style.display = 'none';
+
+    const joinedChoice = document.querySelector('input[name="foreignerJoin"]:checked');
+    const joined = !!(joinedChoice && joinedChoice.value === 'yes');
+    const employmentMode = foreignerEmploymentMode(visa, joined);
+    const industryIdx = document.getElementById('foreignerIndustryType').value;
+    const shares = computeForeignerShares(salaryVal, birthDate, industryIdx, !excluded, employmentMode);
+    foreignerCalc = {
+        visa, country, joined,
+        pensionApplies: !excluded, employmentMode,
+        salary: salaryVal,
+        industry: industryIdx === '' ? null : INDUSTRY_RATES[parseInt(industryIdx, 10)],
+        w: shares.w, e: shares.e,
+    };
+
+    resultEl.innerHTML = `
+        ${buildForeignerCalcHTML(salaryVal, visa, !excluded, employmentMode, shares.w, shares.e)}
+        <div class="fr-actions"><button class="btn-primary xp-pdf-btn" onclick="printForeigner()">${XP_PDF_ICON}PDF로 저장</button></div>
+    `;
+    resultEl.style.display = 'block';
 }
 
 // 산재보험 업종 드롭다운은 페이지 로드 시 한 번만 채워두면 됨
