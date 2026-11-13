@@ -18,6 +18,43 @@ const EMPLOYMENT_STABILITY_RATES = [
     { label: '1,000인 이상, 국가·지방자치단체', rate: 0.0085 },
 ];
 
+// 국민연금 기준소득월액 상·하한 (2026.7.1 ~ 2027.6.30 적용 — 매년 7월에 바뀜)
+const PENSION_BASE_LIMITS = { min: 410000, max: 6590000 };
+// 건강보험 직장가입자 월 보험료 상·하한 (2026년 — 근로자·사업주 합친 전체 금액, 각자 절반씩)
+const HEALTH_PREMIUM_LIMITS = { min: 20160, max: 9183480 };
+
+// 국민연금 기준소득월액: 천원 미만 절사 후 상·하한 안으로
+function pensionBaseOf(salary) {
+    const base = Math.floor(salary / 1000) * 1000;
+    return Math.min(Math.max(base, PENSION_BASE_LIMITS.min), PENSION_BASE_LIMITS.max);
+}
+
+// 건강보험료 (half=true면 근로자·사업주 한쪽 몫) — 상·하한 적용
+function healthPremiumOf(salary, half) {
+    const div = half ? 2 : 1;
+    const raw = floor10(salary * RATES.health / div);
+    return Math.min(Math.max(raw, HEALTH_PREMIUM_LIMITS.min / div), HEALTH_PREMIUM_LIMITS.max / div);
+}
+
+// 상·하한이 적용된 경우에만 안내 문구 (없으면 빈 배열)
+function premiumLimitNotes(salary) {
+    const notes = [];
+    const base = Math.floor(salary / 1000) * 1000;
+    if (base > PENSION_BASE_LIMITS.max) notes.push(`국민연금은 기준소득월액 상한(${formatNumber(PENSION_BASE_LIMITS.max)}원)으로 계산했어요.`);
+    if (base < PENSION_BASE_LIMITS.min) notes.push(`국민연금은 기준소득월액 하한(${formatNumber(PENSION_BASE_LIMITS.min)}원)으로 계산했어요.`);
+    const healthRaw = floor10(salary * RATES.health);
+    if (healthRaw > HEALTH_PREMIUM_LIMITS.max) notes.push('건강보험은 보험료 상한액으로 계산했어요.');
+    if (healthRaw < HEALTH_PREMIUM_LIMITS.min) notes.push('건강보험은 보험료 하한액으로 계산했어요.');
+    return notes;
+}
+
+// PDF용 — 화면 문구를 "~했습니다"로
+function premiumLimitNotesPdf(salaries) {
+    const all = new Set();
+    salaries.forEach(v => premiumLimitNotes(v).forEach(t => all.add(t.replace('했어요.', '했습니다.'))));
+    return [...all];
+}
+
 // 두루누리 사회보험료 지원 상한액 (2026년 기준)
 const DURUNURI_CAPS = {
     pension: 87400,
@@ -273,11 +310,11 @@ function computeWorkerShare(workerSalary, workerBirthDate) {
     const { pensionExempt, employmentExempt, pensionExemptNextMonth, employmentExemptNextMonth } = calculateExemptions(workerBirthDate);
 
     // 국민연금: 보수월액을 천원 단위로 절사 후 계산, 최종 금액도 일의 단위(10원 미만) 절사
-    const pensionBase = Math.floor(workerSalary / 1000) * 1000;
+    const pensionBase = pensionBaseOf(workerSalary);
     const pension = pensionExempt ? 0 : floor10(pensionBase * RATES.pension / 2);
 
     // 건강보험 · 장기요양보험: 둘 다 일의 단위(10원 미만) 절사
-    const health = floor10(workerSalary * RATES.health / 2);
+    const health = healthPremiumOf(workerSalary, true);
     const longterm = floor10(health * RATES.longterm);
     const employment = employmentExempt ? 0 : floor10(workerSalary * RATES.employmentWorker);
     const total = pension + health + longterm + employment;
@@ -306,6 +343,7 @@ function calculateWorkerResult() {
     if (!salaryVal || salaryVal <= 0) {
         errorEl.style.display = 'block';
         document.getElementById('workerResultSection').style.display = 'none';
+        document.getElementById('workerInputCard').classList.remove('compact');
         return;
     }
     errorEl.style.display = 'none';
@@ -324,6 +362,7 @@ function calculateWorkerResult() {
         ? `태어난 년월 ${birthLabel(birthDate)} 기준으로 계산했어요.`
         : '만 60세 미만 기준이에요. 만 60세 이상은 국민연금, 만 65세 이상은 고용보험이 달라져요.';
     document.getElementById('workerResultSection').style.display = 'block';
+    document.getElementById('workerInputCard').classList.add('compact');
     renderResult();
 }
 
@@ -352,6 +391,8 @@ function renderResult() {
     if (calc.employmentExempt) notices.push('만 65세가 되어 고용보험(실업급여)도 제외했어요.');
     if (calc.pensionExemptNextMonth) notices.push('다음 달부터는 만 60세가 되어 국민연금이 제외돼요.');
     if (calc.employmentExemptNextMonth) notices.push('다음 달부터는 만 65세가 되어 고용보험(실업급여)도 제외돼요.');
+    if (!calc.pensionExempt) notices.push(...premiumLimitNotes(salary));
+    else notices.push(...premiumLimitNotes(salary).filter(t => !t.startsWith('국민연금')));
     const ageNotice = document.getElementById('ageNotice');
     if (notices.length > 0) {
         ageNotice.textContent = 'ℹ️ ' + notices.join(' ');
@@ -361,13 +402,11 @@ function renderResult() {
     }
 
     // 두루누리 안내: 앱이 대상 여부를 판단하지 않도록 누구에게나 제도 안내는 보여주고,
-    // "적용해 보기" 버튼은 제도 기준(월급여 270만원 이하)일 때만 — 초과면 버튼 대신 기준 안내
+    // 상자는 제도 기준(월급여 270만원 미만)일 때만 보여줌 — 270만원부터는 아예 숨김(급여를 낮춰 신고하라는 뜻으로 보이지 않게)
     const durunuriBtn = document.getElementById('durunuriToggleBtn');
     durunuriBtn.textContent = '두루누리 적용해 보기';
     durunuriBtn.classList.remove('applied');
-    durunuriBtn.style.display = salary <= 2700000 ? '' : 'none';
-    document.getElementById('durunuriSalaryNote').style.display = salary <= 2700000 ? 'none' : 'block';
-    document.getElementById('durunuriBanner').style.display = 'block';
+    document.getElementById('durunuriBanner').style.display = salary < 2700000 ? 'block' : 'none';
     document.getElementById('durunuriCapNotice').style.display = 'none';
 }
 
@@ -380,6 +419,7 @@ function calculateEmployerResult() {
     if (!salaryVal || salaryVal <= 0) {
         errorEl.style.display = 'block';
         document.getElementById('employerResultSection').style.display = 'none';
+        document.getElementById('employerInputCard').classList.remove('compact');
         return;
     }
     errorEl.style.display = 'none';
@@ -394,6 +434,7 @@ function calculateEmployerResult() {
         industryIdx,
         birthDate: birth.bd,
         share: computeEmployerShare(salaryVal, birth.bd, industryIdx),
+        workerShare: computeWorkerShare(salaryVal, birth.bd),  // 근로자 부담분 — 화면엔 총액 한 줄, 상세는 PDF
     };
     empDurunuriApplied = false;
 
@@ -401,6 +442,7 @@ function calculateEmployerResult() {
         ? `직원 태어난 년월 ${birthLabel(birth.bd)} 기준으로 계산했어요.`
         : '만 60세 미만 기준이에요. 직원이 만 60세 이상이면 국민연금, 만 65세 이상이면 고용보험이 달라져요.';
     document.getElementById('employerResultSection').style.display = 'block';
+    document.getElementById('employerInputCard').classList.add('compact');
     renderEmployerResult();
 }
 
@@ -415,6 +457,10 @@ function renderEmployerResult() {
 
     set('empDisplaySalary', formatNumber(empCalc.salary) + '원');
     set('empResultTotal', formatNumber(total) + '원');
+    // 근로자 부담분까지 합친 총액 (두루누리를 적용해 보는 중이면 근로자 몫에도 같이 반영)
+    const workerTotal = dn ? computeDurunuriDeduction(empCalc.workerShare, empCalc.salary).total : empCalc.workerShare.total;
+    set('empGrandTotal', `(근로자 부담분 포함 총 ${formatNumber(total + workerTotal)}원)`);
+    document.getElementById('empGrandTotal').classList.toggle('value-changed', !!dn);
     set('empPension', formatNumber(pension) + '원');
     set('empHealth', formatNumber(s.healthEmployer) + '원');
     set('empLongterm', formatNumber(s.longtermEmployer) + '원');
@@ -427,7 +473,8 @@ function renderEmployerResult() {
     set('empEmploymentRate', s.employmentExempt
         ? `(고용안정·직능 ${roundRate(RATES.employmentStability * 100)}%만)`
         : formatRate((RATES.employmentWorker + RATES.employmentStability) * 100));
-    set('empAccidentRate', s.accidentPermille === null ? '' : `(${s.accidentPermille}/1000)`);
+    set('empAccidentRate', s.accidentPermille === null ? '' : `(${s.accidentPermille}/1000, 참고용)`);
+    document.getElementById('empAccidentInfo').style.display = s.accidentPermille === null ? 'none' : '';
 
     ['empPension', 'empEmployment', 'empResultTotal'].forEach(id => {
         document.getElementById(id).classList.toggle('value-changed', !!dn);
@@ -439,17 +486,17 @@ function renderEmployerResult() {
     if (s.employmentExempt) notices.push('직원이 만 65세가 지나 고용보험은 고용안정·직업능력개발분만 계산했어요.');
     if (s.pensionExemptNextMonth) notices.push('다음 달부터는 만 60세가 되어 국민연금이 제외돼요.');
     if (s.employmentExemptNextMonth) notices.push('다음 달부터는 만 65세가 되어 고용보험 실업급여분이 제외돼요.');
+    notices.push(...premiumLimitNotes(empCalc.salary).filter(t => !(s.pensionExempt && t.startsWith('국민연금'))));
     const ageNotice = document.getElementById('employerAgeNotice');
     ageNotice.textContent = notices.length ? 'ℹ️ ' + notices.join(' ') : '';
     ageNotice.style.display = notices.length ? 'block' : 'none';
 
-    // 두루누리: 앱이 대상 여부를 판단하지 않음 — 270만원 이하면 "적용해 보기" 버튼, 초과면 기준 안내만
-    const eligible = empCalc.salary <= 2700000;
+    // 두루누리: 앱이 대상 여부를 판단하지 않음 — 270만원 미만일 때만 상자와 "적용해 보기"를 보여줌
+    const eligible = empCalc.salary < 2700000;
     const btn = document.getElementById('empDurunuriToggleBtn');
     btn.textContent = empDurunuriApplied ? '원래 금액 보기' : '두루누리 적용해 보기';
     btn.classList.toggle('applied', empDurunuriApplied);
-    btn.style.display = eligible ? '' : 'none';
-    document.getElementById('empDurunuriSalaryNote').style.display = eligible ? 'none' : 'block';
+    document.getElementById('empDurunuriBanner').style.display = eligible ? '' : 'none';
     const capText = dn ? durunuriCapNoticeText(dn.pensionCapped, dn.employmentCapped) : '';
     const capNotice = document.getElementById('empDurunuriCapNotice');
     capNotice.textContent = capText;
@@ -485,10 +532,10 @@ function populateIndustryOptions(selectId) {
 function computeEmployerShare(workerSalary, workerBirthDate, industryIdx, stabilityRate = RATES.employmentStability) {
     const { pensionExempt, employmentExempt, pensionExemptNextMonth, employmentExemptNextMonth } = calculateExemptions(workerBirthDate);
 
-    const pensionBase = Math.floor(workerSalary / 1000) * 1000;
+    const pensionBase = pensionBaseOf(workerSalary);
     const pensionEmployer = pensionExempt ? 0 : floor10(pensionBase * RATES.pension / 2);
 
-    const healthWorkerHalf = floor10(workerSalary * RATES.health / 2);
+    const healthWorkerHalf = healthPremiumOf(workerSalary, true);
     const healthEmployer = healthWorkerHalf; // 건강보험은 나이 제한 없이 계속 부과됨 (근로자·사업주 절반씩 동일)
 
     const longtermEmployer = floor10(healthWorkerHalf * RATES.longterm);
@@ -694,11 +741,11 @@ function computeOwnerShareByType(ownerType, ownerSalary, ownerBirthDate) {
     }
 
     const { pensionExempt, pensionExemptNextMonth } = calculateExemptions(ownerBirthDate);
-    const pensionBase = Math.floor(ownerSalary / 1000) * 1000;
+    const pensionBase = pensionBaseOf(ownerSalary);
 
     if (ownerType === 'individual') {
         const pension = pensionExempt ? 0 : floor10(pensionBase * RATES.pension);
-        const health = floor10(ownerSalary * RATES.health);
+        const health = healthPremiumOf(ownerSalary, false);
         const longterm = floor10(health * RATES.longterm);
         return {
             selfPension: pension, selfHealth: health, selfLongterm: longterm,
@@ -710,7 +757,7 @@ function computeOwnerShareByType(ownerType, ownerSalary, ownerBirthDate) {
 
     // paidCorp
     const halfPension = pensionExempt ? 0 : floor10(pensionBase * RATES.pension / 2);
-    const halfHealth = floor10(ownerSalary * RATES.health / 2);
+    const halfHealth = healthPremiumOf(ownerSalary, true);
     const halfLongterm = floor10(halfHealth * RATES.longterm);
     return {
         selfPension: halfPension, selfHealth: halfHealth, selfLongterm: halfLongterm,
@@ -953,12 +1000,18 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
 
     const dnBlock = durunuriNums.length ? `
         <div class="xp-total-dn">
-            <span class="xp-total-dn-label"><span class="xp-tag dn">두루누리 적용 시</span><span class="xp-total-dn-who">월급여 270만원 이하 ${durunuriNums.length}명 · ${durunuriNums.join(', ')}</span></span>
+            <span class="xp-total-dn-label"><span class="xp-tag dn">두루누리 적용 시</span><span class="xp-total-dn-who">월급여 270만원 미만 ${durunuriNums.length}명 · ${durunuriNums.join(', ')}</span></span>
             <span class="xp-total-dn-amount">${n(grandTotal - durunuriSaving)}원</span>
         </div>` : '';
 
     const notes = [];
     if (totalBillWorkersCalc.some(w => w.foreign)) notes.push('외국인으로 표시한 근로자는 체류자격·국적 판정대로 국민연금·고용보험을 계산했어요.');
+    {
+        const limitSalaries = [...totalBillWorkersCalc.map(w => w.salary), totalBillOwnerCalc.salary].filter(v => v > 0);
+        if (limitSalaries.some(v => premiumLimitNotes(v).length)) {
+            notes.push(`급여가 상·하한을 벗어난 사람은 국민연금 기준소득월액 상·하한(${formatNumber(PENSION_BASE_LIMITS.min)}원~${formatNumber(PENSION_BASE_LIMITS.max)}원)과 건강보험료 상·하한을 적용해 계산했어요.`);
+        }
+    }
     notes.push('근로자 공제분과 사업주 부담분(사업주 본인 몫 포함)을 모두 합친, 실제 4대보험 통합고지서 기준 총 부과 금액이에요.<br><b>두루누리 지원금은 반영되지 않은 금액입니다.</b><br>산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액이며, 정확한 산재보험료율은 근로복지공단(<a href="tel:1588-0075">1588-0075</a>)에 별도로 확인해주세요.');
 
     return `
@@ -1022,10 +1075,10 @@ function durunuriEmployerEmployment(s) {
 }
 
 // PDF 저장용 — 화면 토글 상태와 무관하게 "두루누리를 적용했다면"의 금액을 그대로 계산 (대상자는 PDF에 항상 같이 표시)
-// 두루누리 금액을 보여줄 사람인지: 월급여 270만원 이하 + 실제로 지원받을 보험료가 있어야 함
+// 두루누리 금액을 보여줄 사람인지: 월급여 270만원 미만 + 실제로 지원받을 보험료가 있어야 함
 // (외국인 중 국민연금은 지원 없고 실업급여도 부과되지 않는 경우는 지원액이 0이라 제외)
 function hasDurunuri(salary, share) {
-    return salary <= 2700000 && !share.durunuriNone;
+    return salary < 2700000 && !share.durunuriNone;
 }
 
 function computeDurunuriDeduction(s, salary) {
@@ -1140,8 +1193,8 @@ function printResult(type) {
     const printArea = document.getElementById('printArea');
     const today = new Date();
 
-    // 두루누리 지원 가능 대상이면(급여 270만원 이하) 화면 토글 상태와 무관하게 적용 시 금액도 함께 보여줌
-    const dd = pdfShowDurunuri && salary <= 2700000 ? computeDurunuriDeduction(calc, salary) : null;
+    // 두루누리 지원 가능 대상이면(급여 270만원 미만) 화면 토글 상태와 무관하게 적용 시 금액도 함께 보여줌
+    const dd = pdfShowDurunuri && salary < 2700000 ? computeDurunuriDeduction(calc, salary) : null;
     const anyCapped = dd && (dd.pensionCapped || dd.employmentCapped);
     const cap = capped => capped ? '<span class="pr-dn-cap"> (상한)</span>' : '';
     const dnCell = (value, capped) => dd ? `<td class="pr-dn-col">${formatNumber(value)}${cap(capped)}</td>` : '';
@@ -1193,11 +1246,12 @@ function printResult(type) {
             '이 계산 결과는 참고용이며, 실제 공제 금액은 담당 기관 확인에 따라 달라질 수 있습니다.',
             '각 보험료는 10원 미만을 절사했습니다.',
             calc.birthEntered ? '' : '나이를 넣지 않아 만 60세 미만 기준으로 계산했습니다.',
+            ...premiumLimitNotesPdf([salary]).filter(t => !(calc.pensionExempt && t.startsWith('국민연금'))),
             calc.pensionExempt ? '만 60세가 지나 국민연금은 공제 대상에서 제외했습니다.' : '',
             calc.employmentExempt ? '만 65세가 지나 고용보험(실업급여)은 공제 대상에서 제외했습니다.' : '',
             calc.pensionExemptNextMonth ? '다음 달부터 만 60세가 되어 국민연금이 제외됩니다.' : '',
             calc.employmentExemptNextMonth ? '다음 달부터 만 65세가 되어 고용보험(실업급여)이 제외됩니다.' : '',
-            dd ? '두루누리 적용 시 금액은 월급여 270만원 이하로 지원 가능 대상일 때의 예상 금액입니다.' : '',
+            dd ? '두루누리 적용 시 금액은 월급여 270만원 미만으로 지원 가능 대상일 때의 예상 금액입니다.' : '',
             dd ? '두루누리 지원은 국민연금·고용보험에만 적용되며, 실제 지원 여부는 근로복지공단 확인이 필요합니다.' : '',
             prDurunuriCapNote(anyCapped),
         ])}
@@ -1215,9 +1269,18 @@ function printEmployerBasic() {
     const s = empCalc.share;
     const today = new Date();
     const industry = empCalc.industryIdx !== '' ? INDUSTRY_RATES[parseInt(empCalc.industryIdx, 10)] : null;
-    let dd = pdfShowDurunuri && empCalc.salary <= 2700000 ? computeDurunuriBurden(s) : null;
+    let dd = pdfShowDurunuri && empCalc.salary < 2700000 ? computeDurunuriBurden(s) : null;
     if (dd && dd.total === s.total) dd = null;  // 지원받을 보험료가 없으면(예: 60·65세 이상) 두루누리 칸을 빼고 보여줌
-    const anyCapped = dd && (dd.pensionCapped || dd.employmentCapped);
+    const ws = empCalc.workerShare;
+    let wd = dd ? computeDurunuriDeduction(ws, empCalc.salary) : null;
+    if (wd && wd.total === ws.total) wd = null;
+    const wRows = [
+        ['국민연금', ws.pensionExempt ? '면제' : prPct(RATES.pension / 2 * 100), ws.pension, wd && wd.pension, wd && wd.pensionCapped],
+        ['건강보험', prPct(RATES.health / 2 * 100), ws.health, wd && wd.health, false],
+        ['장기요양보험', `건강보험료의 ${prPct(RATES.longterm * 100)}`, ws.longterm, wd && wd.longterm, false],
+        ['고용보험', ws.employmentExempt ? '면제' : prPct(RATES.employmentWorker * 100), ws.employment, wd && wd.employment, wd && wd.employmentCapped],
+    ];
+    const anyCapped = (dd && (dd.pensionCapped || dd.employmentCapped)) || (wd && (wd.pensionCapped || wd.employmentCapped));
     const cap = capped => capped ? '<span class="pr-dn-cap"> (상한)</span>' : '';
     const dnCell = (value, capped) => dd ? `<td class="pr-dn-col">${typeof value === 'number' ? formatNumber(value) : value}${cap(capped)}</td>` : '';
     const accidentText = s.accidentEmployer === null ? '업종 미선택' : formatNumber(s.accidentEmployer);
@@ -1265,17 +1328,58 @@ function printEmployerBasic() {
             </tbody>
         </table>
 
+        <h2 class="pr-h2">근로자 월급에서 공제하는 금액</h2>
+        <table class="pr-table">
+            <thead><tr>
+                <th>항목</th>
+                <th>공제액</th>
+                ${wd ? '<th class="pr-dn-col">두루누리 적용 시</th>' : ''}
+            </tr></thead>
+            <tbody>
+                ${wRows.map(([name, rate, value, dnValue, capped]) => `
+                <tr>
+                    <td>${name}<span class="pr-rate">${rate}</span></td>
+                    <td>${formatNumber(value)}</td>
+                    ${wd ? `<td class="pr-dn-col">${formatNumber(dnValue)}${cap(capped)}</td>` : ''}
+                </tr>`).join('')}
+                <tr class="pr-sum">
+                    <th>공제 합계</th>
+                    <td class="pr-accent">${formatNumber(ws.total)}</td>
+                    ${wd ? `<td class="pr-dn-col">${formatNumber(wd.total)}</td>` : ''}
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 class="pr-h2">사업주 + 근로자 합계</h2>
+        <table class="pr-table">
+            <thead><tr>
+                <th>구분</th>
+                <th>금액</th>
+                ${dd ? '<th class="pr-dn-col">두루누리 적용 시</th>' : ''}
+            </tr></thead>
+            <tbody>
+                <tr><td>사업주 부담</td><td>${formatNumber(s.total)}</td>${dd ? `<td class="pr-dn-col">${formatNumber(dd.total)}</td>` : ''}</tr>
+                <tr><td>근로자 부담</td><td>${formatNumber(ws.total)}</td>${dd ? `<td class="pr-dn-col">${formatNumber(wd ? wd.total : ws.total)}</td>` : ''}</tr>
+                <tr class="pr-sum">
+                    <th>총 4대보험</th>
+                    <td class="pr-accent">${formatNumber(s.total + ws.total)}</td>
+                    ${dd ? `<td class="pr-dn-col">${formatNumber(dd.total + (wd ? wd.total : ws.total))}</td>` : ''}
+                </tr>
+            </tbody>
+        </table>
+
         ${prNotesHTML([
             '이 계산 결과는 참고용이며, 실제 부과 금액은 담당 기관 확인에 따라 달라질 수 있습니다.',
             '각 보험료는 10원 미만을 절사했습니다.',
             empCalc.birthDate ? '' : '직원 나이를 넣지 않아 만 60세 미만 기준으로 계산했습니다.',
+            ...premiumLimitNotesPdf([empCalc.salary]).filter(t => !(s.pensionExempt && t.startsWith('국민연금'))),
             `사업주 고용보험은 실업급여분(${prPct(RATES.employmentWorker * 100)})과 고용안정·직업능력개발분(${prPct(RATES.employmentStability * 100)}, 150인 미만 사업장 기준)을 합한 금액입니다.`,
             s.pensionExempt ? '직원이 만 60세가 지나 국민연금은 제외했습니다.' : '',
             s.employmentExempt ? '직원이 만 65세가 지나 고용보험은 고용안정·직업능력개발분만 계산했습니다.' : '',
             s.pensionExemptNextMonth ? '다음 달부터 만 60세가 되어 국민연금이 제외됩니다.' : '',
             s.employmentExemptNextMonth ? '다음 달부터 만 65세가 되어 고용보험 실업급여분이 제외됩니다.' : '',
             industry ? '산재보험료는 선택한 업종 요율로 계산한 참고 금액이며, 실제 업종 분류는 근로복지공단이 정합니다.' : '업종을 선택하지 않아 산재보험료는 계산하지 않았습니다.',
-            dd ? '두루누리 적용 시 금액은 월급여 270만원 이하로 지원 가능 대상일 때의 예상 금액입니다.' : '',
+            dd ? '두루누리 적용 시 금액은 월급여 270만원 미만으로 지원 가능 대상일 때의 예상 금액입니다.' : '',
             dd ? `사업주 고용보험은 실업급여분(${prPct(RATES.employmentWorker * 100)})에만 두루누리가 적용되며, 실제 지원 여부는 근로복지공단 확인이 필요합니다.` : '',
             prDurunuriCapNote(anyCapped),
         ])}
@@ -1313,7 +1417,7 @@ function buildPrintRowPair(label, salary, d, b, dnOff = false) {
             <td class="pr-strong">${formatNumber(b.total)}</td>
         </tr>`;
 
-    // 두루누리 지원이 반영됐을 때의 "이 사람 몫" — 대상이 아니면(급여 270만원 초과)
+    // 두루누리 지원이 반영됐을 때의 "이 사람 몫" — 대상이 아니면(급여 270만원 이상)
     // 원래 금액 그대로, 대상이면 지원 적용된 금액. effDeduction/effBurden은 표별
     // 합계 줄(두루누리 적용 시)에, effPension 등 합친 값은 총 부과 금액 집계에 씀
     let capped = false;
@@ -1588,6 +1692,8 @@ function printTotalBill() {
             anyEligible ? `사업주 고용보험은 실업급여분(0.9%)에만 두루누리가 적용되고, 고용안정·직업능력개발분(${prPct(totalBillStabilityRate * 100)})은 지원 대상이 아닙니다.` : '',
             prDurunuriCapNote(anyDurunuriCapped),
             '표의 요율은 기본 요율이며, 각 보험료는 10원 미만을 절사했습니다.',
+            ...premiumLimitNotesPdf([...totalBillWorkersCalc.map(w => w.salary), totalBillOwnerCalc.salary].filter(v => v > 0))
+                .map(t => '급여가 상·하한을 벗어난 사람은 ' + t.replace('계산했습니다.', '계산했습니다(해당자만).')),
             `고용보험은 만 65세 이상이면 사업주 고용안정·직업능력개발분(${prPct(totalBillStabilityRate * 100)})만 부과됩니다.`,
             anyExempt ? '나이(만 60세·65세) 조건으로 제외된 항목이 있는 경우, 금액에는 이미 반영되어 있어 표의 기본 요율과 다를 수 있습니다.' : '',
             industry ? '산재보험료는 선택한 업종 요율로 계산한 참고 금액이며, 실제 업종 분류는 근로복지공단이 정합니다.' : '업종을 선택하지 않아 산재보험료는 계산하지 않았습니다.',
@@ -1611,6 +1717,7 @@ function clearWorkerFields() {
     document.getElementById('workerInputError').style.display = 'none';
     document.getElementById('workerBirthError').style.display = 'none';
     document.getElementById('workerResultSection').style.display = 'none';
+    document.getElementById('workerInputCard').classList.remove('compact');
 }
 
 function clearEmployerFields() {
@@ -1620,6 +1727,7 @@ function clearEmployerFields() {
     document.getElementById('employerInputError').style.display = 'none';
     document.getElementById('employerBirthError').style.display = 'none';
     document.getElementById('employerResultSection').style.display = 'none';
+    document.getElementById('employerInputCard').classList.remove('compact');
     empCalc = null;
     empDurunuriApplied = false;
 }
@@ -2112,10 +2220,11 @@ function buildForeignerCalcHTML(salary, visa, pensionApplies, employmentMode, w,
     const notes = [
         dn ? durunuriCapNoticeText(false, dn.capped).replace(/^※\s*/, '') : '',
         '건강보험·장기요양보험·산재보험은 내국인과 같은 기준으로 계산했어요.',
+        ...premiumLimitNotes(salary).filter(t => !(t.startsWith('국민연금') && (!pensionApplies || w.pensionExempt))),
         employmentMode === 'none' && visa.employment === 'reciprocal'
             ? '상호주의 충족 여부를 알 수 없어 고용보험을 0원으로 계산했어요. 본국 법령상 충족되면 내국인과 같이 부과돼요.' : '',
         '외국인은 국민연금 두루누리 지원 대상이 아니에요.',
-        salary <= 2700000 && employmentMode !== 'all' ? '실업급여분 고용보험이 부과되지 않아 고용보험 두루누리 지원도 없어요.' : '',
+        salary < 2700000 && employmentMode !== 'all' ? '실업급여분 고용보험이 부과되지 않아 고용보험 두루누리 지원도 없어요.' : '',
     ].filter(Boolean);
 
     return `
@@ -2234,6 +2343,7 @@ function printForeigner() {
             '이 계산 결과는 참고용이며, 실제 적용 여부와 금액은 국민연금공단·근로복지공단 확인에 따라 달라질 수 있습니다.',
             '국민연금은 체류자격·국적(사회보장협정) 기준, 고용보험은 체류자격 기준으로 판정했습니다.',
             '건강보험·장기요양보험·산재보험은 내국인과 같은 기준으로 계산했습니다.',
+            ...premiumLimitNotesPdf([salary]).filter(t => !(t.startsWith('국민연금') && (!pensionApplies || w.pensionExempt))),
             visa.employment === 'reciprocal' ? '체류자격 D-7·D-8·D-9는 상호주의 충족 여부를 알 수 없어 고용보험을 0원으로 계산했습니다. 충족되면 내국인과 같이 부과됩니다.' : '',
             pdfShowDurunuri ? '외국인은 국민연금 두루누리 지원 대상이 아닙니다.' : '',
             dn ? '"두루누리 적용 시"는 고용보험 실업급여분에만 지원금을 반영한 참고 금액이며, 실제 지원 여부는 근로복지공단 확인이 필요합니다.' : '',

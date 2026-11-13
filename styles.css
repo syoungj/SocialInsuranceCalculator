@@ -310,7 +310,7 @@ body:not([data-step="step2"]) .app-brand img {
     display: none;
     max-width: 1120px;
     margin: 0 auto;
-    padding: 0 8px;
+    padding: 0 20px;
 }
 
 .step.active {
@@ -493,6 +493,23 @@ footer {
     margin-bottom: 4px;
 }
 
+/* 사업주 화면 맨 아래 묶음 (산재 안내 + 상세 계산 링크) */
+.step > .step-bottom {
+    margin-top: auto;
+    padding-top: 24px;
+}
+
+/* 결과 카드 안 산재 안내 */
+.card-info {
+    margin: -4px 22px 18px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+}
+
+.step-bottom .expert-entry {
+    margin-top: 8px;
+}
+
 .step > .expert-entry {
     margin-top: auto;
     padding-top: 20px;
@@ -504,7 +521,7 @@ footer {
 .calc-layout {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 20px;
     padding-top: 12px;
 }
 
@@ -561,6 +578,62 @@ footer {
 .calc-input .privacy-note,
 .calc-input .btn-primary {
     margin: 0;
+}
+
+/* 근로자 화면 급여 칸 + 계산하기 — 계산 전엔 위아래, 계산 후(.compact)엔 한 줄 */
+.salary-row {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.salary-row .input-group,
+.salary-row .btn-primary {
+    margin: 0;
+}
+
+/* 사업주 화면: 업종 칸이 급여와 계산하기 사이에 있음 — 칸 배치(grid)로 순서를 바꿈 */
+.salary-row.with-industry {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "salary" "industry" "button";
+    gap: 14px;
+}
+
+.salary-row.with-industry .sr-salary { grid-area: salary; }
+.salary-row.with-industry .sr-industry { grid-area: industry; margin: 0; }
+.salary-row.with-industry .sr-button { grid-area: button; }
+
+.calc-input.compact .salary-row.with-industry {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "salary button" "industry industry";
+    gap: 10px 8px;
+}
+
+/* 계산 후엔 업종 이름표를 숨겨 칸만 남김 (고른 업종이 칸 안에 보임) */
+.calc-input.compact .sr-industry label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+.calc-input.compact .salary-row {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.calc-input.compact .salary-row .input-group {
+    flex: 1;
+    min-width: 0;
+}
+
+.calc-input.compact .salary-row .btn-primary {
+    width: auto;
+    flex-shrink: 0;
+    padding: 0 20px;
 }
 
 /* 월급여·생년월 두 칸 나란히 (3:2) — minmax(0, …)로 칸이 밖으로 밀려나지 않게 */
@@ -662,7 +735,7 @@ footer {
 
 /* 위쪽 옅은 파란 유리 띠: 실수령액 큰 숫자 */
 .net-band {
-    padding: 22px 20px 20px;
+    padding: 24px 22px 22px;
     background: rgba(225, 235, 253, 0.5);
     border-bottom: 1px solid rgba(255, 255, 255, 0.7);
 }
@@ -682,6 +755,26 @@ footer {
     font-variant-numeric: tabular-nums;
 }
 
+/* 큰 금액 옆 작은 글씨 "(월급여액 …)" — 폭이 좁으면 금액 아래로 내려감 */
+.net-amount.with-sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 10px;
+}
+
+.net-sub {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--text-2);
+}
+
+.net-sub b {
+    font-weight: 700;
+    color: var(--text);
+}
+
 .net-caption {
     margin-top: 8px;
     font-size: 13px;
@@ -694,18 +787,16 @@ footer {
 
 /* 항목별 공제 — PDF처럼 굵은 선 없이 옅은 구분선만 */
 .worker-table {
-    padding: 6px 20px 4px;
+    padding: 8px 22px 6px;
 }
 
 .worker-table .result-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-        "name amount"
-        "rate amount";
-    align-items: center;
-    row-gap: 2px;
-    padding: 13px 0;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "name rate amount";
+    align-items: baseline;
+    column-gap: 6px;
+    padding: 15px 0;
 }
 
 .worker-table .result-row:last-child {
@@ -719,7 +810,7 @@ footer {
 .r-name {
     grid-area: name;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text);
 }
 
@@ -727,6 +818,9 @@ footer {
     grid-area: rate;
     margin: 0;
     font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     opacity: 1;
     color: var(--text-sub);
 }
@@ -734,7 +828,7 @@ footer {
 .r-amount {
     grid-area: amount;
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text);
     text-align: right;
     font-variant-numeric: tabular-nums;
@@ -744,7 +838,7 @@ footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: 0 20px 20px;
+    margin: 4px 22px 22px;
     padding: 14px 16px;
     border: none;
     border-radius: 12px;
@@ -766,7 +860,7 @@ footer {
 
 /* 나이 반영 상자 — 처음엔 만 60세 미만으로 계산하고, 필요한 사람만 결과 아래에서 태어난 년월을 넣음 */
 .age-box {
-    margin-top: 14px;
+    margin-top: 20px;
     padding: 14px 16px;
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.45);
@@ -942,7 +1036,7 @@ footer {
    style.display를 script.js가 'block'으로 바꾸므로 flex 대신 아이콘을 절대 위치로 둠
    ======================================== */
 .result-actions {
-    margin-top: 12px;
+    margin-top: 20px;
 }
 
 .durunuri-banner {
@@ -4051,6 +4145,7 @@ select.xp-input {
 
 .calc-info a {
     font-weight: 700;
+    white-space: nowrap;
     color: var(--accent);
 }
 
