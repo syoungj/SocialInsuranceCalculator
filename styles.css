@@ -761,6 +761,7 @@ footer {
     flex-wrap: wrap;
     align-items: baseline;
     column-gap: 10px;
+    row-gap: 8px;
 }
 
 .net-sub {
@@ -792,11 +793,22 @@ footer {
 
 .worker-table .result-row {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: "name rate amount";
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "label amount";
+    align-items: center;
+    column-gap: 10px;
+    padding: 15px 0;
+}
+
+/* 이름 + 요율: 한 줄에 들어가면 나란히, 모자라면 요율만 이름 아래로 */
+.r-label {
+    grid-area: label;
+    display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     column-gap: 6px;
-    padding: 15px 0;
+    row-gap: 2px;
+    min-width: 0;
 }
 
 .worker-table .result-row:last-child {
@@ -819,8 +831,6 @@ footer {
     margin: 0;
     font-size: 12px;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     opacity: 1;
     color: var(--text-sub);
 }
@@ -1568,6 +1578,10 @@ footer .footer-org {
     /* 항목 / 요율 / 공제액 세 칸 표 */
     .worker-table {
         padding: 8px 30px 4px;
+    }
+
+    .worker-table .r-label {
+        display: contents;
     }
 
     .worker-table .result-row {
