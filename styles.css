@@ -759,8 +759,82 @@ footer {
     color: var(--sum);
 }
 
-#ageNotice {
+#ageNotice,
+#employerAgeNotice {
     margin: 12px 0 0;
+}
+
+/* 나이 반영 상자 — 처음엔 만 60세 미만으로 계산하고, 필요한 사람만 결과 아래에서 태어난 년월을 넣음 */
+.age-box {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid var(--line);
+}
+
+.age-box-text {
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-sub);
+    word-break: keep-all;
+}
+
+.age-box-row {
+    display: flex;
+    gap: 8px;
+}
+
+.age-box-row input {
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    padding: 0 12px;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    font-size: 15px;
+    font-family: inherit;
+}
+
+.age-box-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(58, 91, 214, 0.15);
+}
+
+.age-box-btn {
+    flex-shrink: 0;
+    height: 42px;
+    padding: 0 16px;
+    border: 1.5px solid var(--accent);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.age-box-error {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: #c0392b;
+}
+
+/* 사업주 기본 화면 → 상세 계산 안내 한 줄 */
+.calc-more-link {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--text-sub);
+    word-break: keep-all;
+}
+
+.calc-more-link a {
+    color: var(--accent);
+    font-weight: 600;
 }
 
 /* PC에서 계산 전 오른쪽 칸 자리 표시 — 폰에서는 안 씀.
@@ -1372,7 +1446,7 @@ footer .footer-org {
     }
 
     #workerResultSection[style*="block"] ~ .result-empty,
-    #employerResultTabs[style*="block"] ~ .result-empty {
+    #employerResultSection[style*="block"] ~ .result-empty {
         display: none;
     }
 
@@ -2465,6 +2539,7 @@ select.xp-input {
     display: grid;
     grid-template-areas:
         "ind"
+        "size"
         "type"
         "owner"
         "roster"
@@ -2473,6 +2548,7 @@ select.xp-input {
 }
 
 .tb-ind { grid-area: ind; }
+.tb-size { grid-area: size; }
 .tb-type { grid-area: type; }
 .tb-owner { grid-area: owner; }
 .tb-roster { grid-area: roster; min-width: 0; }
@@ -3509,8 +3585,9 @@ select.xp-input {
     .tb-form {
         grid-template-columns: 5fr 4fr 3fr;
         grid-template-areas:
-            "ind    owner  hint"
+            "ind    size   size"
             "type   type   type"
+            "owner  owner  hint"
             "roster roster roster"
             ".      .      submit";
         column-gap: 24px;

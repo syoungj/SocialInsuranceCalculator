@@ -63,7 +63,7 @@
                 </div>
 
                 <div class="expert-entry">
-                    <a href="#" onclick="goToExpert(); return false;">전문가용으로 보기<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+                    <a href="#" onclick="goToExpert(); return false;">상세 계산<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
                 </div>
             </div>
         </div>
@@ -82,20 +82,13 @@
 
                 <div class="card calc-input">
                     <h2 class="sr-only">내 월급에서 얼마 떼나요?</h2>
-                    <div class="input-pair">
-                        <div class="input-group">
-                            <label for="workerSalary">월급여액</label>
-                            <input type="text" id="workerSalary" class="money-input" inputmode="numeric" placeholder="예: 3,000,000" autocomplete="new-password">
-                            <span class="unit">원</span>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="workerBirth">태어난 년월<span class="label-hint"> (6자리)</span></label>
-                            <input type="text" id="workerBirth" inputmode="numeric" placeholder="예: 199001" maxlength="6" autocomplete="new-password">
-                        </div>
+                    <div class="input-group">
+                        <label for="workerSalary">월급여액</label>
+                        <input type="text" id="workerSalary" class="money-input" inputmode="numeric" placeholder="예: 3,000,000" autocomplete="new-password">
+                        <span class="unit">원</span>
                     </div>
 
-                    <p id="workerInputError" class="privacy-note input-error-note" style="display:none;">⚠️ 급여와 태어난 년월(6자리)을 올바르게 입력해주세요.</p>
+                    <p id="workerInputError" class="privacy-note input-error-note" style="display:none;">⚠️ 월급여를 입력해주세요.</p>
 
                     <button class="btn-primary" onclick="calculateWorkerResult()">계산하기</button>
                     <p class="input-footnote privacy-line"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>입력값은 저장되지 않아요</p>
@@ -140,6 +133,16 @@
                         </div>
                     </section>
 
+                    <!-- 나이: 처음엔 묻지 않고 만 60세 미만으로 계산 — 필요한 사람만 결과를 본 뒤 넣음 -->
+                    <div class="age-box">
+                        <p class="age-box-text" id="workerAgeText">만 60세 미만 기준이에요. 만 60세 이상은 국민연금, 만 65세 이상은 고용보험이 달라져요.</p>
+                        <div class="age-box-row">
+                            <input type="text" id="workerBirth" inputmode="numeric" placeholder="태어난 년월 (예: 196503)" maxlength="6" autocomplete="new-password" aria-label="태어난 년월 6자리">
+                            <button type="button" class="age-box-btn" onclick="calculateWorkerResult()">나이 반영</button>
+                        </div>
+                        <p id="workerBirthError" class="age-box-error" style="display:none;">⚠️ 태어난 년월을 6자리로 입력해주세요. (예: 196503)</p>
+                    </div>
+
                     <p id="ageNotice" class="privacy-note" style="display:none;"></p>
 
                     <div class="result-actions">
@@ -176,16 +179,16 @@
                 </div>
 
                 <!-- PC에서 계산 전에 오른쪽 칸이 비어 보이지 않게 하는 자리 표시 (결과가 나오면 CSS로 숨김) -->
-                <div class="result-empty">월급여액과 태어난 년월을 넣고<br>계산하기를 누르면 여기에 결과가 나와요</div>
+                <div class="result-empty">월급여액을 넣고<br>계산하기를 누르면 여기에 결과가 나와요</div>
             </div>
         </div>
 
         <div class="expert-entry">
-            <a href="#" onclick="goToExpert(); return false;">전문가용으로 보기<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+            <a href="#" onclick="goToExpert(); return false;">상세 계산<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
         </div>
     </div>
 
-    <!-- 사업주 화면: 직원이 1명이든 여러 명이든 같은 방식 — 줄을 추가/삭제해서 인원수를 맞춤. 계산 결과도 같은 화면 안에 이어서 표시
+    <!-- 사업주 화면: 직원 1명 기준 단순 계산 (여러 명·사업주 본인은 상세 계산 → 한 달 총 부과 금액)
          PC에서는 왼쪽 입력, 오른쪽 결과로 나란히 보임 -->
     <div id="stepEmployer" class="step">
         <div class="calc-layout">
@@ -197,90 +200,121 @@
 
                 <div class="card calc-input">
                     <h2 class="sr-only">직원 채용하면 얼마 내나요?</h2>
-                    <!-- 입력 순서: 사업주 본인 → 근로자 명단 → 업종 (업종이 맨 처음 나오면 부담스러워 보여서 맨 뒤로) -->
-                    <div class="owner-section">
-                        <label class="owner-toggle-label">
-                            <input type="checkbox" id="includeOwnerCheckbox" onchange="toggleOwnerInputs()">
-                            <span>사업주 본인 보험료도 함께 계산</span>
-                        </label>
-                        <div id="ownerInputRow" class="multi-worker-row" style="display:none;">
-                            <div class="mw-row-inputs">
-                                <input type="text" id="ownerBirth" inputmode="numeric" placeholder="생년월 (예:199001)" maxlength="6" autocomplete="new-password">
-                                <input type="text" id="ownerSalary" class="money-input" inputmode="numeric" placeholder="사업주 기준급여" autocomplete="new-password">
-                            </div>
-                        </div>
+                    <div class="input-group">
+                        <label for="employerSalary">직원 월급여액</label>
+                        <input type="text" id="employerSalary" class="money-input" inputmode="numeric" placeholder="예: 3,000,000" autocomplete="new-password">
+                        <span class="unit">원</span>
                     </div>
-
-                    <div class="mw-rows-header">
-                        <span class="mw-rows-label">근로자 명단</span>
-                        <div class="mw-rows-controls">
-                            <button class="mw-icon-btn" onclick="removeMultiWorkerRow()" aria-label="근로자 줄 삭제">−</button>
-                            <button class="mw-icon-btn" onclick="addMultiWorkerRow()" aria-label="근로자 줄 추가">+</button>
-                        </div>
-                    </div>
-
-                    <div id="multiWorkerRows" class="multi-worker-rows"></div>
 
                     <div class="input-group">
-                        <label for="multiIndustryType">업종 <span class="label-sub">(산재보험료 계산용)</span></label>
-                        <select id="multiIndustryType"></select>
+                        <label for="employerIndustryType">업종 <span class="label-sub">(산재보험료 계산용)</span></label>
+                        <select id="employerIndustryType"></select>
                     </div>
 
-                    <p id="employerInputError" class="privacy-note input-error-note" style="display:none;"></p>
+                    <p id="employerInputError" class="privacy-note input-error-note" style="display:none;">⚠️ 월급여를 입력해주세요.</p>
 
-                    <button class="btn-primary" onclick="calculateEmployerAll()">계산하기</button>
+                    <button class="btn-primary" onclick="calculateEmployerResult()">계산하기</button>
                     <p class="input-footnote privacy-line"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>입력값은 저장되지 않아요</p>
                     <!-- 산재 안내는 한 줄만 보이고 "자세히"로 펼침 -->
                     <details class="calc-info">
                         <summary><span><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>산재보험료는 참고용 금액이에요</span><span class="calc-info-more">자세히</span></summary>
                         <p>선택하신 업종 기준 요율로 계산했어요. 근로복지공단이 실제 사업 내용을 보고 다른 업종으로 분류할 수 있으니, 정확한 산재보험료율은 근로복지공단(<a href="tel:1588-0075">1588-0075</a>)에 확인해주세요.</p>
-                        <p>결과는 근로자가 부담하는 몫과 사업주가 부담하는 몫을 따로 보여드려요.</p>
                     </details>
+                    <p class="calc-more-link">직원이 여러 명이거나 사업주 본인 보험료도 보려면 <a href="#" onclick="goToExpert('totalBill'); return false;">상세 계산</a></p>
                 </div>
             </div>
 
             <div class="calc-output">
-                <!-- 계산 결과: 근로자 공제분 / 사업주 부담분 두 탭으로 나눠서 그 자리에 펼쳐짐 -->
-                <div id="employerResultTabs" style="display:none;">
-                    <div class="option-block option-block-sub" id="deductionBlock">
-                        <button class="btn-option" id="deductionOptionBtn" onclick="toggleEmployerSubTab('deduction')">
-                            <div class="option-title">근로자 월급에서 얼마 공제하나요?</div>
-                            <div class="option-desc">각 근로자 월급에서 빠지는 4대보험을 확인해요</div>
-                        </button>
-                        <div class="option-expand" id="deductionExpand">
-                            <div class="option-expand-inner" id="deductionResultContent"></div>
+                <div id="employerResultSection" style="display:none;">
+                    <section class="result-card" aria-labelledby="employerTotalLabel">
+                        <div class="net-band">
+                            <h3 id="employerTotalLabel">사업주 부담 4대보험</h3>
+                            <p class="net-amount" id="empResultTotal">0원</p>
+                            <p class="net-caption">직원 월급여액 <b id="empDisplaySalary">0원</b></p>
+                        </div>
+
+                        <div class="result-table worker-table">
+                            <div class="result-row worker-table-head" aria-hidden="true">
+                                <span>항목</span><span>요율</span><span>부담액</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="r-name">국민연금</span><span id="empPensionRate" class="rate-tag"></span>
+                                <span class="r-amount" id="empPension">0원</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="r-name">건강보험</span><span id="empHealthRate" class="rate-tag"></span>
+                                <span class="r-amount" id="empHealth">0원</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="r-name">장기요양보험</span><span id="empLongtermRate" class="rate-tag"></span>
+                                <span class="r-amount" id="empLongterm">0원</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="r-name">고용보험</span><span id="empEmploymentRate" class="rate-tag"></span>
+                                <span class="r-amount" id="empEmployment">0원</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="r-name">산재보험</span><span id="empAccidentRate" class="rate-tag"></span>
+                                <span class="r-amount" id="empAccident">0원</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 나이: 처음엔 묻지 않고 만 60세 미만으로 계산 -->
+                    <div class="age-box">
+                        <p class="age-box-text" id="employerAgeText">만 60세 미만 기준이에요. 직원이 만 60세 이상이면 국민연금, 만 65세 이상이면 고용보험이 달라져요.</p>
+                        <div class="age-box-row">
+                            <input type="text" id="employerBirth" inputmode="numeric" placeholder="직원 태어난 년월 (예: 196503)" maxlength="6" autocomplete="new-password" aria-label="직원 태어난 년월 6자리">
+                            <button type="button" class="age-box-btn" onclick="calculateEmployerResult()">나이 반영</button>
+                        </div>
+                        <p id="employerBirthError" class="age-box-error" style="display:none;">⚠️ 태어난 년월을 6자리로 입력해주세요. (예: 196503)</p>
+                    </div>
+
+                    <p id="employerAgeNotice" class="privacy-note" style="display:none;"></p>
+
+                    <div class="result-actions">
+                    <div id="empDurunuriBanner" class="durunuri-banner">
+                        <svg class="banner-check" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+                        <div class="banner-body">
+                            <div class="banner-content">
+                                <div class="banner-title">
+                                    두루누리 사회보험료 지원이란?
+                                    <a href="https://insurancesupport.or.kr/durunuri/intro.php" target="_blank" rel="noopener noreferrer" class="banner-info-link" aria-label="두루누리 사회보험료 지원사업 안내 페이지 (새 창)">ⓘ</a>
+                                </div>
+                                <div id="empDurunuriCapNotice" class="banner-note" style="display:none;"></div>
+                            </div>
+                            <div class="banner-buttons">
+                                <button id="empDurunuriToggleBtn" class="banner-button" onclick="toggleEmployerDurunuri()">두루누리 적용해 보기</button>
+                                <p id="empDurunuriSalaryNote" class="banner-salary-note" style="display:none;">월급여 270만원 이하일 때 적용돼요</p>
+                            </div>
+                            <details class="banner-more">
+                                <summary>자세히</summary>
+                                <div class="banner-desc">근로자 10명 미만 사업장에서 월급여 270만원 이하인 근로자의 국민연금·고용보험료 80%를 지원하는 제도예요. 사업주 고용보험은 실업급여분(0.9%)에만 지원돼요.</div>
+                                <div class="banner-note">※ 취득 전 1년간 고용보험 가입 이력이 없어야 하는 등 다른 조건도 있어요. 실제 지원 여부는 위 안내 페이지(ⓘ)에서 확인해주세요.</div>
+                            </details>
                         </div>
                     </div>
 
-                    <div class="option-block option-block-sub" id="burdenBlock">
-                        <button class="btn-option" id="burdenOptionBtn" onclick="toggleEmployerSubTab('burden')">
-                            <div class="option-title">사업주는 얼마 부담해야 하나요?</div>
-                            <div class="option-desc">사업주가 내는 4대보험을 확인해요</div>
-                        </button>
-                        <div class="option-expand" id="burdenExpand">
-                            <div class="option-expand-inner" id="burdenResultContent"></div>
-                        </div>
+                    <div class="button-row">
+                        <button class="btn-primary btn-pdf" onclick="printEmployerBasic()"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>PDF로 저장</button>
+                        <button class="btn-secondary" onclick="restart()">처음부터 다시</button>
+                    </div>
                     </div>
                 </div>
 
-                <div class="button-row" id="employerButtonRow" style="display:none;">
-                    <button class="btn-primary btn-pdf" onclick="printEmployerAll()"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>PDF로 저장</button>
-                    <button class="btn-secondary" onclick="restart()">처음부터 다시</button>
-                </div>
-
-                <div class="result-empty">업종과 근로자 명단을 넣고<br>계산하기를 누르면 여기에 결과가 나와요</div>
+                <div class="result-empty">직원 월급여액을 넣고<br>계산하기를 누르면 여기에 결과가 나와요</div>
             </div>
         </div>
 
         <div class="expert-entry">
-            <a href="#" onclick="goToExpert(); return false;">전문가용으로 보기<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+            <a href="#" onclick="goToExpert(); return false;">상세 계산<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
         </div>
     </div>
 
-    <!-- 전문가용 화면: 두 항목은 아코디언 (그 자리에서 펼쳐지고 한 번에 하나만 열림) -->
+    <!-- 상세 계산 화면: 두 항목은 아코디언 (그 자리에서 펼쳐지고 한 번에 하나만 열림) -->
     <div id="stepExpert" class="step">
         <div class="xp-head">
-            <h2 class="xp-title">전문가용 계산기</h2>
+            <h2 class="xp-title">상세 계산</h2>
             <p class="xp-privacy"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>입력값은 저장되지 않아요</span></p>
         </div>
 
@@ -299,6 +333,11 @@
                         <div class="tb-ind">
                             <label class="xp-label" for="totalBillIndustryType">업종 <span class="xp-label-sub">(산재보험료 계산용)</span></label>
                             <select id="totalBillIndustryType" class="xp-input"></select>
+                        </div>
+
+                        <div class="tb-size">
+                            <label class="xp-label" for="totalBillCompanySize">사업장 규모 <span class="xp-label-sub">(사업주 고용보험의 고용안정·직업능력개발 요율)</span></label>
+                            <select id="totalBillCompanySize" class="xp-input"></select>
                         </div>
 
                         <fieldset class="tb-type">
