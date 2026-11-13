@@ -50,14 +50,14 @@
                         <span class="choice-arrow" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
                         <span class="choice-text">
                             <span class="option-title">내 월급에서 <br class="pc-only">얼마 떼나요?</span>
-                            <span class="option-desc">실제로 받는 금액을 확인해요</span>
+                            <span class="option-desc">월급에서 빠지는 4대보험을 확인해요</span>
                         </span>
                     </button>
                     <button class="choice-card" id="employerOptionBtn" onclick="goToEmployerStep()">
                         <span class="choice-arrow" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
                         <span class="choice-text">
                             <span class="option-title">직원 채용하면 <br class="pc-only">얼마 내나요?</span>
-                            <span class="option-desc">사업주가 실제로 부담하는 총 금액이에요</span>
+                            <span class="option-desc">사업주가 내는 4대보험을 확인해요</span>
                         </span>
                     </button>
                 </div>
@@ -107,7 +107,7 @@
                 <div id="workerResultSection" style="display:none;">
                     <section class="result-card" aria-labelledby="netPayLabel">
                         <div class="net-band">
-                            <h3 id="netPayLabel">실수령액</h3>
+                            <h3 id="netPayLabel">4대보험 제외 급여</h3>
                             <p class="net-amount" id="resultNetPay">0원</p>
                             <p class="net-caption">월급여액 <b id="displaySalary">0원</b></p>
                         </div>
@@ -245,7 +245,7 @@
                     <div class="option-block option-block-sub" id="deductionBlock">
                         <button class="btn-option" id="deductionOptionBtn" onclick="toggleEmployerSubTab('deduction')">
                             <div class="option-title">근로자 월급에서 얼마 공제하나요?</div>
-                            <div class="option-desc">각 근로자가 실제로 받는 금액을 확인해요</div>
+                            <div class="option-desc">각 근로자 월급에서 빠지는 4대보험을 확인해요</div>
                         </button>
                         <div class="option-expand" id="deductionExpand">
                             <div class="option-expand-inner" id="deductionResultContent"></div>
@@ -255,7 +255,7 @@
                     <div class="option-block option-block-sub" id="burdenBlock">
                         <button class="btn-option" id="burdenOptionBtn" onclick="toggleEmployerSubTab('burden')">
                             <div class="option-title">사업주는 얼마 부담해야 하나요?</div>
-                            <div class="option-desc">직원 채용으로 실제 지출하는 총 금액이에요</div>
+                            <div class="option-desc">사업주가 내는 4대보험을 확인해요</div>
                         </button>
                         <div class="option-expand" id="burdenExpand">
                             <div class="option-expand-inner" id="burdenResultContent"></div>

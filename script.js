@@ -1160,7 +1160,7 @@ function buildDeductionItemHTML(key, label, salary, s) {
                 </div>
                 <div class="mw-result-item-body">
                     <span>공제 <span id="deductionSummaryTotal${key}">${formatNumber(s.total)}원</span></span>
-                    <span>실수령 <span id="deductionSummaryNet${key}">${formatNumber(s.netPay)}원</span></span>
+                    <span>4대보험 제외 급여 <span id="deductionSummaryNet${key}">${formatNumber(s.netPay)}원</span></span>
                 </div>
                 ${notes ? `<div class="mw-result-item-note">ℹ️ ${notes}</div>` : ''}
             </div>
@@ -1480,7 +1480,7 @@ function prDeductionHeadHTML() {
             <th>장기요양<span class="pr-rate">건강×${prPct(RATES.longterm * 100)}</span></th>
             <th>고용보험<span class="pr-rate">${prPct(RATES.employmentWorker * 100)}</span></th>
             <th>공제 합계</th>
-            <th>실수령액</th>
+            <th>4대보험<br>제외 급여</th>
         </tr></thead>`;
 }
 
@@ -1545,7 +1545,7 @@ function printResult(type) {
         <section class="pr-keys">
             <div class="pr-key"><div class="pr-key-label">월급여</div><div class="pr-key-value">${formatNumber(salary)}<small>원</small></div></div>
             <div class="pr-key"><div class="pr-key-label">공제 합계</div><div class="pr-key-value pr-accent">${formatNumber(calc.total)}<small>원</small></div></div>
-            <div class="pr-key"><div class="pr-key-label">실수령액</div><div class="pr-key-value">${formatNumber(calc.netPay)}<small>원</small></div></div>
+            <div class="pr-key"><div class="pr-key-label">4대보험 제외 급여</div><div class="pr-key-value">${formatNumber(calc.netPay)}<small>원</small></div></div>
         </section>
 
         <h2 class="pr-h2">월급에서 공제하는 금액</h2>
@@ -1568,7 +1568,7 @@ function printResult(type) {
                     ${dd ? `<td class="pr-dn-col">${formatNumber(dd.total)}</td>` : ''}
                 </tr>
                 <tr>
-                    <td class="pr-strong">실수령액</td>
+                    <td class="pr-strong">4대보험 제외 급여</td>
                     <td class="pr-strong">${formatNumber(calc.netPay)}</td>
                     ${dd ? `<td class="pr-dn-col pr-strong">${formatNumber(dd.netPay)}</td>` : ''}
                 </tr>
@@ -1682,7 +1682,7 @@ function printEmployerAll() {
 
     let deductionRows = '';
     let burdenRows = '';
-    // 합계 [국민연금, 건강보험, 장기요양, 고용보험, 공제합계, 실수령액] / [국민연금, 건강보험, 장기요양, 고용보험, 산재보험, 부담합계]
+    // 합계 [국민연금, 건강보험, 장기요양, 고용보험, 공제합계, 4대보험 제외 급여] / [국민연금, 건강보험, 장기요양, 고용보험, 산재보험, 부담합계]
     const sumD = [0, 0, 0, 0, 0, 0], effD = [0, 0, 0, 0, 0, 0];
     const sumB = [0, 0, 0, 0, 0, 0], effB = [0, 0, 0, 0, 0, 0];
     const addTo = (arr, values) => values.forEach((v, i) => { arr[i] += v; });
@@ -2528,7 +2528,7 @@ function buildForeignerCalcHTML(salary, visa, pensionApplies, employmentMode, w,
     const dnRows = dn ? `
                     <tr class="fr-dn-row"><td>두루누리 적용 시 고용보험${sub('실업급여분만 지원')}</td><td>${n(dn.workerEmployment)}</td><td>${n(dn.employerEmployment)}</td></tr>
                     <tr class="fr-dn-row"><td>두루누리 적용 시 합계</td><td class="xp-strong">${n(dn.workerTotal)}</td><td class="xp-strong">${n(dn.employerTotal)}</td></tr>
-                    <tr class="fr-dn-row"><td>두루누리 적용 시 실수령액</td><td>${n(salary - dn.workerTotal)}</td><td></td></tr>` : '';
+                    <tr class="fr-dn-row"><td>두루누리 적용 시 4대보험 제외 급여</td><td>${n(salary - dn.workerTotal)}</td><td></td></tr>` : '';
 
     const notes = [
         dn ? durunuriCapNoticeText(false, dn.capped).replace(/^※\s*/, '') : '',
@@ -2551,7 +2551,7 @@ function buildForeignerCalcHTML(salary, visa, pensionApplies, employmentMode, w,
                     <tr><td>고용보험</td><td>${workerEmploymentCell}</td><td>${employerEmploymentCell}</td></tr>
                     <tr><td>산재보험</td><td class="xp-off">—</td><td>${accidentCell}</td></tr>
                     <tr class="xp-sum-row"><td>합계</td><td class="xp-sum-accent">${n(w.total)}</td><td class="xp-sum-accent">${n(e.total)}</td></tr>
-                    <tr class="fr-net-row"><td>실수령액</td><td>${n(w.netPay)}</td><td></td></tr>${dnRows}
+                    <tr class="fr-net-row"><td>4대보험 제외 급여</td><td>${n(w.netPay)}</td><td></td></tr>${dnRows}
                 </tbody>
             </table>
         </div>
@@ -2646,7 +2646,7 @@ function printForeigner() {
                 ${itemRow('고용보험', employmentMode === 'none' ? '0원으로 계산' : employmentMode === 'stabilityOnly' ? '사업주 고용안정분만' : `${prPct(RATES.employmentWorker * 100)} / ${prPct(RATES.employmentWorker * 100)}+${prPct(RATES.employmentStability * 100)}`, w.employment, e.employmentEmployer)}
                 ${itemRow('산재보험', industry ? prPct(industry.permille / 10) : '', null, e.accidentEmployer)}
                 ${prSumRowsHTML([w.total, e.total, w.total + e.total], dn ? [dn.workerTotal, dn.employerTotal, dn.workerTotal + dn.employerTotal] : null, 2)}
-                <tr><td class="pr-strong">실수령액</td><td class="pr-strong">${formatNumber(w.netPay)}</td><td></td><td></td></tr>
+                <tr><td class="pr-strong">4대보험 제외 급여</td><td class="pr-strong">${formatNumber(w.netPay)}</td><td></td><td></td></tr>
             </tbody>
         </table>
         </div>

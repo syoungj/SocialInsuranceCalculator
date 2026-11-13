@@ -2228,6 +2228,8 @@ footer .footer-org {
 .mw-result-item-body {
     display: flex;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 2px 12px;
     font-size: 15px;
     font-weight: 700;
     color: var(--text);
