@@ -4167,3 +4167,10 @@ select.xp-input {
     font-weight: 500;
     color: var(--text-sub);
 }
+
+/* 상세 계산은 입력칸이 많아 휴대폰에서 화면을 넓게 씀 (기본 화면 20px보다 좁은 여백) */
+@media (max-width: 899px) {
+    #stepExpert {
+        padding: 0 8px;
+    }
+}
