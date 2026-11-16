@@ -938,17 +938,24 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
 
         // 적용 제외 항목은 0 대신 흐린 "제외", 비고에 사유
         const pensionOff = d.pensionExempt || (w.foreign && !w.foreign.pensionApplies);
+        // 빠진 보험 표시 — 짧게: 연금·고용이 둘 다 빠지면 "연금·고용 제외" 한 마디로
         const exemptNotes = [];
-        if (d.pensionExempt) exemptNotes.push('60세 이상 연금 제외');
-        else if (w.foreign && !w.foreign.pensionApplies) exemptNotes.push('연금 적용 제외');
+        const pensionForeignOff = !d.pensionExempt && w.foreign && !w.foreign.pensionApplies;
+        const employmentForeignOff = w.foreign && w.foreign.employmentMode === 'none' && w.foreign.visa.employment === 'excluded';
+        if (pensionForeignOff && employmentForeignOff) {
+            exemptNotes.push('연금·고용 제외');
+        } else {
+            if (d.pensionExempt) exemptNotes.push('60세 이상 연금 제외');
+            else if (pensionForeignOff) exemptNotes.push('연금 제외');
+            if (employmentForeignOff) exemptNotes.push('고용 제외');
+        }
         if (d.employmentExempt) exemptNotes.push('65세 이상 실업급여 제외');
-        // 외국인 고용보험 — 휴대폰 카드에도 보이도록 연금과 같은 표시 칸에 넣음
-        if (w.foreign && w.foreign.employmentMode !== 'all') {
+        if (w.foreign && w.foreign.employmentMode !== 'all' && !employmentForeignOff) {
             const kind = w.foreign.visa.employment;
             exemptNotes.push(w.foreign.employmentMode === 'stabilityOnly' ? '실업급여 미가입'
                 : kind === 'optional' ? '고용 미가입'
                 : kind === 'reciprocal' ? '고용 상호주의 미확인'
-                : '고용 적용 제외');
+                : '고용 제외');
         }
 
         const tags = [];
