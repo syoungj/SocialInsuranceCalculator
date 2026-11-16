@@ -9,13 +9,13 @@ const RATES = {
     employmentStability: 0.0025,
 };
 
-// 고용안정·직업능력개발사업분 — 사업장 규모별 사업주 요율 (상세 계산에서 고름, 기본 화면은 150인 미만)
+// 고용안정·직업능력개발사업분 — 근로자수별 사업주 요율 (상세 계산에서 고름, 기본 화면은 150인 미만)
 // 우선지원대상기업: 제조업 500명 이하 / 건설업·운수 및 창고업 300명 이하 / 도소매업·숙박 및 음식점업 등 200명 이하 / 그 밖의 업종 100명 이하
 const EMPLOYMENT_STABILITY_RATES = [
-    { label: '150인 미만', rate: 0.0025 },
-    { label: '150인 이상 (우선지원대상기업)', rate: 0.0045 },
-    { label: '150인 이상 1,000인 미만', rate: 0.0065 },
-    { label: '1,000인 이상, 국가·지방자치단체', rate: 0.0085 },
+    { label: '150인 미만 기업', rate: 0.0025 },
+    { label: '150인 이상 (우선지원 대상기업)', rate: 0.0045 },
+    { label: '150인 이상 1,000인 미만 기업', rate: 0.0065 },
+    { label: '1,000인 이상 기업, 국가·지방자치단체', rate: 0.0085 },
 ];
 
 // 국민연금 기준소득월액 상·하한 (2026.7.1 ~ 2027.6.30 적용 — 매년 7월에 바뀜)
@@ -238,7 +238,7 @@ let empDurunuriApplied = false;
 let totalBillWorkersCalc = [];    // 전문가용 "한 달 총 부과 금액" — 근로자별 계산 결과 (PDF 저장 시 재사용)
 let totalBillOwnerCalc = null;    // 전문가용 "한 달 총 부과 금액" — 사업주 본인 계산 결과
 let totalBillIndustryIdx = '';    // 전문가용 "한 달 총 부과 금액" — 마지막으로 계산한 업종
-let totalBillStabilityRate = RATES.employmentStability;  // 상세 계산 — 고른 사업장 규모의 고용안정·직능 요율
+let totalBillStabilityRate = RATES.employmentStability;  // 상세 계산 — 고른 근로자수의 고용안정·직능 요율
 
 function showStep(id) {
     document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
@@ -1373,7 +1373,7 @@ function printEmployerBasic() {
             '각 보험료는 10원 미만을 절사했습니다.',
             empCalc.birthDate ? '' : '직원 나이를 넣지 않아 만 60세 미만 기준으로 계산했습니다.',
             ...premiumLimitNotesPdf([empCalc.salary]).filter(t => !(s.pensionExempt && t.startsWith('국민연금'))),
-            `사업주 고용보험은 실업급여분(${prPct(RATES.employmentWorker * 100)})과 고용안정·직업능력개발분(${prPct(RATES.employmentStability * 100)}, 150인 미만 사업장 기준)을 합한 금액입니다.`,
+            `사업주 고용보험은 실업급여분(${prPct(RATES.employmentWorker * 100)})과 고용안정·직업능력개발분(${prPct(RATES.employmentStability * 100)}, 근로자수 150인 미만 기업 기준)을 합한 금액입니다.`,
             s.pensionExempt ? '직원이 만 60세가 지나 국민연금은 제외했습니다.' : '',
             s.employmentExempt ? '직원이 만 65세가 지나 고용보험은 고용안정·직업능력개발분만 계산했습니다.' : '',
             s.pensionExemptNextMonth ? '다음 달부터 만 60세가 되어 국민연금이 제외됩니다.' : '',
@@ -1643,7 +1643,7 @@ function printTotalBill() {
         ${prHeadHTML('한 달 총 부과 금액', [
             `${prDateStr(today)} 기준`,
             `업종: ${industry ? `${industry.name} · 산재 ${industry.permille}/1000` : '선택 안 함'}`,
-            `사업장 규모: ${EMPLOYMENT_STABILITY_RATES.find(r => r.rate === totalBillStabilityRate).label}`,
+            `근로자수: ${EMPLOYMENT_STABILITY_RATES.find(r => r.rate === totalBillStabilityRate).label}`,
             '금액 단위: 원',
         ])}
 
