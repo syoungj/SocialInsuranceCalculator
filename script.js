@@ -942,14 +942,19 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
         if (d.pensionExempt) exemptNotes.push('60세 이상 연금 제외');
         else if (w.foreign && !w.foreign.pensionApplies) exemptNotes.push('연금 적용 제외');
         if (d.employmentExempt) exemptNotes.push('65세 이상 실업급여 제외');
+        // 외국인 고용보험 — 휴대폰 카드에도 보이도록 연금과 같은 표시 칸에 넣음
+        if (w.foreign && w.foreign.employmentMode !== 'all') {
+            const kind = w.foreign.visa.employment;
+            exemptNotes.push(w.foreign.employmentMode === 'stabilityOnly' ? '실업급여 미가입'
+                : kind === 'optional' ? '고용 미가입'
+                : kind === 'reciprocal' ? '고용 상호주의 미확인'
+                : '고용 적용 제외');
+        }
 
         const tags = [];
         if (dn) tags.push('<span class="xp-tag dn">두루누리</span>');
         if (w.foreign) tags.push(`<span class="xp-tag fg">외국인 ${w.foreign.visa.code} · ${w.foreign.country.name}</span>`);
         if (exemptNotes.length) tags.push(`<span class="xp-tag off">${exemptNotes.join(' · ')}</span>`);
-        if (w.foreign && w.foreign.employmentMode !== 'all') {
-            tags.push(`<span class="xp-note">${w.foreign.employmentMode === 'stabilityOnly' ? '실업급여 미가입' : '고용보험 0원 계산'}</span>`);
-        }
 
         const offCell = '<td class="xp-off">제외</td>';
         tableRows += `
