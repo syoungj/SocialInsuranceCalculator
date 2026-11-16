@@ -1869,7 +1869,7 @@ function showPdfPreview(filename) {
     document.getElementById('pdfPreview').style.display = 'flex';
     document.body.style.overflow = 'hidden';
     document.getElementById('pdfPreviewScroll').scrollTop = 0;
-    document.querySelector('.pdf-preview-hint').textContent = '확대해서 보거나 화면을 캡처해도 돼요.';
+    document.querySelector('.pdf-preview-hint').textContent = '화면을 캡처해도 돼요.';
     // 아이폰 홈 화면 앱 모드는 인쇄 창을 띄울 수 없어서 인쇄 버튼을 숨김
     document.getElementById('pdfPrintBtn').style.display = window.navigator.standalone ? 'none' : '';
     layoutPdfSheet();
@@ -1900,7 +1900,7 @@ function closePdfPreview() {
     pdfState.job++;
     document.getElementById('pdfPreview').style.display = 'none';
     document.body.style.overflow = '';
-    document.querySelector('.pdf-preview-hint').textContent = '확대해서 보거나 화면을 캡처해도 돼요.';
+    document.querySelector('.pdf-preview-hint').textContent = '화면을 캡처해도 돼요.';
 }
 
 // A4 종이(210mm)를 화면 폭에 맞게 줄여서 보여줌 (줄인 만큼 바깥 상자 크기도 맞춰야 스크롤이 맞음)
