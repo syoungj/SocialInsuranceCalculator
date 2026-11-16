@@ -972,7 +972,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
             </li>`;
     });
 
-    const ownerTypeLabel = { individual: '개인사업자 · 본인 전액 부담', paidCorp: '법인 대표(유보수) · 본인·법인 절반씩', unpaidCorp: '법인 대표(무보수) · 보수 없음' }[ownerType];
+    const ownerTypeLabel = { individual: '개인사업자 · 본인 전액 부담', paidCorp: '법인 대표(보수 있음) · 연금·건강 본인·법인 절반씩', unpaidCorp: '법인 대표(보수 없음) · 0원' }[ownerType];
     const ownerSalaryText = ownerType === 'unpaidCorp' ? '—' : n(ownerSalary);
     const ownerWCells = ownerType === 'paidCorp'
         ? `<td>${n(ownerW.pension)}</td><td>${n(ownerW.health)}</td><td>${n(ownerW.longterm)}</td><td class="xp-off">—</td><td class="xp-strong">${n(ownerWTotal)}</td>`
@@ -1538,8 +1538,8 @@ function printTotalBill() {
     // 개인사업자: 전액을 "사업주 부담" 표에만 한 줄로. 법인 유보수: 본인 몫은 "근로자 공제" 표에,
     // 법인 몫은 "사업주 부담" 표에 각각 한 줄씩(일반 근로자와 동일한 구조). 무보수: 0원 한 줄만 참고로 표시.
     const os = totalBillOwnerCalc.ownerShare;
-    const ownerTypeLabel = { individual: '개인사업자', paidCorp: '법인 대표(유보수)', unpaidCorp: '법인 대표(무보수)' }[totalBillOwnerCalc.ownerType];
-    const ownerSalaryLabel = totalBillOwnerCalc.ownerType === 'unpaidCorp' ? '무보수' : `월 ${formatNumber(totalBillOwnerCalc.salary)}`;
+    const ownerTypeLabel = { individual: '개인사업자', paidCorp: '법인 대표(보수 있음)', unpaidCorp: '법인 대표(보수 없음)' }[totalBillOwnerCalc.ownerType];
+    const ownerSalaryLabel = totalBillOwnerCalc.ownerType === 'unpaidCorp' ? '보수 없음' : `월 ${formatNumber(totalBillOwnerCalc.salary)}`;
     const ownerLabel = prWhoHTML('사업주 본인', `${ownerTypeLabel} · ${ownerSalaryLabel}`);
 
     if (totalBillOwnerCalc.ownerType === 'paidCorp') {
@@ -1635,8 +1635,8 @@ function printTotalBill() {
     ) || os.pensionExempt || os.pensionExemptNextMonth;
     const ownerDisclaimer = {
         individual: '사업주 본인(개인사업자)은 별도 고용주가 없어 국민연금·건강보험을 전액 본인이 부담하는 것으로 계산했습니다.',
-        paidCorp: '사업주 본인(법인 대표, 유보수)은 일반 근로자와 같이 본인·법인이 절반씩 부담하는 것으로 계산했습니다.',
-        unpaidCorp: '사업주 본인(법인 대표, 무보수)은 보수가 없어 보험료를 0원으로 계산했습니다.'
+        paidCorp: '사업주 본인(법인 대표, 보수 있음)은 국민연금·건강보험을 본인·법인이 절반씩 부담하는 것으로 계산했습니다.',
+        unpaidCorp: '사업주 본인(법인 대표, 보수 없음)은 보수가 없어 보험료를 0원으로 계산했습니다.'
     }[totalBillOwnerCalc.ownerType];
 
     printArea.innerHTML = `

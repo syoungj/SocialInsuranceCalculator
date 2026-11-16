@@ -344,13 +344,13 @@
                         <fieldset class="tb-type">
                             <legend class="xp-label">사업주 유형</legend>
                             <div class="radio-cards">
-                                <label class="radio-card"><input type="radio" name="totalBillOwnerType" value="individual" checked onchange="toggleTotalBillOwnerInputs()"><span><b>개인사업자</b> <span class="radio-card-desc">— 본인이 전액 부담</span></span></label>
-                                <label class="radio-card"><input type="radio" name="totalBillOwnerType" value="paidCorp" onchange="toggleTotalBillOwnerInputs()"><span><b>법인 대표(유보수)</b> <span class="radio-card-desc">— 근로자처럼 절반만 부담</span></span></label>
-                                <label class="radio-card"><input type="radio" name="totalBillOwnerType" value="unpaidCorp" onchange="toggleTotalBillOwnerInputs()"><span><b>법인 대표(무보수)</b> <span class="radio-card-desc">— 보수가 없어 0원</span></span></label>
+                                <label class="radio-card"><input type="radio" name="totalBillOwnerType" value="individual" checked onchange="toggleTotalBillOwnerInputs()"><span><b>개인사업자</b></span></label>
+                                <label class="radio-card"><input type="radio" name="totalBillOwnerType" value="paidCorp" onchange="toggleTotalBillOwnerInputs()"><span><b>법인 대표(보수 있음)</b></span></label>
+                                <label class="radio-card"><input type="radio" name="totalBillOwnerType" value="unpaidCorp" onchange="toggleTotalBillOwnerInputs()"><span><b>법인 대표(보수 없음)</b></span></label>
                             </div>
                         </fieldset>
 
-                        <!-- 무보수를 고르면 script.js가 display를 none으로 바꿈 -->
+                        <!-- 보수 없음을 고르면 script.js가 display를 none으로 바꿈 -->
                         <div id="totalBillOwnerInputRow" class="tb-owner">
                             <div class="tb-owner-birth">
                                 <label class="xp-label" for="totalBillOwnerBirth">사업주 생년월</label>
@@ -361,7 +361,7 @@
                                 <input type="text" id="totalBillOwnerSalary" class="xp-input money-input" inputmode="numeric" placeholder="예: 4,000,000" autocomplete="new-password">
                             </div>
                         </div>
-                        <p class="tb-hint">법인 대표(무보수)를 고르면 사업주 생년월·기준급여 칸은 숨겨져요.</p>
+                        <p class="tb-hint">법인 대표(보수 없음)를 고르면 사업주 생년월·기준급여 칸은 숨겨져요.</p>
 
                         <div class="tb-roster">
                             <div class="tb-roster-head">
