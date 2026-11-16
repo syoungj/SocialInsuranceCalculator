@@ -1012,7 +1012,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
             notes.push(`급여가 상·하한을 벗어난 사람은 국민연금 기준소득월액 상·하한(${formatNumber(PENSION_BASE_LIMITS.min)}원~${formatNumber(PENSION_BASE_LIMITS.max)}원)과 건강보험료 상·하한을 적용해 계산했어요.`);
         }
     }
-    notes.push('근로자 공제분과 사업주 부담분(사업주 본인 몫 포함)을 모두 합친, 실제 4대보험 통합고지서 기준 총 부과 금액이에요.<br><b>두루누리 지원금은 반영되지 않은 금액입니다.</b><br>산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액이며, 정확한 산재보험료율은 근로복지공단(<a href="tel:1588-0075">1588-0075</a>)에 별도로 확인해주세요.');
+    notes.push('근로자 부담분과 사업주 부담분(사업주 본인 몫 포함)을 모두 합친 한 달 총 부과 예상 금액이에요.<br><b>두루누리 지원금은 반영되지 않은 금액입니다.</b><br>산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액이며, 정확한 산재보험료율은 근로복지공단(<a href="tel:1588-0075">1588-0075</a>)에 별도로 확인해주세요.');
 
     return `
         <div class="xp-summary">
