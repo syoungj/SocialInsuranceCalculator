@@ -1080,7 +1080,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
         </div>`;
 }
 
-// 사업주 고용보험에 두루누리 적용 — 실업급여분만 지원하고 고용안정·직업능력개발분은 그대로 부담
+// 사업주가 내는 고용보험료에 두루누리 적용 — 실업급여분만 지원하고 고용안정·직업능력개발분은 그대로 부담
 function durunuriEmployerEmployment(s) {
     const unemployment = s.employmentUnemploymentEmployer;
     const stability = s.employmentEmployer - unemployment;
@@ -1389,14 +1389,14 @@ function printEmployerBasic() {
             '각 보험료는 10원 미만을 절사했습니다.',
             empCalc.birthDate ? '' : '직원 나이를 넣지 않아 만 60세 미만 기준으로 계산했습니다.',
             ...premiumLimitNotesPdf([empCalc.salary]).filter(t => !(s.pensionExempt && t.startsWith('국민연금'))),
-            `사업주 고용보험은 실업급여분(${prPct(RATES.employmentWorker * 100)})과 고용안정·직업능력개발분(${prPct(RATES.employmentStability * 100)}, 근로자수 150인 미만 기업 기준)을 합한 금액입니다.`,
+            `사업주가 내는 고용보험료는 실업급여분(${prPct(RATES.employmentWorker * 100)})과 고용안정·직업능력개발분(${prPct(RATES.employmentStability * 100)}, 근로자수 150인 미만 기업 기준)을 합한 금액입니다.`,
             s.pensionExempt ? '직원이 만 60세가 지나 국민연금은 제외했습니다.' : '',
             s.employmentExempt ? '직원이 만 65세가 지나 고용보험은 고용안정·직업능력개발분만 계산했습니다.' : '',
             s.pensionExemptNextMonth ? '다음 달부터 만 60세가 되어 국민연금이 제외됩니다.' : '',
             s.employmentExemptNextMonth ? '다음 달부터 만 65세가 되어 고용보험 실업급여분이 제외됩니다.' : '',
             industry ? '산재보험료는 선택한 업종 요율로 계산한 참고 금액이며, 실제 업종 분류는 근로복지공단이 정합니다.' : '업종을 선택하지 않아 산재보험료는 계산하지 않았습니다.',
             dd ? '두루누리 적용 시 금액은 월급여 270만원 미만으로 지원 가능 대상일 때의 예상 금액입니다.' : '',
-            dd ? `사업주 고용보험은 실업급여분(${prPct(RATES.employmentWorker * 100)})에만 두루누리가 적용됩니다.` : '',
+            dd ? `사업주가 내는 고용보험료는 실업급여분(${prPct(RATES.employmentWorker * 100)})에만 두루누리가 적용됩니다.` : '',
             dd ? '두루누리 실제 지원 여부는 국민연금공단·근로복지공단 확인이 필요합니다.' : '',
             prDurunuriCapNote(anyCapped),
         ])}
@@ -1706,7 +1706,7 @@ function printTotalBill() {
             '이 계산 결과는 참고용이며, 실제 신고·부과 금액은 담당 기관 확인에 따라 달라질 수 있습니다.',
             pdfShowDurunuri ? '"총 고지 예상 금액"은 두루누리 지원금을 반영하지 않은 금액입니다.' : '',
             anyEligible ? '"두루누리 적용 시" 금액은 대상 근로자의 국민연금·고용보험에 지원금을 반영한 참고 금액이며, 실제 지원 여부는 국민연금공단·근로복지공단 확인이 필요합니다.' : '',
-            anyEligible ? `사업주 고용보험은 실업급여분(0.9%)에만 두루누리가 적용되고, 고용안정·직업능력개발분(${prPct(totalBillStabilityRate * 100)})은 지원 대상이 아닙니다.` : '',
+            anyEligible ? `사업주가 내는 고용보험료는 실업급여분(0.9%)에만 두루누리가 적용되고, 고용안정·직업능력개발분(${prPct(totalBillStabilityRate * 100)})은 지원 대상이 아닙니다.` : '',
             prDurunuriCapNote(anyDurunuriCapped),
             '표의 요율은 기본 요율이며, 각 보험료는 10원 미만을 절사했습니다.',
             ...premiumLimitNotesPdf([...totalBillWorkersCalc.map(w => w.salary), totalBillOwnerCalc.salary].filter(v => v > 0))
