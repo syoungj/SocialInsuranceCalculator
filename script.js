@@ -984,7 +984,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
             </li>`;
     });
 
-    const ownerTypeLabel = { individual: '개인사업자 · 본인 전액 부담', paidCorp: '법인 대표(보수 있음) · 연금·건강 본인·법인 절반씩', unpaidCorp: '법인 대표(보수 없음) · 0원' }[ownerType];
+    const ownerTypeLabel = { individual: '개인사업자 · 본인 전액 부담', paidCorp: '법인 대표(보수 있음) · 연금·건강 본인·법인 절반씩', unpaidCorp: '법인 대표(보수 없음) · 지역가입자로 부과' }[ownerType];
     const ownerSalaryText = ownerType === 'unpaidCorp' ? '—' : n(ownerSalary);
     const ownerWCells = ownerType === 'paidCorp'
         ? `<td>${n(ownerW.pension)}</td><td>${n(ownerW.health)}</td><td>${n(ownerW.longterm)}</td><td class="xp-off">—</td><td class="xp-strong">${n(ownerWTotal)}</td>`
@@ -1007,7 +1007,9 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
             <div class="xp-card-top"><span><b>사업주 본인</b>${ownerBd ? ` · ${birthLabel(ownerBd)}` : ''} · ${ownerTypeLabel.split(' · ')[0]}</span><span>${ownerType === 'unpaidCorp' ? '' : `월 ${n(ownerSalary)}`}</span></div>
             <div class="xp-card-bottom">${ownerType === 'paidCorp'
                 ? `<span>본인 <b>${n(ownerWTotal)}</b></span><span>법인 <b>${n(ownerETotal)}</b></span>`
-                : `<span></span><span>본인 부담 <b>${n(ownerETotal)}</b></span>`}</div>
+                : ownerType === 'unpaidCorp'
+                    ? `<span class="xp-off">지역가입자로 부과</span><span>직장 보험료 <b>0</b></span>`
+                    : `<span></span><span>본인 부담 <b>${n(ownerETotal)}</b></span>`}</div>
         </li>`;
 
     const itemRow = (name, wv, ev) => `<tr><td>${name}</td><td${wv === null ? ' class="xp-off"' : ''}>${wv === null ? '—' : n(wv)}</td><td>${ev === null ? '<span class="xp-off">업종 미선택</span>' : n(ev)}</td><td class="xp-strong">${n((wv || 0) + (ev || 0))}</td></tr>`;
@@ -1650,7 +1652,7 @@ function printTotalBill() {
     const ownerDisclaimer = {
         individual: '사업주 본인(개인사업자)은 별도 고용주가 없어 국민연금·건강보험을 전액 본인이 부담하는 것으로 계산했습니다.',
         paidCorp: '사업주 본인(법인 대표, 보수 있음)은 국민연금·건강보험을 본인·법인이 절반씩 부담하는 것으로 계산했습니다.',
-        unpaidCorp: '사업주 본인(법인 대표, 보수 없음)은 보수가 없어 보험료를 0원으로 계산했습니다.'
+        unpaidCorp: '사업주 본인(법인 대표, 보수 없음)은 보수가 없어 직장가입자 보험료를 0원으로 계산했습니다(지역가입자로 부과).'
     }[totalBillOwnerCalc.ownerType];
 
     printArea.innerHTML = `
