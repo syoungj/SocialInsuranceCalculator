@@ -980,7 +980,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
         cards += `
             <li class="xp-card">
                 <div class="xp-card-top"><span><b>${idx + 1}</b> · ${birthLabel(w.birthDate)} ${tags.filter(t => !t.includes('xp-note')).join(' ')}</span><span>월 ${n(w.salary)}</span></div>
-                <div class="xp-card-bottom"><span>공제 <b>${n(d.total)}</b></span><span>사업주 <b>${n(b.total)}</b></span></div>
+                <div class="xp-card-bottom"><span>근로자 <b>${n(d.total)}</b></span><span>사업주 <b>${n(b.total)}</b></span></div>
             </li>`;
     });
 
@@ -1005,7 +1005,9 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
     cards += `
         <li class="xp-card xp-owner-row">
             <div class="xp-card-top"><span><b>사업주 본인</b>${ownerBd ? ` · ${birthLabel(ownerBd)}` : ''} · ${ownerTypeLabel.split(' · ')[0]}</span><span>${ownerType === 'unpaidCorp' ? '' : `월 ${n(ownerSalary)}`}</span></div>
-            <div class="xp-card-bottom"><span${ownerWTotal ? '' : ' class="xp-off"'}>공제 ${ownerWTotal ? `<b>${n(ownerWTotal)}</b>` : '—'}</span><span>${ownerType === 'individual' ? '본인 부담' : '사업주'} <b>${n(ownerETotal)}</b></span></div>
+            <div class="xp-card-bottom">${ownerType === 'paidCorp'
+                ? `<span>본인 <b>${n(ownerWTotal)}</b></span><span>법인 <b>${n(ownerETotal)}</b></span>`
+                : `<span></span><span>본인 부담 <b>${n(ownerETotal)}</b></span>`}</div>
         </li>`;
 
     const itemRow = (name, wv, ev) => `<tr><td>${name}</td><td${wv === null ? ' class="xp-off"' : ''}>${wv === null ? '—' : n(wv)}</td><td>${ev === null ? '<span class="xp-off">업종 미선택</span>' : n(ev)}</td><td class="xp-strong">${n((wv || 0) + (ev || 0))}</td></tr>`;
@@ -1035,13 +1037,13 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
                     ${dnBlock}
                 </div>
                 <div class="xp-split">
-                    <div><p>근로자 공제분</p><p class="xp-split-amount">${n(sumW.total)}원</p></div>
+                    <div><p>근로자 부담분</p><p class="xp-split-amount">${n(sumW.total)}원</p></div>
                     <div><p>사업주 부담분 <span>(본인 몫 포함)</span></p><p class="xp-split-amount">${n(sumE.total)}원</p></div>
                 </div>
             </div>
             <table class="xp-table xp-ins-table">
                 <caption>보험별 합계 <span>(원)</span></caption>
-                <thead><tr><th scope="col">항목</th><th scope="col"><span class="pc-only-inline">근로자 공제분</span><span class="m-only-inline">근로자</span></th><th scope="col"><span class="pc-only-inline">사업주 부담분</span><span class="m-only-inline">사업주</span></th><th scope="col">합계</th></tr></thead>
+                <thead><tr><th scope="col">항목</th><th scope="col"><span class="pc-only-inline">근로자 부담분</span><span class="m-only-inline">근로자</span></th><th scope="col"><span class="pc-only-inline">사업주 부담분</span><span class="m-only-inline">사업주</span></th><th scope="col">합계</th></tr></thead>
                 <tbody>
                     ${itemRow('국민연금', sumW.pension, sumE.pension)}
                     ${itemRow('건강보험', sumW.health, sumE.health)}
