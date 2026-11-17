@@ -1757,9 +1757,6 @@ function clearExpertFields() {
     document.querySelector('input[name="foreignerJoin"][value="no"]').checked = true;
     document.getElementById('foreignerJoinRow').style.display = 'none';
     resetForeignerResult();
-    document.getElementById('foreignerExpand').classList.remove('open');
-    document.getElementById('foreignerOptionBtn').classList.remove('active');
-    document.getElementById('foreignerOptionBtn').setAttribute('aria-expanded', 'false');
 
     document.getElementById('totalBillIndustryType').value = '';
     document.getElementById('totalBillCompanySize').value = '0';
@@ -1772,9 +1769,6 @@ function clearExpertFields() {
     document.getElementById('totalBillInputError').style.display = 'none';
     document.getElementById('totalBillResult').style.display = 'none';
     document.getElementById('totalBillResult').innerHTML = '';
-    document.getElementById('totalBillExpand').classList.remove('open');
-    document.getElementById('totalBillOptionBtn').classList.remove('active');
-    document.getElementById('totalBillOptionBtn').setAttribute('aria-expanded', 'false');
 
     totalBillWorkersCalc = [];
     totalBillOwnerCalc = null;
@@ -1800,6 +1794,9 @@ function headerRefresh() {
         clearEmployerFields();
     } else if (activeStep.id === 'stepExpert') {
         clearExpertFields();
+        // 지금 보던 계산 화면은 그대로 두고 빈 입력칸으로 다시 열어 줌 (총 부과는 근로자 입력 줄 2개 다시 생성)
+        const view = activeStep.dataset.view;
+        if (view && view !== 'list') openExpertItem(view);
     }
     // step2(선택 화면)는 입력칸이 따로 없어서 지울 게 없음
 }
@@ -2039,12 +2036,23 @@ function formatRate(percentValue) {
     return `(${roundRate(percentValue)}%)`;
 }
 
-// 전문가용 진입 (추후 개발)
+// 상세 계산 진입 — openItem을 주면 그 계산 화면으로 바로, 없으면 계산 목록
 function goToExpert(openItem) {
     populateForeignerDropdowns();
     clearExpertFields();
     showStep('stepExpert');
-    if (openItem) toggleExpertOption(openItem);
+    if (openItem) openExpertItem(openItem);
+    else showExpertList();
+}
+
+// 상단 "이전": 상세 계산의 계산 화면이면 목록으로, 그 외에는 첫 화면으로
+function goBack() {
+    const xp = document.getElementById('stepExpert');
+    if (document.body.dataset.step === 'stepExpert' && xp.dataset.view !== 'list') {
+        showExpertList();
+        return;
+    }
+    showStep('step2');
 }
 
 // 체류자격·국적 드롭다운을 페이지 로드 시 한 번만 채워두면 됨
@@ -2080,28 +2088,49 @@ function populateForeignerDropdowns() {
     }
 }
 
-// "외국인 근로자인가요?" 아코디언 펼치기/접기 — 위 근로자/사업주 선택과 같은 방식
-function toggleExpertOption(type) {
-    const expand = document.getElementById(`${type}Expand`);
-    const btn = document.getElementById(`${type}OptionBtn`);
-    if (!expand || !btn) return;
-    const isOpen = expand.classList.toggle('open');
-    btn.classList.toggle('active', isOpen);
-    btn.setAttribute('aria-expanded', isOpen);
+// 상세 계산 항목 (새 계산을 넣을 때 여기와 index.html의 목록·≡ 메뉴에 함께 추가)
+const EXPERT_ITEMS = ['totalBill', 'foreigner'];
 
-    // 하나를 펼치면 다른 항목은 접음 (사업주 결과의 두 탭과 같은 방식 — 입력·결과 내용은 그대로 남음)
-    if (isOpen) {
-        ['totalBill', 'foreigner'].filter(other => other !== type).forEach(other => {
-            document.getElementById(`${other}Expand`).classList.remove('open');
-            document.getElementById(`${other}OptionBtn`).classList.remove('active');
-            document.getElementById(`${other}OptionBtn`).setAttribute('aria-expanded', 'false');
-        });
-    }
-
-    if (type === 'totalBill' && isOpen) {
-        initTotalBillWorkerRows();
-    }
+// 계산 목록 화면 — 입력·결과 내용은 지우지 않음 (다시 들어가면 그대로)
+function showExpertList() {
+    const xp = document.getElementById('stepExpert');
+    xp.dataset.view = 'list';
+    EXPERT_ITEMS.forEach(k => document.getElementById(`${k}Expand`).classList.remove('open'));
+    toggleXpMenu(false);
+    window.scrollTo(0, 0);
 }
+
+// 계산 하나만 보이는 화면 — 맨 위 ≡ 버튼에 지금 계산 이름을 보여줌
+function openExpertItem(type) {
+    const xp = document.getElementById('stepExpert');
+    xp.dataset.view = type;
+    EXPERT_ITEMS.forEach(k => {
+        document.getElementById(`${k}Expand`).classList.toggle('open', k === type);
+        document.getElementById(`${k}Block`).classList.toggle('current', k === type);
+    });
+    document.getElementById('xpMenuTitle').textContent =
+        document.querySelector(`#${type}OptionBtn .xp-toggle-title`).textContent;
+    document.querySelectorAll('.xp-menu-item').forEach(b => b.classList.toggle('current', b.dataset.key === type));
+    toggleXpMenu(false);
+    if (type === 'totalBill') initTotalBillWorkerRows();
+    window.scrollTo(0, 0);
+}
+
+// ≡ 버튼: 다른 계산 목록을 내리거나 올림 (force로 강제 지정)
+function toggleXpMenu(force) {
+    const menu = document.getElementById('xpMenu');
+    const btn = document.getElementById('xpMenuBtn');
+    const open = typeof force === 'boolean' ? force : menu.hidden;
+    menu.hidden = !open;
+    btn.setAttribute('aria-expanded', open);
+    btn.classList.toggle('open', open);
+}
+
+// 메뉴 바깥을 누르면 닫힘
+document.addEventListener('click', e => {
+    const menu = document.getElementById('xpMenu');
+    if (menu && !menu.hidden && !e.target.closest('.xp-bar')) toggleXpMenu(false);
+});
 
 function buildForeignerEmploymentHTML(visa) {
     const label = `"${visa.code}(${visa.name})"`;

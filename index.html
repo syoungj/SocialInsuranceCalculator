@@ -31,7 +31,7 @@
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></svg><span class="bar-call-long">상담 02-2671-0091</span><span class="bar-call-short">상담</span>
             </a>
             <button class="header-refresh-btn" onclick="headerRefresh()" aria-label="지금 화면 초기화">⟳</button>
-            <button class="bar-back" onclick="showStep('step2')">
+            <button class="bar-back" onclick="goBack()">
                 <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>이전
             </button>
         </div>
@@ -313,15 +313,28 @@
         </div>
     </div>
 
-    <!-- 상세 계산 화면: 두 항목은 아코디언 (그 자리에서 펼쳐지고 한 번에 하나만 열림) -->
-    <div id="stepExpert" class="step">
+    <!-- 상세 계산 화면: 처음엔 계산 목록, 하나를 고르면 그 계산만 보임.
+         계산 화면 위의 ≡ 버튼을 누르면 목록이 내려와서 다른 계산으로 바로 옮겨 감 (상단 "이전"은 목록으로) -->
+    <div id="stepExpert" class="step" data-view="list">
         <div class="xp-head">
             <h2 class="xp-title">상세 계산</h2>
         </div>
 
+        <div class="xp-bar">
+            <button class="xp-menu-btn" id="xpMenuBtn" onclick="toggleXpMenu()" aria-expanded="false" aria-controls="xpMenu" aria-label="다른 계산 고르기">
+                <svg class="xp-menu-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <span class="xp-menu-title" id="xpMenuTitle"></span>
+                <svg class="xp-menu-caret" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="xp-menu" id="xpMenu" hidden>
+                <button class="xp-menu-item" data-key="totalBill" onclick="openExpertItem('totalBill')">한 달 총 부과 예상 금액</button>
+                <button class="xp-menu-item" data-key="foreigner" onclick="openExpertItem('foreigner')">외국인 근로자인가요?</button>
+            </div>
+        </div>
+
         <div class="xp-list">
             <section class="xp-item" id="totalBillBlock">
-                <button class="xp-toggle" id="totalBillOptionBtn" onclick="toggleExpertOption('totalBill')" aria-expanded="false" aria-controls="totalBillExpand">
+                <button class="xp-toggle" id="totalBillOptionBtn" onclick="openExpertItem('totalBill')">
                     <span class="xp-toggle-text">
                         <span class="xp-toggle-title">한 달 총 부과 예상 금액</span>
                         <span class="xp-toggle-desc">근로자 부담분 + 사업주 부담분</span>
@@ -388,7 +401,7 @@
             </section>
 
             <section class="xp-item" id="foreignerBlock">
-                <button class="xp-toggle" id="foreignerOptionBtn" onclick="toggleExpertOption('foreigner')" aria-expanded="false" aria-controls="foreignerExpand">
+                <button class="xp-toggle" id="foreignerOptionBtn" onclick="openExpertItem('foreigner')">
                     <span class="xp-toggle-text">
                         <span class="xp-toggle-title">외국인 근로자인가요?</span>
                         <span class="xp-toggle-desc">체류자격·국적별 4대보험 적용 여부를 확인하고, 원하면 보험료도 계산해요</span>

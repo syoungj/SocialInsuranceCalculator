@@ -2573,6 +2573,126 @@ footer .footer-org {
     transform: rotate(180deg);
 }
 
+/* ---- 목록 화면 ↔ 계산 화면 ----
+   목록: 제목 + 항목 카드(오른쪽 › 화살표)
+   계산: 고른 항목만, 위에 ≡ 버튼(누르면 다른 계산 목록이 내려옴) */
+#stepExpert .xp-arrow svg {
+    transform: rotate(-90deg);
+}
+
+.xp-bar {
+    display: none;
+    position: relative;
+    z-index: 20;
+    padding-top: 22px;
+}
+
+#stepExpert:not([data-view="list"]) .xp-head,
+#stepExpert:not([data-view="list"]) .xp-toggle,
+#stepExpert:not([data-view="list"]) .xp-item:not(.current) {
+    display: none;
+}
+
+#stepExpert:not([data-view="list"]) .xp-bar {
+    display: block;
+}
+
+#stepExpert:not([data-view="list"]) .xp-list {
+    margin-top: 14px;
+}
+
+#stepExpert:not([data-view="list"]) .xp-item > .option-expand > .xp-form:first-child,
+#stepExpert:not([data-view="list"]) .xp-item > .option-expand > div:first-child > .xp-form:first-child {
+    border-top: 0;
+}
+
+.xp-menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 56px;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    box-shadow: 0 4px 16px rgba(30, 79, 194, 0.08);
+    font-family: inherit;
+    text-align: left;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.xp-menu-icon {
+    flex: none;
+    color: var(--accent);
+}
+
+.xp-menu-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.xp-menu-caret {
+    flex: none;
+    color: var(--text-2);
+    transition: transform 0.2s;
+}
+
+.xp-menu-btn.open .xp-menu-caret {
+    transform: rotate(180deg);
+}
+
+.xp-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 6px);
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.97);
+    border: 1px solid rgba(58, 91, 214, 0.15);
+    box-shadow: 0 12px 32px rgba(19, 32, 58, 0.16);
+}
+
+.xp-menu[hidden] {
+    display: none;
+}
+
+.xp-menu-item {
+    padding: 14px 14px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: left;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.xp-menu-item:active,
+.xp-menu-item:hover {
+    background: rgba(58, 91, 214, 0.08);
+}
+
+.xp-menu-item.current {
+    color: var(--accent);
+    font-weight: 800;
+}
+
+.xp-menu-item.current::after {
+    content: " ✓";
+}
+
 /* 입력 공통 */
 .xp-form {
     display: flex;
