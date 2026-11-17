@@ -1657,7 +1657,7 @@ function printTotalBill() {
     }[totalBillOwnerCalc.ownerType];
 
     printArea.innerHTML = `
-        ${prHeadHTML('한 달 총 부과 금액', [
+        ${prHeadHTML('한 달 총 부과 예상 금액', [
             `${prDateStr(today)} 기준`,
             `업종: ${industry ? `${industry.name} · 산재 ${industry.permille}/1000` : '선택 안 함'}`,
             `근로자수: ${EMPLOYMENT_STABILITY_RATES.find(r => r.rate === totalBillStabilityRate).label}`,
@@ -1723,7 +1723,7 @@ function printTotalBill() {
         ])}
     `;
 
-    showPdfPreview(`4대보험_총부과금액_${dateSlug(today)}`);
+    showPdfPreview(`4대보험_총부과예상금액_${dateSlug(today)}`);
 }
 
 // 처음부터 다시
