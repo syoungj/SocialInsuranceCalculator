@@ -3346,6 +3346,7 @@ select.xp-input {
 .fr-dot.in { background: var(--accent); }
 .fr-dot.part { background: #e3eafb; border: 1px solid #9fb6e2; }
 .fr-dot.out { border: 1px dashed #8a94a6; }
+.fr-dot.check { background: #f1f3f6; border: 1px solid #b4bccb; }
 
 .fr-verdicts {
     display: grid;
@@ -3423,6 +3424,13 @@ select.xp-input {
 
 .fr-badge.out {
     border: 1px dashed #8a94a6;
+    color: #4a5568;
+}
+
+/* 확인 필요(상호주의) — 가입인지 아닌지 아직 모름: 회색 채움 + 물음표 */
+.fr-badge.check {
+    background: #f1f3f6;
+    border: 1px solid #b4bccb;
     color: #4a5568;
 }
 

@@ -2116,7 +2116,7 @@ function buildForeignerEmploymentHTML(visa) {
             reason = `체류자격 ${label}은 고용보험 당연 적용 대상이에요. 사업주가 일반 피보험자격 취득신고를 하면 돼요.`;
             break;
         case 'reciprocal':
-            status = '가입 대상 (상호주의 확인)';
+            status = '확인 필요';
             reason = `체류자격 ${label}은 상호주의를 충족하면 고용보험 당연 적용 대상이에요. 근로자의 본국 법령이 대한민국 국민에게 고용보험에 상응하는 보험료·급여를 적용하지 않는 나라라면 적용되지 않으니, 취득신고 전에 국적별 상호주의 여부를 꼭 확인해주세요.`;
             break;
         case 'partial':
@@ -2142,7 +2142,7 @@ function buildForeignerEmploymentHTML(visa) {
     const title = visa.employment === 'optional' ? '고용보험<span class="fr-verdict-sub">(실업급여)</span>'
         : visa.employment === 'partial' ? '고용보험<span class="fr-verdict-sub">실업급여는 원하면 가입</span>'
         : '고용보험';
-    const kind = excluded ? 'out' : visa.employment === 'full' ? 'in' : 'part';
+    const kind = excluded ? 'out' : visa.employment === 'full' ? 'in' : visa.employment === 'reciprocal' ? 'check' : 'part';
     return { title, badge: frBadge(kind, status), details, reason };
 }
 
@@ -2152,6 +2152,7 @@ function frBadge(kind, text) {
         in: '<path d="m5 12 4 4L19 6"/>',
         part: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor"/>',
         out: '<path d="M6 12h12"/>',
+        check: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.4"/><path d="M12 17h.01"/>',
     }[kind];
     return `<span class="fr-badge ${kind}"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>${text}</span>`;
 }
@@ -2430,9 +2431,9 @@ function checkForeignerInsurance() {
     // 제외·원하면 가입은 각 칸 안에서 바로 보이게 하고, 칸 아래에는 따로 확인이 필요한 상호주의만 짧게.
     // 자세한 설명은 접힌 칸에 둠
     const shortNotes = [];
-    if (visa.employment === 'reciprocal') shortNotes.push('고용보험: 본국 법령이 상호주의를 충족해야 가입 대상이에요.');
-    // 체류자격은 대상인데 국적 때문에 연금이 빠지는 경우만 칸 안에 이유를 짧게
-    const pensionSub = excluded && !visa.pensionExcluded ? '<span class="fr-verdict-sub">국적 때문에 제외</span>' : '';
+    if (visa.employment === 'reciprocal') shortNotes.push('고용보험: 근로자 본국이 상호주의를 충족하면 가입 대상이에요.');
+    // 체류자격은 대상인데 국적 기준으로 연금이 빠지는 경우만 칸 안에 짧게
+    const pensionSub = excluded && !visa.pensionExcluded ? '<span class="fr-verdict-sub">국적 기준 제외</span>' : '';
     const NPS_URL = 'https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0035M0.do';
 
     resultBox.style.display = 'block';
@@ -2440,7 +2441,7 @@ function checkForeignerInsurance() {
         <div class="fr-result-head">
             <h3 class="xp-h3">판정 결과 <span>${visa.code} · ${country.name}</span></h3>
             <p class="fr-legend" aria-label="판정 표시 안내">
-                <span><i class="fr-dot in"></i>가입 대상</span><span><i class="fr-dot part"></i>일부 가입</span><span><i class="fr-dot out"></i>제외 대상</span>
+                <span><i class="fr-dot in"></i>가입 대상</span><span><i class="fr-dot part"></i>일부 가입</span><span><i class="fr-dot out"></i>제외 대상</span>${visa.employment === 'reciprocal' ? '<span><i class="fr-dot check"></i>확인 필요</span>' : ''}
             </p>
         </div>
 
