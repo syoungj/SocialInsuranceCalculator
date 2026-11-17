@@ -2129,7 +2129,7 @@ function buildForeignerEmploymentHTML(visa) {
             reason = `체류자격 ${label}은 고용안정·직업능력개발사업만 당연 적용이고, 실업급여는 근로자가 별도로 가입을 신청한 경우에만 적용돼요. 취득신고 시 실업급여 희망 여부를 따로 확인해주세요. 실업급여에 가입하지 않으면 근로자 공제분(실업급여 요율)은 없고, 사업주는 고용안정·직업능력개발 부분만 부담해요.`;
             break;
         case 'optional':
-            status = '근로자 신청 시 가입';
+            status = '원하면 가입';
             reason = `체류자격 ${label}은 고용보험 임의 적용 대상이에요. 근로자가 가입을 원하면 「외국인 고용보험 가입신청서」를 제출해야 하고, 신청하면 고용보험 전부(실업급여 포함)가 적용돼요.`;
             break;
         default:
@@ -2138,7 +2138,10 @@ function buildForeignerEmploymentHTML(visa) {
             reason = `체류자격 ${label}은 원칙적으로 고용보험 적용 제외 대상이에요.`;
     }
 
-    const title = visa.employment === 'optional' ? '고용보험<span class="fr-verdict-sub">(실업급여)</span>' : '고용보험';
+    // 칸 안에서 바로 알 수 있게: 일부 가입이면 무엇을 고를 수 있는지 이름 아래에 짧게
+    const title = visa.employment === 'optional' ? '고용보험<span class="fr-verdict-sub">(실업급여)</span>'
+        : visa.employment === 'partial' ? '고용보험<span class="fr-verdict-sub">실업급여는 원하면 가입</span>'
+        : '고용보험';
     const kind = excluded ? 'out' : visa.employment === 'full' ? 'in' : 'part';
     return { title, badge: frBadge(kind, status), details, reason };
 }
@@ -2424,16 +2427,12 @@ function checkForeignerInsurance() {
     toggleForeignerJoinRow();
 
     const emp = buildForeignerEmploymentHTML(visa);
-    // 칸 아래에는 표시만으로 알 수 없는 것만 짧게. 자세한 설명은 접힌 칸에 둠
+    // 제외·원하면 가입은 각 칸 안에서 바로 보이게 하고, 칸 아래에는 따로 확인이 필요한 상호주의만 짧게.
+    // 자세한 설명은 접힌 칸에 둠
     const shortNotes = [];
-    if (excluded) shortNotes.push(visa.pensionExcluded ? '국민연금: 이 체류자격은 적용 제외예요.' : `국민연금: ${country.name}은 사회보장협정상 적용 제외국이에요.`);
-    const employmentNote = {
-        partial: '고용보험: 고용안정·직업능력개발은 의무, 실업급여는 근로자가 원하면 가입',
-        optional: '고용보험: 근로자가 원하면 가입',
-        reciprocal: '고용보험: 본국 법령이 상호주의를 충족해야 가입 대상이에요.',
-        excluded: '고용보험: 이 체류자격은 적용 제외예요.',
-    }[visa.employment];
-    if (employmentNote) shortNotes.push(employmentNote);
+    if (visa.employment === 'reciprocal') shortNotes.push('고용보험: 본국 법령이 상호주의를 충족해야 가입 대상이에요.');
+    // 체류자격은 대상인데 국적 때문에 연금이 빠지는 경우만 칸 안에 이유를 짧게
+    const pensionSub = excluded && !visa.pensionExcluded ? '<span class="fr-verdict-sub">국적 때문에 제외</span>' : '';
     const NPS_URL = 'https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0035M0.do';
 
     resultBox.style.display = 'block';
@@ -2447,7 +2446,7 @@ function checkForeignerInsurance() {
 
         <div class="fr-verdicts">
             <div class="fr-verdict">
-                <span class="fr-verdict-name">국민연금</span>
+                <span class="fr-verdict-name">국민연금${pensionSub}</span>
                 ${frBadge(excluded ? 'out' : 'in', excluded ? '제외 대상' : '가입 대상')}
             </div>
             <div class="fr-verdict">
