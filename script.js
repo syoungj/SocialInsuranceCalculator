@@ -2470,7 +2470,7 @@ function checkForeignerInsurance() {
     notes.innerHTML = `
         <details class="fr-details">
             <summary>자세한 설명과 근거 자료<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></summary>
-            <div class="fr-detail-reasons"><p>${reason}</p><p>${emp.reason}</p></div>
+            <div class="fr-detail-reasons"><p><b class="fr-reason-label">국민연금</b>${reason}</p><p><b class="fr-reason-label">고용보험</b>${emp.reason}</p></div>
             <div class="fr-details-body">
                 <p>※ 고용보험은 체류자격 외에도 <b>65세 이후 신규 고용</b>, <b>월 소정근로시간 60시간 미만</b> 등 일반 적용제외 사유를 별도로 확인해야 해요.</p>
                 <div class="fr-sources">

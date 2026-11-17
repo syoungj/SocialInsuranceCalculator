@@ -3484,11 +3484,20 @@ select.xp-input {
 
 .fr-detail-reasons {
     display: grid;
-    gap: 6px;
+    gap: 12px;
     margin-bottom: 12px;
     font-size: 13px;
     line-height: 1.65;
     color: var(--text-2);
+}
+
+/* 설명 문단 맨 앞의 보험 이름 — 한 줄 따로, 무엇에 대한 설명인지 먼저 보이게 */
+.fr-reason-label {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
 }
 
 .fr-emp-reason {
