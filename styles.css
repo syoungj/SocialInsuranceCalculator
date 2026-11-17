@@ -3266,16 +3266,6 @@ select.xp-input {
     border: 1px dashed var(--field-line);
 }
 
-.fr-optional-title {
-    font-size: 12px;
-    line-height: 1.6;
-    color: var(--text-2);
-}
-
-.fr-optional-title span {
-    color: var(--text-sub);
-}
-
 .fr-pair {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
