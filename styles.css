@@ -3610,6 +3610,29 @@ select.xp-input {
     color: var(--text);
 }
 
+.fr-work-sub {
+    margin-top: 10px !important;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.fr-work-list {
+    margin: 4px 0 0;
+    padding-left: 18px;
+}
+
+.fr-work-list li + li {
+    margin-top: 3px;
+}
+
+.fr-work-list b {
+    color: var(--text);
+}
+
+.fr-work-after {
+    margin-top: 8px !important;
+}
+
 .fr-work-check {
     margin-top: 6px !important;
     font-size: 12px;

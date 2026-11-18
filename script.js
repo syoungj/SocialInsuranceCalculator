@@ -178,19 +178,34 @@ const VISA_TYPES = [
 //   permit = 원칙적으로 취업 불가(허가를 받으면 가능), none = 국내 취업 불가 → 4대보험 판단 안 함
 // permitNote: permit일 때 판정 위에 붙는 "어떤 경우의 판정인지" 안내
 const WORK_SCOPE_DEFAULT = { kind: 'limited', text: '체류자격에 정해진 활동으로만 일할 수 있어요.' };
+// 유학(D-2)·일반연수(D-4) 시간제취업 — 대학 국제처 안내·법무부 방침 보도에서 공통으로 확인되는 제한 업종만 (2026.11 조사)
+const STUDENT_WORK = {
+    text: '시간제취업 허가를 받아야 일할 수 있고, 허가를 받아도 일할 수 있는 업종이 제한돼요.',
+    list: [
+        '<b>제조업·건설업</b> — 제조업은 한국어 능력(TOPIK 4급 등) 요건을 갖추면 예외적으로 허용될 수 있어요',
+        '<b>유흥·풍속 업종</b> — 유흥주점, 단란주점, 노래방, 마사지업, 게임방 등',
+        '<b>배달·택배·대리운전·방문판매</b> 등 특수형태 근로',
+        '<b>파견·도급·알선 업체</b>를 통한 근무',
+        '<b>회화지도 등 전문 분야</b> — 학원·키즈카페·캠프의 외국어 강사 등',
+    ],
+    listTitle: '허가를 받아도 안 되는 일',
+    after: '허가받은 근무처에서만 일할 수 있고, 주당 근무 시간도 과정·한국어 능력에 따라 정해져 있어요.',
+    where: '자세한 업종과 시간은 <a href="https://www.hikorea.go.kr" target="_blank" rel="noopener noreferrer">하이코리아</a>, 외국인종합안내센터(<a href="tel:1345">☎1345</a>) 또는 학생이 다니는 학교의 유학생 담당 부서(국제처·어학당)에서 확인하세요.',
+    permitNote: '시간제취업 허가를 받은 경우 가입 가능한 보험이에요.',
+};
 const WORK_SCOPE = {
     'A-1': { kind: 'none' }, 'A-2': { kind: 'none' }, 'A-3': { kind: 'none' },
     'B-1': { kind: 'none' }, 'B-2': { kind: 'none' }, 'C-1': { kind: 'none' }, 'C-3': { kind: 'none' },
-    'D-2': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 시간제취업 허가를 받아야 일할 수 있어요. 허용 시간은 과정·한국어 능력 등에 따라 달라요.', permitNote: '시간제취업 허가를 받은 경우의 판정이에요.' },
-    'D-4': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 시간제취업 허가를 받아야 일할 수 있어요.', permitNote: '시간제취업 허가를 받은 경우의 판정이에요.' },
-    'D-10': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우의 판정이에요.' },
-    'F-1': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우의 판정이에요.' },
-    'F-3': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우의 판정이에요.' },
-    'G-1': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우의 판정이에요.' },
-    'D-1': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우의 판정이에요.' },
-    'D-3': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우의 판정이에요.' },
-    'D-5': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우의 판정이에요.' },
-    'D-6': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우의 판정이에요.' },
+    'D-2': { kind: 'permit', ...STUDENT_WORK },
+    'D-4': { kind: 'permit', ...STUDENT_WORK },
+    'D-10': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
+    'F-1': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
+    'F-3': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
+    'G-1': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
+    'D-1': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
+    'D-3': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
+    'D-5': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
+    'D-6': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
     'D-7': { kind: 'limited', text: '파견된 국내 지사(주재 회사)의 업무만 할 수 있어요.' },
     'D-8': { kind: 'limited', text: '해당 투자기업의 업무만 할 수 있어요.' },
     'D-9': { kind: 'limited', text: '해당 회사(무역·경영)의 업무만 할 수 있어요.' },
@@ -2567,7 +2582,9 @@ function checkForeignerInsurance() {
         <div class="fr-work">
             <p class="fr-work-label">취업 가능 범위</p>
             <p>${work.text}</p>
-            ${work.kind === 'free' ? '' : `<p class="fr-work-check">${WORK_CHECK}</p>`}
+            ${work.list ? `<p class="fr-work-sub">${work.listTitle}</p><ul class="fr-work-list">${work.list.map(t => `<li>${t}</li>`).join('')}</ul>` : ''}
+            ${work.after ? `<p class="fr-work-after">${work.after}</p>` : ''}
+            ${work.kind === 'free' ? '' : `<p class="fr-work-check">${work.where || WORK_CHECK}</p>`}
         </div>
     `;
 
