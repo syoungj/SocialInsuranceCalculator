@@ -214,7 +214,24 @@ const WORK_SCOPE = {
     },
     'F-1': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
     'F-3': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
-    'G-1': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
+    // 기타(G-1) — 난민 신청자(G-1-5)가 실무에서 가장 흔함. 행정사 자료(2025.10) 기준, 개별 심사라 "허가될 수 있음"까지만
+    'G-1': {
+        kind: 'permit',
+        text: '다른 체류자격에 해당하지 않는 사람(난민 신청자, 인도적 체류자, 산재·질병 치료나 소송 진행 중인 사람 등)에게 주는 자격이에요. 원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.',
+        groups: [
+            { title: '난민 신청자의 경우', items: [
+                '난민 신청 후 <b>6개월</b>이 지나야 허가를 신청할 수 있어요',
+                '생계유지 등 취업이 꼭 필요하다고 인정될 때만 허가돼요 — 기간이 지났다고 모두 허가되지는 않아요',
+            ] },
+            { title: '허가를 받아도 안 되는 일', items: [
+                '<b>건설업</b>',
+                '<b>사행업소, 유흥·단란주점 등 접객업소, 풍속영업</b>',
+                '<b>학원 강사·과외</b> 등 교육 활동',
+            ] },
+        ],
+        after: '허가받은 근무처에서만 일할 수 있고, 근무처를 바꾸려면 다시 허가를 받아야 해요.',
+        permitNote: '체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.',
+    },
     'D-1': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
     'D-3': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
     'D-5': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우 가입 가능한 보험이에요.' },
@@ -2595,7 +2612,8 @@ function checkForeignerInsurance() {
         <div class="fr-work">
             <p class="fr-work-label">취업 가능 범위</p>
             <p>${work.text}</p>
-            ${work.list ? `<p class="fr-work-sub">${work.listTitle}</p><ul class="fr-work-list">${work.list.map(t => `<li>${t}</li>`).join('')}</ul>` : ''}
+            ${(work.groups || (work.list ? [{ title: work.listTitle, items: work.list }] : [])).map(g =>
+                `<p class="fr-work-sub">${g.title}</p><ul class="fr-work-list">${g.items.map(t => `<li>${t}</li>`).join('')}</ul>`).join('')}
             ${work.after ? `<p class="fr-work-after">${work.after}</p>` : ''}
             ${work.kind === 'free' ? '' : `<p class="fr-work-check">${work.where || WORK_CHECK}</p>`}
         </div>
