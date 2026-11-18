@@ -2387,7 +2387,7 @@ function printForeigner() {
         </table>
 
         <div class="pr-keep">
-        <h2 class="pr-h2">항목별 합계 <span>· 근로자 + 사업주 (고지서 기준)</span></h2>
+        <h2 class="pr-h2">항목별 합계 <span>· 근로자 + 사업주</span></h2>
         <table class="pr-table">
             <thead><tr><th>항목</th><th>근로자 공제</th><th>사업주 부담</th><th>합계</th></tr></thead>
             <tbody>
