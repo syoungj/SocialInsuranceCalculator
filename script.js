@@ -1154,7 +1154,7 @@ function prPct(percentValue) {
     return `${roundRate(percentValue)}%`;
 }
 
-function prDeductionHeadHTML() {
+function prDeductionHeadHTML(totalLabel = '공제 합계') {
     return `
         <thead><tr>
             <th>대상</th>
@@ -1162,7 +1162,7 @@ function prDeductionHeadHTML() {
             <th>건강보험<span class="pr-rate">${prPct(RATES.health / 2 * 100)}</span></th>
             <th>장기요양<span class="pr-rate">건강×${prPct(RATES.longterm * 100)}</span></th>
             <th>고용보험<span class="pr-rate">${prPct(RATES.employmentWorker * 100)}</span></th>
-            <th>공제 합계</th>
+            <th>${totalLabel}</th>
             <th>4대보험<br>제외</th>
         </tr></thead>`;
 }
@@ -1676,9 +1676,9 @@ function printTotalBill() {
         </section>
         ${anyEligible ? '<p class="pr-caption">두루누리 적용 시 총액은 아래 표에 두루누리 적용 줄이 있는 근로자의 국민연금·고용보험에만 지원금을 반영한 금액입니다.</p>' : ''}
 
-        <h2 class="pr-h2">근로자별 상세 <span>· 공제분(근로자 본인 몫)</span></h2>
+        <h2 class="pr-h2">근로자별 상세 <span>· 근로자 부담분</span></h2>
         <table class="pr-table">
-            ${prDeductionHeadHTML()}
+            ${prDeductionHeadHTML('근로자<br>부담 합계')}
             <tbody>
                 ${deductionRows}
                 ${prSumRowsHTML(
