@@ -2036,8 +2036,15 @@ function formatRate(percentValue) {
     return `(${roundRate(percentValue)}%)`;
 }
 
+// 상세 계산에 들어오기 직전 화면("이전"으로 돌아갈 곳)과, 목록을 거치지 않고 계산 화면으로 바로 들어왔는지
+let expertOrigin = 'step2';
+let expertDirect = false;
+
 // 상세 계산 진입 — openItem을 주면 그 계산 화면으로 바로, 없으면 계산 목록
 function goToExpert(openItem) {
+    const from = document.body.dataset.step;
+    expertOrigin = from && from !== 'stepExpert' ? from : 'step2';
+    expertDirect = !!openItem;
     populateForeignerDropdowns();
     clearExpertFields();
     showStep('stepExpert');
@@ -2045,11 +2052,18 @@ function goToExpert(openItem) {
     else showExpertList();
 }
 
-// 상단 "이전": 상세 계산의 계산 화면이면 목록으로, 그 외에는 첫 화면으로
+// 상단 "이전": 바로 앞에 보던 화면으로
+// - 목록에서 고른 계산 화면 → 목록
+// - 다른 화면의 링크로 바로 들어온 계산 화면, 또는 목록 → 들어오기 전 화면
 function goBack() {
     const xp = document.getElementById('stepExpert');
-    if (document.body.dataset.step === 'stepExpert' && xp.dataset.view !== 'list') {
-        showExpertList();
+    if (document.body.dataset.step === 'stepExpert') {
+        if (xp.dataset.view !== 'list' && !expertDirect) {
+            showExpertList();
+            return;
+        }
+        toggleXpMenu(false);
+        showStep(expertOrigin);
         return;
     }
     showStep('step2');
