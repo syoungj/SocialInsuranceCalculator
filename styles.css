@@ -2625,11 +2625,6 @@ footer .footer-org {
     cursor: pointer;
 }
 
-.xp-menu-icon {
-    flex: none;
-    color: var(--accent);
-}
-
 .xp-menu-title {
     flex: 1;
     min-width: 0;
@@ -2674,6 +2669,7 @@ footer .footer-org {
     font-family: inherit;
     font-size: 16px;
     font-weight: 600;
+    letter-spacing: -0.02em;
     text-align: left;
     color: var(--text);
     cursor: pointer;
