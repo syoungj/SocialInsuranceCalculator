@@ -173,6 +173,43 @@ const VISA_TYPES = [
     { code: 'H-2', name: '방문취업', pensionExcluded: false, employment: 'partial' },
 ];
 
+// 체류자격별 취업 가능 범위 (출입국관리법 시행령 제23조 등, 2026.11 조사) — 판정이 아니라 안내용.
+//   free = 업종 제한 없음, limited = 정해진 범위 안에서만,
+//   permit = 원칙적으로 취업 불가(허가를 받으면 가능), none = 국내 취업 불가 → 4대보험 판단 안 함
+// permitNote: permit일 때 판정 위에 붙는 "어떤 경우의 판정인지" 안내
+const WORK_SCOPE_DEFAULT = { kind: 'limited', text: '체류자격에 정해진 활동으로만 일할 수 있어요.' };
+const WORK_SCOPE = {
+    'A-1': { kind: 'none' }, 'A-2': { kind: 'none' }, 'A-3': { kind: 'none' },
+    'B-1': { kind: 'none' }, 'B-2': { kind: 'none' }, 'C-1': { kind: 'none' }, 'C-3': { kind: 'none' },
+    'D-2': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 시간제취업 허가를 받아야 일할 수 있어요. 허용 시간은 과정·한국어 능력 등에 따라 달라요.', permitNote: '시간제취업 허가를 받은 경우의 판정이에요.' },
+    'D-4': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 시간제취업 허가를 받아야 일할 수 있어요.', permitNote: '시간제취업 허가를 받은 경우의 판정이에요.' },
+    'D-10': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우의 판정이에요.' },
+    'F-1': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우의 판정이에요.' },
+    'F-3': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우의 판정이에요.' },
+    'G-1': { kind: 'permit', text: '원칙적으로 취업할 수 없고, 체류자격외활동허가를 받아야 일할 수 있어요.', permitNote: '체류자격외활동허가를 받은 경우의 판정이에요.' },
+    'D-1': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우의 판정이에요.' },
+    'D-3': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우의 판정이에요.' },
+    'D-5': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우의 판정이에요.' },
+    'D-6': { kind: 'permit', text: '체류자격에 정해진 활동만 할 수 있고, 다른 일을 하려면 체류자격외활동허가가 필요해요.', permitNote: '체류자격에 정해진 활동이거나 체류자격외활동허가를 받은 경우의 판정이에요.' },
+    'D-7': { kind: 'limited', text: '파견된 국내 지사(주재 회사)의 업무만 할 수 있어요.' },
+    'D-8': { kind: 'limited', text: '해당 투자기업의 업무만 할 수 있어요.' },
+    'D-9': { kind: 'limited', text: '해당 회사(무역·경영)의 업무만 할 수 있어요.' },
+    'E-2': { kind: 'limited', text: '외국어 회화 지도로만 일할 수 있어요.' },
+    'E-7': { kind: 'limited', text: '허가받은 직종으로만 일할 수 있어요.' },
+    'E-8': { kind: 'limited', text: '농업·어업 계절근로로만 일할 수 있어요.' },
+    'E-9': { kind: 'limited', text: '고용허가를 받은 사업장에서, 허용 업종(제조·건설·농축산·어업·일부 서비스업)으로만 일할 수 있어요.' },
+    'E-10': { kind: 'limited', text: '선원으로만 일할 수 있어요.' },
+    'F-2': { kind: 'limited', text: '대부분 제한 없이 일할 수 있지만, 세부 자격에 따라 종전 분야로만 일할 수 있는 경우가 있어요.' },
+    'F-4': { kind: 'limited', text: '대부분 일할 수 있지만, 단순노무 일부 직종은 제한돼요(인구감소지역 예외 있음).' },
+    'F-5': { kind: 'free', text: '업종 제한 없이 일할 수 있어요.' },
+    'F-6': { kind: 'free', text: '업종 제한 없이 일할 수 있어요.' },
+    'H-1': { kind: 'limited', text: '일할 수 있지만 업종 제한이 있어요.' },
+    'H-2': { kind: 'limited', text: '허용 업종에서만 일할 수 있어요. 2026.2.12부터 새로 발급하지 않고 재외동포(F-4)로 통합됐어요(이미 받은 사람은 체류기간까지 유효).' },
+};
+function workScopeOf(visa) {
+    return WORK_SCOPE[visa.code] || WORK_SCOPE_DEFAULT;
+}
+
 // 국가별 국민연금 적용 여부 (2026.3.19. 기준, 136개국).
 // 이 계산기는 "고용된 근로자(사업장가입자)"만 다루므로, 사업장 기준으로 판단이 갈리는 세 그룹 중
 // "사업장·지역 적용제외국"(20개국)만 실제로 국민연금이 제외되고, 나머지(사업장은 당연적용인 116개국 +
@@ -2452,6 +2489,25 @@ function checkForeignerInsurance() {
 
     const visa = VISA_TYPES[parseInt(visaIdx, 10)];
     const country = PENSION_COUNTRIES[parseInt(countryIdx, 10)];
+    const work = workScopeOf(visa);
+    const WORK_WHERE = '<a href="https://www.hikorea.go.kr" target="_blank" rel="noopener noreferrer">하이코리아</a> 또는 외국인종합안내센터(<a href="tel:1345">☎1345</a>)에서 확인하세요.';
+    const WORK_CHECK = (work.kind === 'none' ? '자세한 내용은 ' : '정확한 범위는 ') + WORK_WHERE;
+
+    // 국내 취업이 안 되는 체류자격은 근로자로 신고할 대상이 아니라 4대보험 판정 자체를 보여주지 않음
+    if (work.kind === 'none') {
+        resultBox.style.display = 'block';
+        resultBox.innerHTML = `
+            <div class="fr-result-head">
+                <h3 class="xp-h3">판정 결과 <span>${visa.code} · ${country.name}</span></h3>
+            </div>
+            <div class="fr-nowork">
+                <p class="fr-nowork-title">국내 취업이 안 되는 체류자격이에요</p>
+                <p>${visa.code}(${visa.name})은 국내에서 취업할 수 없어서 4대보험 판단 대상이 아니에요.</p>
+                <p class="fr-work-check">${WORK_CHECK}</p>
+            </div>
+        `;
+        return;
+    }
 
     let excluded;
     let reason;
@@ -2487,6 +2543,7 @@ function checkForeignerInsurance() {
                 <span><i class="fr-dot in"></i>가입 대상</span><span><i class="fr-dot part"></i>일부 가입</span><span><i class="fr-dot out"></i>제외 대상</span>${visa.employment === 'reciprocal' ? '<span><i class="fr-dot check"></i>확인 필요</span>' : ''}
             </p>
         </div>
+        ${work.kind === 'permit' ? `<p class="fr-permit-note">${work.permitNote}</p>` : ''}
 
         <div class="fr-verdicts">
             <div class="fr-verdict">
@@ -2507,6 +2564,11 @@ function checkForeignerInsurance() {
             </div>
         </div>
         ${shortNotes.length ? `<div class="fr-short-notes">${shortNotes.map(t => `<p>${t}</p>`).join('')}</div>` : ''}
+        <div class="fr-work">
+            <p class="fr-work-label">취업 가능 범위</p>
+            <p>${work.text}</p>
+            ${work.kind === 'free' ? '' : `<p class="fr-work-check">${WORK_CHECK}</p>`}
+        </div>
     `;
 
     const notes = document.getElementById('foreignerNotes');
@@ -2527,6 +2589,8 @@ function checkForeignerInsurance() {
                         <dd>「산업재해보상보험법」 제6조 (2026.7.1. 시행). 대통령령으로 정하는 일부 사업은 적용 제외</dd>
                         <dt>고용보험</dt>
                         <dd>「고용보험법」 제10조의2 및 같은 법 시행령에 따른 [2026.10]기준 체류자격별 적용 내용</dd>
+                        <dt>취업 가능 범위</dt>
+                        <dd>「출입국관리법 시행령」 제23조 및 법무부 고시·안내를 바탕으로 [2026.11]기준 정리한 내용</dd>
                     </dl>
                     <p>실제 적용 여부는 국민연금공단과 관할 근로복지공단 지사에 별도로 확인해주세요.</p>
                 </div>
