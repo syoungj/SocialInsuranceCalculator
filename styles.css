@@ -3553,11 +3553,7 @@ select.xp-input {
     color: var(--text-sub);
 }
 
-/* 줄인 말 뒤 ⓘ — 누르면 원래 말 말풍선 (작은 글씨 바로 아래에 뜸) */
-.fr-verdict-sub:has(.term-tip) {
-    position: relative;
-}
-
+/* 줄인 말 뒤 ⓘ — 누르면 원래 말 말풍선 (위치는 script.js가 버튼 바로 아래로 맞춤) */
 .term-tip {
     display: inline-flex;
     align-items: center;
@@ -3587,12 +3583,11 @@ select.xp-input {
 }
 
 .term-pop {
-    position: absolute;
-    top: 100%;
-    left: -4px;
-    z-index: 5;
-    margin-top: 6px;
+    position: fixed;
+    z-index: 50;
     padding: 8px 11px;
+    text-align: left;
+    white-space: normal;
     max-width: 250px;
     width: max-content;
     border-radius: 10px;

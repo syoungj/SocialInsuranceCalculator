@@ -568,9 +568,11 @@ function renderEmployerResult() {
     set('empPensionRate', s.pensionExempt ? '(면제)' : formatRate(RATES.pension / 2 * 100));
     set('empHealthRate', formatRate(RATES.health / 2 * 100));
     set('empLongtermRate', `(건강보험료 × ${roundRate(RATES.longterm * 100)}%)`);
-    set('empEmploymentRate', s.employmentExempt
-        ? `(고용안정·직능 ${roundRate(RATES.employmentStability * 100)}%만)`
-        : formatRate((RATES.employmentWorker + RATES.employmentStability) * 100));
+    if (s.employmentExempt) {
+        document.getElementById('empEmploymentRate').innerHTML = withJikneungTip(`(고용안정·직능 ${roundRate(RATES.employmentStability * 100)}%만)`);
+    } else {
+        set('empEmploymentRate', formatRate((RATES.employmentWorker + RATES.employmentStability) * 100));
+    }
     set('empAccidentRate', s.accidentPermille === null ? '' : `(${s.accidentPermille}/1000, 참고용)`);
     document.getElementById('empAccidentInfo').style.display = s.accidentPermille === null ? 'none' : '';
 
@@ -2283,7 +2285,7 @@ function buildForeignerEmploymentHTML(visa) {
     }
 
     // 칸 안에서 바로 알 수 있게: 일부 가입이면 무엇을 고를 수 있는지 이름 아래에 짧게
-    const title = visa.employment === 'optional' ? '고용보험<span class="fr-verdict-sub">실업급여·직능 포함</span>'
+    const title = visa.employment === 'optional' ? `고용보험<span class="fr-verdict-sub">${withJikneungTip('실업급여·직능 포함')}</span>`
         : visa.employment === 'partial' ? `고용보험<span class="fr-verdict-sub">고안직능만 가입 대상${termTipHTML('고안직능', '고용안정·직업능력개발사업')}</span>`
         : '고용보험';
     const kind = excluded ? 'out' : visa.employment === 'full' ? 'in' : visa.employment === 'reciprocal' ? 'check' : 'part';
@@ -2292,26 +2294,58 @@ function buildForeignerEmploymentHTML(visa) {
 
 // 줄인 말 뒤에 붙는 ⓘ — 누르면 원래 말을 말풍선으로 보여줌 (다시 누르거나 바깥을 누르면 닫힘)
 function termTipHTML(short, full) {
-    return `<button type="button" class="term-tip" aria-expanded="false" aria-label="${short} 뜻 보기" onclick="toggleTermTip(event, this)">i</button><span class="term-pop" role="tooltip" hidden><b>${short}</b> = ${full}</span>`;
+    return `<button type="button" class="term-tip" aria-expanded="false" aria-label="${short} 뜻 보기" data-short="${short}" data-full="${full}" onclick="toggleTermTip(event, this)">i</button>`;
+}
+
+// 말풍선은 페이지 맨 바깥에 하나만 둠 — 카드의 반투명 효과(backdrop-filter) 안에 두면 화면 기준 위치가 어긋남
+function termPopEl() {
+    let pop = document.getElementById('termPop');
+    if (!pop) {
+        pop = document.createElement('div');
+        pop.id = 'termPop';
+        pop.className = 'term-pop';
+        pop.setAttribute('role', 'tooltip');
+        pop.hidden = true;
+        document.body.appendChild(pop);
+    }
+    return pop;
+}
+
+// "직능" 뒤에 ⓘ를 붙임 (화면용 — PDF에는 누를 수 없어서 안 붙임)
+// ("고용안정·직능"처럼 앞에 고용안정이 있으면 직능 = 직업능력개발사업만, 단독이면 고용안정·직업능력개발사업 전체)
+function withJikneungTip(text) {
+    const full = text.includes('고용안정·직능') ? '직업능력개발사업' : '고용안정·직업능력개발사업';
+    return text.replace('직능', `직능${termTipHTML('직능', full)}`);
 }
 
 function toggleTermTip(event, btn) {
     event.stopPropagation();
-    const pop = btn.nextElementSibling;
-    const open = pop.hidden;
+    event.preventDefault();
+    const pop = termPopEl();
+    const open = btn.getAttribute('aria-expanded') !== 'true';
     closeTermTips();
-    pop.hidden = !open;
-    btn.setAttribute('aria-expanded', open);
+    if (!open) return;
+    pop.innerHTML = `<b>${btn.dataset.short}</b> = ${btn.dataset.full}`;
+    pop.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    // 표 칸·좁은 칸 안에서도 잘리지 않게 화면 기준으로 띄우고, 화면 밖으로 나가지 않게 좌우를 맞춤
+    const r = btn.getBoundingClientRect();
+    const left = Math.min(Math.max(r.left - 10, 12), window.innerWidth - pop.offsetWidth - 12);
+    pop.style.left = `${Math.max(left, 12)}px`;
+    pop.style.top = `${r.bottom + 6}px`;
 }
 
 function closeTermTips() {
-    document.querySelectorAll('.term-pop').forEach(p => { p.hidden = true; });
+    const pop = document.getElementById('termPop');
+    if (pop) pop.hidden = true;
     document.querySelectorAll('.term-tip').forEach(b => b.setAttribute('aria-expanded', 'false'));
 }
 
 document.addEventListener('click', e => {
     if (!e.target.closest('.term-pop')) closeTermTips();
 });
+// 화면을 밀면 말풍선이 제자리에 떠 있지 않도록 닫음
+window.addEventListener('scroll', closeTermTips, { passive: true });
 
 // 판정 배지 — 빨강·초록 없이 채움 정도와 아이콘으로 구분 (가입=파랑 채움+체크, 일부=옅은 파랑+반원, 제외=회색 점선+빼기)
 function frBadge(kind, text) {
@@ -2394,7 +2428,7 @@ function buildForeignerCalcHTML(salary, visa, pensionApplies, employmentMode, w,
     const workerEmploymentCell = employmentMode !== 'all' ? `0${sub(employmentZeroReason)}`
         : w.employmentExempt ? `0${sub('65세 이상 면제')}` : n(w.employment);
     const employerEmploymentCell = employmentMode === 'stabilityOnly' || (employmentMode === 'all' && e.employmentExempt)
-        ? `${n(e.employmentEmployer)}${sub('고용안정·직능분만')}`
+        ? `${n(e.employmentEmployer)}${sub(withJikneungTip('고용안정·직능분만'))}`
         : employmentMode === 'none' ? `0${sub(employmentZeroReason)}` : n(e.employmentEmployer);
     const accidentCell = e.accidentEmployer === null ? '<span class="xp-off">업종 미선택</span>' : n(e.accidentEmployer);
 
@@ -2839,7 +2873,7 @@ function renderInsurance() {
         <table class="xp-table fr-table ins-table">
             <thead><tr><th scope="col">항목</th><th scope="col">근로자</th><th scope="col">사업주</th><th scope="col">합계</th></tr></thead>
             <tbody>
-                ${rows.map(r => `<tr><td>${r.name}${sub(r.rate)}</td>${cell(r.worker)}${employerCell(r)}<td class="xp-strong">${r.employer === null && r.worker === null ? '—' : n((r.worker || 0) + (r.employer || 0))}</td></tr>`).join('')}
+                ${rows.map(r => `<tr><td>${r.name}${sub(withJikneungTip(r.rate))}</td>${cell(r.worker)}${employerCell(r)}<td class="xp-strong">${r.employer === null && r.worker === null ? '—' : n((r.worker || 0) + (r.employer || 0))}</td></tr>`).join('')}
                 ${rows.length > 1 ? `<tr class="xp-sum-row"><td>합계</td><td class="xp-sum-accent">${n(workerSum)}</td><td class="xp-sum-accent">${n(employerSum)}</td><td class="xp-sum-accent">${n(workerSum + employerSum)}</td></tr>` : ''}
             </tbody>
         </table>
