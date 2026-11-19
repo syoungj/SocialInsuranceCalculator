@@ -328,6 +328,7 @@
             <div class="xp-menu" id="xpMenu" hidden>
                 <button class="xp-menu-item" data-key="totalBill" onclick="openExpertItem('totalBill')">한 달 총 부과 예상 금액</button>
                 <button class="xp-menu-item" data-key="foreigner" onclick="openExpertItem('foreigner')">외국인 근로자인가요?</button>
+                <button class="xp-menu-item" data-key="insurance" onclick="openExpertItem('insurance')">보험별 계산</button>
             </div>
         </div>
 
@@ -451,6 +452,61 @@
                             <div id="foreignerNotes" class="fr-source-box" style="display:none;"></div>
                             <div class="result-empty">체류자격과 국적을 고르고<br>대상 확인을 누르면 여기에 4대보험 판정 결과가 나와요</div>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 보험별 계산: 급여 넣고 보고 싶은 보험만 체크 → 바로 결과. 나이는 결과 아래에서 원할 때만 -->
+            <section class="xp-item" id="insuranceBlock">
+                <button class="xp-toggle" id="insuranceOptionBtn" onclick="openExpertItem('insurance')">
+                    <span class="xp-toggle-text">
+                        <span class="xp-toggle-title">보험별 계산</span>
+                        <span class="xp-toggle-desc">보고 싶은 보험만 골라서 바로 계산해요</span>
+                    </span>
+                    <span class="xp-arrow" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+                </button>
+
+                <div class="option-expand" id="insuranceExpand">
+                    <div class="xp-form ins-form">
+                        <div>
+                            <label class="xp-label" for="insSalary">월급여</label>
+                            <input type="text" id="insSalary" class="xp-input money-input" inputmode="numeric" placeholder="예: 2,500,000" autocomplete="new-password" oninput="renderInsurance()">
+                        </div>
+
+                        <fieldset class="ins-picks">
+                            <legend class="xp-label">보고 싶은 보험 <span class="xp-label-sub">(여러 개 고를 수 있어요)</span></legend>
+                            <div class="fr-verdicts">
+                                <label class="ins-pick"><input type="checkbox" name="insPick" value="pension" onchange="renderInsurance()"><span class="fr-verdict-name">국민연금</span><span class="ins-check" aria-hidden="true"></span></label>
+                                <label class="ins-pick"><input type="checkbox" name="insPick" value="health" onchange="renderInsurance()"><span class="fr-verdict-name">건강보험<span class="fr-verdict-sub">장기요양 포함</span></span><span class="ins-check" aria-hidden="true"></span></label>
+                                <label class="ins-pick"><input type="checkbox" name="insPick" value="employment" onchange="renderInsurance()"><span class="fr-verdict-name">고용보험</span><span class="ins-check" aria-hidden="true"></span></label>
+                                <label class="ins-pick"><input type="checkbox" name="insPick" value="accident" onchange="renderInsurance()"><span class="fr-verdict-name">산재보험<span class="fr-verdict-sub">사업주만 내요</span></span><span class="ins-check" aria-hidden="true"></span></label>
+                            </div>
+                        </fieldset>
+
+                        <!-- 고른 보험에 필요한 칸만 보임 -->
+                        <div id="insSizeRow" style="display:none;">
+                            <label class="xp-label" for="insCompanySize">근로자수 <span class="xp-label-sub">(고용안정·직업능력개발 요율)</span></label>
+                            <select id="insCompanySize" class="xp-input" onchange="renderInsurance()"></select>
+                        </div>
+                        <div id="insIndustryRow" style="display:none;">
+                            <label class="xp-label" for="insIndustryType">업종 <span class="xp-label-sub">(산재보험료 계산용)</span></label>
+                            <select id="insIndustryType" class="xp-input" onchange="renderInsurance()"></select>
+                        </div>
+                    </div>
+
+                    <div id="insResultBox" class="xp-result" style="display:none;">
+                        <div id="insResult"></div>
+
+                        <div class="age-box" id="insAgeBox">
+                            <p class="age-box-text" id="insAgeText"></p>
+                            <div class="age-box-row">
+                                <input type="text" id="insBirth" inputmode="numeric" placeholder="태어난 년월 (예: 196503)" maxlength="6" autocomplete="new-password" aria-label="태어난 년월 6자리">
+                                <button type="button" class="age-box-btn" onclick="applyInsuranceAge()">나이 반영</button>
+                            </div>
+                            <p id="insBirthError" class="age-box-error" style="display:none;">⚠️ 태어난 년월을 6자리로 입력해주세요. (예: 196503)</p>
+                        </div>
+
+                        <div class="fr-actions"><button class="btn-primary xp-pdf-btn" onclick="printInsurance()"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>PDF로 저장</button></div>
                     </div>
                 </div>
             </section>

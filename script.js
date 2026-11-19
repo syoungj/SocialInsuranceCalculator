@@ -1871,6 +1871,8 @@ function clearExpertFields() {
     totalBillWorkersCalc = [];
     totalBillOwnerCalc = null;
     totalBillIndustryIdx = '';
+
+    clearInsuranceFields();
 }
 
 // 처음부터 다시 — 사업주/근로자 입력을 전부 지우고 첫 화면(선택 화면)으로 이동
@@ -2201,7 +2203,7 @@ function populateForeignerDropdowns() {
 }
 
 // 상세 계산 항목 (새 계산을 넣을 때 여기와 index.html의 목록·≡ 메뉴에 함께 추가)
-const EXPERT_ITEMS = ['totalBill', 'foreigner'];
+const EXPERT_ITEMS = ['totalBill', 'foreigner', 'insurance'];
 
 // 계산 목록 화면 — 입력·결과 내용은 지우지 않음 (다시 들어가면 그대로)
 function showExpertList() {
@@ -2718,20 +2720,200 @@ function calculateForeignerPremium() {
     resultEl.style.display = 'block';
 }
 
+// ---- 보험별 계산 ----
+// 급여 + 체크한 보험만 바로 계산 (체크·급여를 바꾸면 즉시 다시 계산). 나이는 결과 아래 "나이 반영"으로만 넣음
+let insCalc = null;        // 마지막 계산 결과 (PDF 저장 시 재사용)
+let insBirthDate = null;   // 나이 반영으로 넣은 생년월 — 없으면 만 60세 미만 기준
+
+function insPicked() {
+    return [...document.querySelectorAll('input[name="insPick"]:checked')].map(c => c.value);
+}
+
+// 고른 보험만 줄로 만듦 — worker/employer가 null이면 해당 없음(산재 근로자 몫, 업종 미선택)
+function buildInsuranceRows(picks, w, e, industry, stabilityRate) {
+    const rows = [];
+    if (picks.includes('pension')) {
+        rows.push({ name: '국민연금', rate: w.pensionExempt ? '만 60세 이상 면제' : `각 ${prPct(RATES.pension / 2 * 100)}`, worker: w.pension, employer: e.pensionEmployer });
+    }
+    if (picks.includes('health')) {
+        rows.push({ name: '건강보험', rate: `각 ${prPct(RATES.health / 2 * 100)}`, worker: w.health, employer: e.healthEmployer });
+        rows.push({ name: '장기요양보험', rate: `건강보험료의 ${prPct(RATES.longterm * 100)}`, worker: w.longterm, employer: e.longtermEmployer });
+    }
+    if (picks.includes('employment')) {
+        rows.push({
+            name: '고용보험',
+            rate: w.employmentExempt ? `사업주 고용안정·직능 ${prPct(stabilityRate * 100)}만`
+                : `근로자 ${prPct(RATES.employmentWorker * 100)} · 사업주 ${prPct((RATES.employmentWorker + stabilityRate) * 100)}`,
+            worker: w.employment, employer: e.employmentEmployer,
+        });
+    }
+    if (picks.includes('accident')) {
+        rows.push({ name: '산재보험', rate: industry ? `${industry.permille}/1000` : '', worker: null, employer: e.accidentEmployer });
+    }
+    return rows;
+}
+
+// 나이 안내·면제 안내 (연금·고용을 골랐을 때만 의미 있음)
+function insuranceAgeNotes(picks, w, pdf) {
+    const end = pdf ? '습니다.' : '어요.';
+    const notes = [];
+    if (picks.includes('pension')) {
+        if (w.pensionExempt) notes.push(`만 60세가 지나 국민연금은 0원으로 계산했${end}`);
+        else if (w.pensionExemptNextMonth) notes.push(`다음 달부터 만 60세가 지나 국민연금이 제외${pdf ? '됩니다.' : '돼요.'}`);
+    }
+    if (picks.includes('employment')) {
+        if (w.employmentExempt) notes.push(`만 65세가 지나 고용보험은 사업주 고용안정·직업능력개발분만 계산했${end}`);
+        else if (w.employmentExemptNextMonth) notes.push(`다음 달부터 만 65세가 지나 고용보험 실업급여분이 제외${pdf ? '됩니다.' : '돼요.'}`);
+    }
+    return notes;
+}
+
+function renderInsurance() {
+    const picks = insPicked();
+    document.getElementById('insSizeRow').style.display = picks.includes('employment') ? '' : 'none';
+    document.getElementById('insIndustryRow').style.display = picks.includes('accident') ? '' : 'none';
+
+    const box = document.getElementById('insResultBox');
+    const salary = parseMoney(document.getElementById('insSalary').value);
+    if (!salary || salary <= 0 || picks.length === 0) {
+        insCalc = null;
+        box.style.display = 'none';
+        return;
+    }
+
+    const industryIdx = document.getElementById('insIndustryType').value;
+    const sizeIdx = parseInt(document.getElementById('insCompanySize').value || '0', 10);
+    const stabilityRate = EMPLOYMENT_STABILITY_RATES[sizeIdx].rate;
+    const industry = industryIdx === '' ? null : INDUSTRY_RATES[parseInt(industryIdx, 10)];
+    const w = computeWorkerShare(salary, insBirthDate);
+    const e = computeEmployerShare(salary, insBirthDate, industryIdx, stabilityRate);
+    const rows = buildInsuranceRows(picks, w, e, industry, stabilityRate);
+    const workerSum = rows.reduce((s, r) => s + (r.worker || 0), 0);
+    const employerSum = rows.reduce((s, r) => s + (r.employer || 0), 0);
+    insCalc = { salary, picks, rows, workerSum, employerSum, w, industry, sizeIdx, stabilityRate, bd: insBirthDate };
+
+    const n = v => formatNumber(v);
+    const sub = text => text ? `<span class="fr-cell-sub">${text}</span>` : '';
+    const cell = v => v === null ? '<td class="xp-off">—</td>' : `<td>${n(v)}</td>`;
+    const employerCell = (r) => r.employer === null ? '<td class="xp-off">업종 미선택</td>' : `<td>${n(r.employer)}</td>`;
+
+    const notes = [
+        ...premiumLimitNotes(salary).filter(t =>
+            (t.startsWith('국민연금') && picks.includes('pension') && !w.pensionExempt) ||
+            (t.startsWith('건강보험') && picks.includes('health'))),
+        ...insuranceAgeNotes(picks, w, false),
+        picks.includes('accident') && !industry ? '산재보험은 위에서 업종을 고르면 계산돼요.' : '',
+        picks.includes('accident') && industry ? '산재보험료는 고른 업종 기준 참고용 금액이에요. 실제 요율은 근로복지공단이 사업 내용을 보고 정해요.' : '',
+    ].filter(Boolean);
+
+    document.getElementById('insResult').innerHTML = `
+        <h3 class="xp-h3">계산 결과 <span>(월급여 ${n(salary)}원 · 원)</span></h3>
+        <table class="xp-table fr-table ins-table">
+            <thead><tr><th scope="col">항목</th><th scope="col">근로자</th><th scope="col">사업주</th><th scope="col">합계</th></tr></thead>
+            <tbody>
+                ${rows.map(r => `<tr><td>${r.name}${sub(r.rate)}</td>${cell(r.worker)}${employerCell(r)}<td class="xp-strong">${r.employer === null && r.worker === null ? '—' : n((r.worker || 0) + (r.employer || 0))}</td></tr>`).join('')}
+                ${rows.length > 1 ? `<tr class="xp-sum-row"><td>합계</td><td class="xp-sum-accent">${n(workerSum)}</td><td class="xp-sum-accent">${n(employerSum)}</td><td class="xp-sum-accent">${n(workerSum + employerSum)}</td></tr>` : ''}
+            </tbody>
+        </table>
+        ${notes.length ? `<ul class="fr-notes">${notes.map(t => `<li><span class="fr-mark" aria-hidden="true">※</span><span>${t}</span></li>`).join('')}</ul>` : ''}`;
+
+    // 나이 상자: 나이에 따라 달라지는 국민연금·고용보험을 골랐을 때만
+    const ageMatters = picks.includes('pension') || picks.includes('employment');
+    document.getElementById('insAgeBox').style.display = ageMatters ? '' : 'none';
+    if (ageMatters) {
+        const what = [picks.includes('pension') ? '만 60세 이상이면 국민연금' : '', picks.includes('employment') ? '만 65세 이상이면 고용보험' : ''].filter(Boolean).join(', ');
+        document.getElementById('insAgeText').textContent = insBirthDate
+            ? `${insBirthDate.year}년 ${insBirthDate.month}월생 기준으로 계산했어요. 칸을 비우고 나이 반영을 누르면 만 60세 미만 기준으로 돌아가요.`
+            : `만 60세 미만 기준이에요. ${what}이 달라져요.`;
+    }
+    box.style.display = 'block';
+}
+
+function applyInsuranceAge() {
+    const r = readOptionalBirth('insBirth');
+    document.getElementById('insBirthError').style.display = r.error ? 'block' : 'none';
+    if (r.error) return;
+    insBirthDate = r.bd;
+    renderInsurance();
+}
+
+function clearInsuranceFields() {
+    document.getElementById('insSalary').value = '';
+    document.querySelectorAll('input[name="insPick"]').forEach(c => { c.checked = false; });
+    document.getElementById('insCompanySize').value = '0';
+    document.getElementById('insIndustryType').value = '';
+    document.getElementById('insBirth').value = '';
+    document.getElementById('insBirthError').style.display = 'none';
+    insBirthDate = null;
+    renderInsurance();
+}
+
+function printInsurance() {
+    if (!insCalc) return;
+    lastPdfRender = printInsurance;
+    pdfDnWorkers = null;
+    const { salary, picks, rows, workerSum, employerSum, w, industry, sizeIdx, bd } = insCalc;
+    const today = new Date();
+    const fmt = v => formatNumber(v);
+    const ageMatters = picks.includes('pension') || picks.includes('employment');
+
+    document.getElementById('printArea').innerHTML = `
+        ${prHeadHTML('보험별 보험료 내역', [
+            `${prDateStr(today)} 기준`,
+            ageMatters ? (bd ? `${bd.year}년 ${bd.month}월생 기준` : '만 60세 미만 기준') : '',
+            picks.includes('employment') ? `근로자수: ${EMPLOYMENT_STABILITY_RATES[sizeIdx].label}` : '',
+            picks.includes('accident') ? `업종: ${industry ? `${industry.name} · 산재 ${industry.permille}/1000` : '선택 안 함'}` : '',
+            '금액 단위: 원',
+        ].filter(Boolean))}
+
+        <section class="pr-keys">
+            <div class="pr-key"><div class="pr-key-label">월급여</div><div class="pr-key-value">${fmt(salary)}<small>원</small></div></div>
+            <div class="pr-key"><div class="pr-key-label">근로자 부담</div><div class="pr-key-value pr-accent">${fmt(workerSum)}<small>원</small></div></div>
+            <div class="pr-key"><div class="pr-key-label">사업주 부담</div><div class="pr-key-value">${fmt(employerSum)}<small>원</small></div></div>
+        </section>
+
+        <h2 class="pr-h2">보험별 금액</h2>
+        <table class="pr-table">
+            <thead><tr><th>항목</th><th>근로자</th><th>사업주</th><th>합계</th></tr></thead>
+            <tbody>
+                ${rows.map(r => `
+                <tr><td>${r.name}<span class="pr-rate">${r.rate}</span></td>
+                    ${r.worker === null ? '<td class="pr-na">해당없음</td>' : `<td>${fmt(r.worker)}</td>`}
+                    ${r.employer === null ? '<td class="pr-na">업종 미선택</td>' : `<td>${fmt(r.employer)}</td>`}
+                    <td class="pr-strong">${fmt((r.worker || 0) + (r.employer || 0))}</td></tr>`).join('')}
+                ${rows.length > 1 ? `<tr class="pr-sum"><th>합계</th><td class="pr-accent">${fmt(workerSum)}</td><td class="pr-accent">${fmt(employerSum)}</td><td class="pr-accent">${fmt(workerSum + employerSum)}</td></tr>` : ''}
+            </tbody>
+        </table>
+
+        ${prNotesHTML([
+            '이 계산 결과는 참고용이며, 실제 보험료는 각 공단의 고지 금액에 따라 달라질 수 있습니다.',
+            ...premiumLimitNotesPdf([salary]).filter(t =>
+                (t.startsWith('국민연금') && picks.includes('pension') && !w.pensionExempt) ||
+                (t.startsWith('건강보험') && picks.includes('health'))),
+            ...insuranceAgeNotes(picks, w, true),
+            picks.includes('accident') && industry ? '산재보험료는 선택한 업종 기준 참고용 금액이며, 실제 요율은 근로복지공단이 사업 내용을 보고 정합니다.' : '',
+            '각 보험료는 10원 미만을 절사했습니다.',
+        ])}
+    `;
+
+    showPdfPreview(`보험별계산_${salary}원_${dateSlug(today)}`);
+}
+
 // 산재보험 업종 드롭다운은 페이지 로드 시 한 번만 채워두면 됨
 // (스크립트 태그가 body 맨 끝에 있어 이 시점엔 이미 DOM이 준비되어 있음)
 populateIndustryOptions('employerIndustryType');
-(function populateCompanySize() {
-    const select = document.getElementById('totalBillCompanySize');
+['totalBillCompanySize', 'insCompanySize'].forEach(function populateCompanySize(id) {
+    const select = document.getElementById(id);
     EMPLOYMENT_STABILITY_RATES.forEach((item, idx) => {
         const option = document.createElement('option');
         option.value = idx;
         option.textContent = `${item.label} — ${roundRate(item.rate * 100)}%`;
         select.appendChild(option);
     });
-})();
+});
 populateIndustryOptions('totalBillIndustryType');
 populateIndustryOptions('foreignerIndustryType');
+populateIndustryOptions('insIndustryType');
 
 // 배경 공 — 공마다 화면 안의 무작위 지점을 골라 10~16초에 걸쳐 천천히 옮겨 가고, 도착하면 다음 지점을 고름
 // (움직임 줄이기를 켠 사용자는 처음 자리에 멈춰 둠)
