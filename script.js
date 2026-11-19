@@ -321,6 +321,10 @@ const PENSION_COUNTRIES = [
     { name: '핀란드', exempt: false }, { name: '필리핀', exempt: false }, { name: '헝가리', exempt: false },
     { name: '홍콩', exempt: false },
 ];
+// 외국인 판정에서 국적을 안 골랐을 때 (국민연금은 체류자격만으로 판정)
+const NO_COUNTRY = { name: '국적 미선택', exempt: false, unknown: true };
+// 우리나라에 많이 오는 나라 중 국민연금 적용제외국 (안내 문구 예시용 — 위 목록의 exempt와 맞출 것)
+const PENSION_EXEMPT_EXAMPLES = '네팔·미얀마·방글라데시·파키스탄·카자흐스탄 등';
 
 // 전역 상태
 let salary = 0;
@@ -2184,7 +2188,7 @@ function populateForeignerDropdowns() {
     if (countrySelect.options.length === 0) {
         const placeholder = document.createElement('option');
         placeholder.value = '';
-        placeholder.textContent = '국적을 선택해주세요';
+        placeholder.textContent = '선택 안 함';
         countrySelect.appendChild(placeholder);
 
         PENSION_COUNTRIES.forEach((country, idx) => {
@@ -2428,9 +2432,9 @@ function printForeigner() {
     const today = new Date();
     const dn = pdfShowDurunuri ? computeForeignerDurunuri(salary, w, e) : null;
     const cell = n => `<td>${formatNumber(n)}</td>`;
-    const rows = buildPrintRowPair(prWhoHTML('근로자', `월 ${formatNumber(salary)} · ${visa.code} ${country.name}`), salary, w, e);
+    const rows = buildPrintRowPair(prWhoHTML('근로자', `월 ${formatNumber(salary)} · ${visa.code}${country.unknown ? '' : ` ${country.name}`}`), salary, w, e);
 
-    const pensionStatus = pensionApplies ? '가입 대상'
+    const pensionStatus = pensionApplies ? (country.unknown && !visa.pensionExcluded ? '가입 대상 (국적 미선택, 국적에 따라 제외될 수 있음)' : '가입 대상')
         : visa.pensionExcluded ? '적용 제외 (체류자격)' : '적용 제외 (국적: 사회보장협정)';
     const employmentStatus = {
         full: '가입 대상',
@@ -2449,7 +2453,7 @@ function printForeigner() {
     document.getElementById('printArea').innerHTML = `
         ${prHeadHTML('외국인 근로자 4대보험 내역', [
             `${prDateStr(today)} 기준`,
-            `${visa.code}(${visa.name}) · ${country.name}`,
+            `${visa.code}(${visa.name})${country.unknown ? '' : ` · ${country.name}`}`,
             `업종: ${industry ? `${industry.name} · 산재 ${industry.permille}/1000` : '선택 안 함'}`,
             '금액 단위: 원',
         ])}
@@ -2538,14 +2542,16 @@ function checkForeignerInsurance() {
 
     resetForeignerResult();
 
-    if (visaIdx === '' || countryIdx === '') {
+    if (visaIdx === '') {
         resultBox.style.display = 'block';
-        resultBox.innerHTML = '<p class="privacy-note input-error-note">⚠️ 체류자격과 국적을 모두 선택해주세요.</p>';
+        resultBox.innerHTML = '<p class="privacy-note input-error-note">⚠️ 체류자격을 선택해주세요.</p>';
         return;
     }
 
     const visa = VISA_TYPES[parseInt(visaIdx, 10)];
-    const country = PENSION_COUNTRIES[parseInt(countryIdx, 10)];
+    // 국적은 선택 사항 — 안 고르면 국민연금은 체류자격만으로 판정하고 "국적에 따라 다를 수 있음"을 안내
+    const country = countryIdx === '' ? NO_COUNTRY : PENSION_COUNTRIES[parseInt(countryIdx, 10)];
+    const headTag = country.unknown ? visa.code : `${visa.code} · ${country.name}`;
     const work = workScopeOf(visa);
     const WORK_WHERE = '<a href="https://www.hikorea.go.kr" target="_blank" rel="noopener noreferrer">하이코리아</a> 또는 외국인종합안내센터(<a href="tel:1345">☎1345</a>)에서 확인하세요.';
     const WORK_CHECK = (work.kind === 'none' ? '자세한 내용은 ' : '정확한 범위는 ') + WORK_WHERE;
@@ -2555,7 +2561,7 @@ function checkForeignerInsurance() {
         resultBox.style.display = 'block';
         resultBox.innerHTML = `
             <div class="fr-result-head">
-                <h3 class="xp-h3">판정 결과 <span>${visa.code} · ${country.name}</span></h3>
+                <h3 class="xp-h3">판정 결과 <span>${headTag}</span></h3>
             </div>
             <div class="fr-nowork">
                 <p class="fr-nowork-title">국내 취업이 안 되는 체류자격이에요</p>
@@ -2575,6 +2581,9 @@ function checkForeignerInsurance() {
     } else if (country.exempt) {
         excluded = true;
         reason = `체류자격 "${visa.code}(${visa.name})"은 당연적용 대상이지만, 국적(${country.name})이 국민연금 사회보장협정상 "사업장·지역 적용제외국"에 해당해서 제외돼요.`;
+    } else if (country.unknown) {
+        excluded = false;
+        reason = `체류자격 "${visa.code}(${visa.name})"은 국민연금 당연적용 대상이에요. 다만 국적이 사회보장협정상 "사업장·지역 적용제외국"(예: ${PENSION_EXEMPT_EXAMPLES})이면 제외되니, 국적을 고르면 정확히 판정해요.`;
     } else {
         excluded = false;
         reason = `체류자격 "${visa.code}(${visa.name})"과 국적(${country.name}) 모두 국민연금 당연적용 대상이에요.`;
@@ -2587,15 +2596,18 @@ function checkForeignerInsurance() {
     // 제외·원하면 가입은 각 칸 안에서 바로 보이게 하고, 칸 아래에는 따로 확인이 필요한 상호주의만 짧게.
     // 자세한 설명은 접힌 칸에 둠
     const shortNotes = [];
+    const pensionByCountry = !visa.pensionExcluded && country.unknown;
+    if (pensionByCountry) shortNotes.push(`국민연금: 국적에 따라 제외될 수 있어요(예: ${PENSION_EXEMPT_EXAMPLES}). 정확히 보려면 위에서 국적도 골라 주세요.`);
     if (visa.employment === 'reciprocal') shortNotes.push('고용보험: 근로자 본국이 상호주의를 충족하면 가입 대상이에요.');
     // 체류자격은 대상인데 국적 기준으로 연금이 빠지는 경우만 칸 안에 짧게
-    const pensionSub = excluded && !visa.pensionExcluded ? '<span class="fr-verdict-sub">국적 기준 제외</span>' : '';
+    const pensionSub = excluded && !visa.pensionExcluded ? '<span class="fr-verdict-sub">국적 기준 제외</span>'
+        : pensionByCountry ? '<span class="fr-verdict-sub">국적 따라 다름</span>' : '';
     const NPS_URL = 'https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0035M0.do';
 
     resultBox.style.display = 'block';
     resultBox.innerHTML = `
         <div class="fr-result-head">
-            <h3 class="xp-h3">판정 결과 <span>${visa.code} · ${country.name}</span></h3>
+            <h3 class="xp-h3">판정 결과 <span>${headTag}</span></h3>
             <p class="fr-legend" aria-label="판정 표시 안내">
                 <span><i class="fr-dot in"></i>가입 대상</span><span><i class="fr-dot part"></i>일부 가입</span><span><i class="fr-dot out"></i>제외 대상</span>${visa.employment === 'reciprocal' ? '<span><i class="fr-dot check"></i>확인 필요</span>' : ''}
             </p>
