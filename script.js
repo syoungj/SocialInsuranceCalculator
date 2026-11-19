@@ -2668,13 +2668,19 @@ function checkForeignerInsurance() {
         : pensionByCountry ? '<span class="fr-verdict-sub">국적 따라 다름</span>' : '';
     const NPS_URL = 'https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0035M0.do';
 
+    // 범례: 이 판정에 실제로 나온 표시만, 칸에 적힌 말 그대로 (가입 대상은 건강·산재에 항상 있음)
+    const shown = new Set(['in', excluded ? 'out' : 'in']);
+    if (visa.employment === 'excluded') shown.add('out');
+    if (visa.employment === 'optional') shown.add('part');
+    if (visa.employment === 'reciprocal') shown.add('check');
+    const LEGEND = [['in', '가입 대상'], ['part', '원하면 가입'], ['out', '제외 대상'], ['check', '확인 필요']];
+    const legendHTML = LEGEND.filter(([k]) => shown.has(k)).map(([k, t]) => `<span><i class="fr-dot ${k}"></i>${t}</span>`).join('');
+
     resultBox.style.display = 'block';
     resultBox.innerHTML = `
         <div class="fr-result-head">
             <h3 class="xp-h3">판정 결과 <span>${headTag}</span></h3>
-            <p class="fr-legend" aria-label="판정 표시 안내">
-                <span><i class="fr-dot in"></i>가입 대상</span><span><i class="fr-dot part"></i>일부 가입</span><span><i class="fr-dot out"></i>제외 대상</span>${visa.employment === 'reciprocal' ? '<span><i class="fr-dot check"></i>확인 필요</span>' : ''}
-            </p>
+            <p class="fr-legend" aria-label="판정 표시 안내">${legendHTML}</p>
         </div>
         ${work.kind === 'permit' ? `<p class="fr-permit-note">${work.permitNote}</p>` : ''}
 
