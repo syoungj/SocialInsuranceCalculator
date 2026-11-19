@@ -2276,7 +2276,7 @@ function buildForeignerEmploymentHTML(visa) {
     }
 
     // 칸 안에서 바로 알 수 있게: 일부 가입이면 무엇을 고를 수 있는지 이름 아래에 짧게
-    const title = visa.employment === 'optional' ? '고용보험<span class="fr-verdict-sub">신청하면 전부 가입</span>'
+    const title = visa.employment === 'optional' ? '고용보험<span class="fr-verdict-sub">실업급여·직능 포함</span>'
         : visa.employment === 'partial' ? '고용보험<span class="fr-verdict-sub">실업급여는 원하면 가입</span>'
         : '고용보험';
     const kind = excluded ? 'out' : visa.employment === 'full' ? 'in' : visa.employment === 'reciprocal' ? 'check' : 'part';
