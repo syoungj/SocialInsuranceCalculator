@@ -784,7 +784,7 @@ function updateTotalBillJoin(visaSelect) {
         joinSelect.innerHTML = '';
         return;
     }
-    const what = visa.employment === 'partial' ? '실업급여' : '고용보험(실업급여)';
+    const what = visa.employment === 'partial' ? '실업급여' : '고용보험';
     joinSelect.innerHTML = `<option value="no">${what} 가입 신청 안 함</option><option value="yes">${what} 가입 신청함</option>`;
     joinSelect.style.display = 'block';
 }
@@ -2267,7 +2267,7 @@ function buildForeignerEmploymentHTML(visa) {
             break;
         case 'optional':
             status = '원하면 가입';
-            reason = `체류자격 ${label}은 고용보험 임의 적용 대상이에요. 근로자가 가입을 원하면 「외국인 고용보험 가입신청서」를 제출해야 하고, 신청하면 고용보험 전부(실업급여 포함)가 적용돼요.`;
+            reason = `체류자격 ${label}은 고용보험 임의 적용 대상이에요. 근로자가 가입을 원하면 「외국인 고용보험 가입신청서」를 제출해야 하고, 신청하면 실업급여와 고용안정·직업능력개발이 함께 적용돼요. 신청하지 않으면 고용보험 전체가 적용되지 않아요.`;
             break;
         default:
             status = '제외 대상';
@@ -2276,7 +2276,7 @@ function buildForeignerEmploymentHTML(visa) {
     }
 
     // 칸 안에서 바로 알 수 있게: 일부 가입이면 무엇을 고를 수 있는지 이름 아래에 짧게
-    const title = visa.employment === 'optional' ? '고용보험<span class="fr-verdict-sub">(실업급여)</span>'
+    const title = visa.employment === 'optional' ? '고용보험<span class="fr-verdict-sub">신청하면 전부 가입</span>'
         : visa.employment === 'partial' ? '고용보험<span class="fr-verdict-sub">실업급여는 원하면 가입</span>'
         : '고용보험';
     const kind = excluded ? 'out' : visa.employment === 'full' ? 'in' : visa.employment === 'reciprocal' ? 'check' : 'part';
@@ -2306,7 +2306,7 @@ function toggleForeignerJoinRow() {
     }
     document.getElementById('foreignerJoinLabel').textContent = visa.employment === 'partial'
         ? '실업급여 가입을 신청했나요? (고용안정·직업능력개발은 의무 가입)'
-        : '고용보험(실업급여) 가입을 신청했나요?';
+        : '고용보험 가입을 신청했나요? (신청하면 실업급여·고용안정·직업능력개발 모두 가입)';
     row.style.display = 'block';
 }
 
@@ -2464,7 +2464,7 @@ function printForeigner() {
         <table class="pr-table">
             <tbody>
                 <tr><td>국민연금</td><td>${pensionStatus}</td></tr>
-                <tr><td>고용보험${visa.employment === 'optional' ? '<span class="pr-rate">실업급여</span>' : ''}</td><td>${employmentStatus}</td></tr>
+                <tr><td>고용보험${visa.employment === 'optional' ? '<span class="pr-rate">신청 시 전부</span>' : ''}</td><td>${employmentStatus}</td></tr>
             </tbody>
         </table>
 
