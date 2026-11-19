@@ -2597,8 +2597,8 @@ function checkForeignerInsurance() {
     // 자세한 설명은 접힌 칸에 둠
     const shortNotes = [];
     const pensionByCountry = !visa.pensionExcluded && country.unknown;
-    if (pensionByCountry) shortNotes.push(`국민연금: 국적에 따라 제외될 수 있어요(예: ${PENSION_EXEMPT_EXAMPLES}). 정확히 보려면 위에서 국적도 골라 주세요.`);
-    if (visa.employment === 'reciprocal') shortNotes.push('고용보험: 근로자 본국이 상호주의를 충족하면 가입 대상이에요.');
+    if (pensionByCountry) shortNotes.push(`<b>국민연금</b>: 국적에 따라 제외될 수 있어요(예: ${PENSION_EXEMPT_EXAMPLES}). 정확히 보려면 위에서 국적도 골라 주세요.`);
+    if (visa.employment === 'reciprocal') shortNotes.push('<b>고용보험</b>: 근로자 본국이 상호주의를 충족하면 가입 대상이에요.');
     // 체류자격은 대상인데 국적 기준으로 연금이 빠지는 경우만 칸 안에 짧게
     const pensionSub = excluded && !visa.pensionExcluded ? '<span class="fr-verdict-sub">국적 기준 제외</span>'
         : pensionByCountry ? '<span class="fr-verdict-sub">국적 따라 다름</span>' : '';
