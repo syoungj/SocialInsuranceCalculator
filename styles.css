@@ -3429,31 +3429,6 @@ select.xp-input {
     font-size: 13px;
 }
 
-.fr-legend {
-    display: flex;
-    gap: 14px;
-    font-size: 12px;
-    color: var(--text-sub);
-}
-
-.fr-legend span {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.fr-dot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-}
-
-.fr-dot.in { background: var(--accent); }
-.fr-dot.part { background: #e3eafb; border: 1px solid #9fb6e2; }
-.fr-dot.out { border: 1px dashed #8a94a6; }
-.fr-dot.check { background: #f1f3f6; border: 1px solid #b4bccb; }
-
 .fr-verdicts {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
