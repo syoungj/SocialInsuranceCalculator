@@ -2822,11 +2822,17 @@ function renderInsurance() {
     document.getElementById('insAgeBox').style.display = ageMatters ? '' : 'none';
     if (ageMatters) {
         const what = [picks.includes('pension') ? '만 60세 이상이면 국민연금' : '', picks.includes('employment') ? '만 65세 이상이면 고용보험' : ''].filter(Boolean).join(', ');
+        const baseAge = insuranceBaseAgeText(picks);
         document.getElementById('insAgeText').textContent = insBirthDate
-            ? `${insBirthDate.year}년 ${insBirthDate.month}월생 기준으로 계산했어요. 칸을 비우고 나이 반영을 누르면 만 60세 미만 기준으로 돌아가요.`
-            : `만 60세 미만 기준이에요. ${what}이 달라져요.`;
+            ? `${insBirthDate.year}년 ${insBirthDate.month}월생 기준으로 계산했어요. 칸을 비우고 나이 반영을 누르면 ${baseAge}으로 돌아가요.`
+            : `${baseAge}이에요. ${what}이 달라져요.`;
     }
     box.style.display = 'block';
+}
+
+// 나이를 안 넣었을 때의 기준 — 국민연금을 골랐으면 만 60세 미만, 고용보험만이면 만 65세 미만
+function insuranceBaseAgeText(picks) {
+    return picks.includes('pension') ? '만 60세 미만 기준' : '만 65세 미만 기준';
 }
 
 function applyInsuranceAge() {
@@ -2860,7 +2866,7 @@ function printInsurance() {
     document.getElementById('printArea').innerHTML = `
         ${prHeadHTML('보험별 보험료 내역', [
             `${prDateStr(today)} 기준`,
-            ageMatters ? (bd ? `${bd.year}년 ${bd.month}월생 기준` : '만 60세 미만 기준') : '',
+            ageMatters ? (bd ? `${bd.year}년 ${bd.month}월생 기준` : insuranceBaseAgeText(picks)) : '',
             picks.includes('employment') ? `근로자수: ${EMPLOYMENT_STABILITY_RATES[sizeIdx].label}` : '',
             picks.includes('accident') ? `업종: ${industry ? `${industry.name} · 산재 ${industry.permille}/1000` : '선택 안 함'}` : '',
             '금액 단위: 원',
