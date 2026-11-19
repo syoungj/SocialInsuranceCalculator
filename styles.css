@@ -3553,6 +3553,21 @@ select.xp-input {
     color: var(--text-sub);
 }
 
+/* E-9·H-2 고용보험 칸: 배지 대신 두 줄 안내 */
+.fr-split {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+    line-height: 1.35;
+    font-weight: 700;
+    color: #2c46b0;
+}
+
+.fr-split span {
+    white-space: nowrap;
+}
+
 /* 줄인 말 뒤 ⓘ — 누르면 원래 말 말풍선 (위치는 script.js가 버튼 바로 아래로 맞춤) */
 .term-tip {
     display: inline-flex;

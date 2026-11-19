@@ -2266,7 +2266,7 @@ function buildForeignerEmploymentHTML(visa) {
             reason = `체류자격 ${label}은 상호주의를 충족하면 고용보험 당연 적용 대상이에요. 근로자의 본국 법령이 대한민국 국민에게 고용보험에 상응하는 보험료·급여를 적용하지 않는 나라라면 적용되지 않으니, 취득신고 전에 국적별 상호주의 여부를 꼭 확인해주세요.`;
             break;
         case 'partial':
-            status = '일부 가입 대상';
+            status = '일부 가입 대상';  // 칸에는 배지 대신 아래 두 줄 안내를 보여줌 (frBadge 안 씀)
             details = `
                 <div class="fr-subrows">
                     <div class="fr-subrow"><span>고용안정·직업능력개발</span><span class="fr-chip in">의무 가입</span></div>
@@ -2286,10 +2286,13 @@ function buildForeignerEmploymentHTML(visa) {
 
     // 칸 안에서 바로 알 수 있게: 일부 가입이면 무엇을 고를 수 있는지 이름 아래에 짧게
     const title = visa.employment === 'optional' ? `고용보험<span class="fr-verdict-sub">${withJikneungTip('실업급여·직능 포함')}</span>`
-        : visa.employment === 'partial' ? `고용보험<span class="fr-verdict-sub">고안직능만 가입 대상${termTipHTML('고안직능', '고용안정·직업능력개발사업')}</span>`
         : '고용보험';
     const kind = excluded ? 'out' : visa.employment === 'full' ? 'in' : visa.employment === 'reciprocal' ? 'check' : 'part';
-    return { title, badge: frBadge(kind, status), details, reason };
+    // E-9·H-2: 배지 하나로는 "일부"가 무엇인지 알기 어려워서 두 줄로 풀어 씀
+    const badge = visa.employment === 'partial'
+        ? `<div class="fr-split"><span>고안직능 의무가입${termTipHTML('고안직능', '고용안정·직업능력개발사업')}</span><span>실업급여 선택가입</span></div>`
+        : frBadge(kind, status);
+    return { title, badge, details, reason };
 }
 
 // 줄인 말 뒤에 붙는 ⓘ — 누르면 원래 말을 말풍선으로 보여줌 (다시 누르거나 바깥을 누르면 닫힘)
