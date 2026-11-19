@@ -1852,6 +1852,7 @@ function clearExpertFields() {
     document.getElementById('foreignerBirth').value = '';
     document.getElementById('foreignerSalary').value = '';
     document.getElementById('foreignerIndustryType').value = '';
+    document.getElementById('foreignerCompanySize').value = '0';
     document.querySelector('input[name="foreignerJoin"][value="no"]').checked = true;
     document.getElementById('foreignerJoinRow').style.display = 'none';
     resetForeignerResult();
@@ -2430,7 +2431,7 @@ function printForeigner() {
     if (!foreignerCalc) return;
     lastPdfRender = printForeigner;
     pdfDnWorkers = null;
-    const { visa, country, joined, pensionApplies, employmentMode, salary, industry, w, e } = foreignerCalc;
+    const { visa, country, joined, pensionApplies, employmentMode, salary, industry, w, e, sizeIdx, stabilityRate } = foreignerCalc;
     const today = new Date();
     const dn = pdfShowDurunuri ? computeForeignerDurunuri(salary, w, e) : null;
     const cell = n => `<td>${formatNumber(n)}</td>`;
@@ -2457,8 +2458,9 @@ function printForeigner() {
             `${prDateStr(today)} 기준`,
             `${visa.code}(${visa.name})${country.unknown ? '' : ` · ${country.name}`}`,
             `업종: ${industry ? `${industry.name} · 산재 ${industry.permille}/1000` : '선택 안 함'}`,
+            employmentMode === 'none' ? '' : `근로자수: ${EMPLOYMENT_STABILITY_RATES[sizeIdx].label}`,
             '금액 단위: 원',
-        ])}
+        ].filter(Boolean))}
 
         <section class="pr-keys">
             <div class="pr-key"><div class="pr-key-label">월급여</div><div class="pr-key-value">${formatNumber(salary)}<small>원</small></div></div>
@@ -2482,7 +2484,7 @@ function printForeigner() {
 
         <h2 class="pr-h2">사업주 부담 내역 <span>· 사업주가 내는 금액</span></h2>
         <table class="pr-table">
-            ${prBurdenHeadHTML(industry)}
+            ${prBurdenHeadHTML(industry, stabilityRate)}
             <tbody>${rows.burdenRow}</tbody>
         </table>
 
@@ -2494,7 +2496,7 @@ function printForeigner() {
                 ${itemRow('국민연금', pensionApplies ? prPct(RATES.pension / 2 * 100) : '적용 제외', w.pension, e.pensionEmployer)}
                 ${itemRow('건강보험', prPct(RATES.health / 2 * 100), w.health, e.healthEmployer)}
                 ${itemRow('장기요양보험', `건강보험료의 ${prPct(RATES.longterm * 100)}`, w.longterm, e.longtermEmployer)}
-                ${itemRow('고용보험', employmentMode === 'none' ? '0원으로 계산' : employmentMode === 'stabilityOnly' ? '사업주 고용안정분만' : `${prPct(RATES.employmentWorker * 100)} / ${prPct(RATES.employmentWorker * 100)}+${prPct(RATES.employmentStability * 100)}`, w.employment, e.employmentEmployer)}
+                ${itemRow('고용보험', employmentMode === 'none' ? '0원으로 계산' : employmentMode === 'stabilityOnly' ? '사업주 고용안정분만' : `${prPct(RATES.employmentWorker * 100)} / ${prPct(RATES.employmentWorker * 100)}+${prPct(stabilityRate * 100)}`, w.employment, e.employmentEmployer)}
                 ${itemRow('산재보험', industry ? prPct(industry.permille / 10) : '', null, e.accidentEmployer)}
                 ${prSumRowsHTML([w.total, e.total, w.total + e.total], dn ? [dn.workerTotal, dn.employerTotal, dn.workerTotal + dn.employerTotal] : null, 2)}
                 <tr><td class="pr-strong">4대보험 제외</td><td class="pr-strong">${formatNumber(w.netPay)}</td><td></td><td></td></tr>
@@ -2704,9 +2706,12 @@ function calculateForeignerPremium() {
     const joined = !!(joinedChoice && joinedChoice.value === 'yes');
     const employmentMode = foreignerEmploymentMode(visa, joined);
     const industryIdx = document.getElementById('foreignerIndustryType').value;
-    const shares = computeForeignerShares(salaryVal, birthDate, industryIdx, !excluded, employmentMode);
+    // 근로자수는 선택 — 안 바꾸면 150인 미만(0.25%)
+    const sizeIdx = parseInt(document.getElementById('foreignerCompanySize').value || '0', 10);
+    const stabilityRate = EMPLOYMENT_STABILITY_RATES[sizeIdx].rate;
+    const shares = computeForeignerShares(salaryVal, birthDate, industryIdx, !excluded, employmentMode, stabilityRate);
     foreignerCalc = {
-        visa, country, joined,
+        visa, country, joined, sizeIdx, stabilityRate,
         pensionApplies: !excluded, employmentMode,
         salary: salaryVal,
         industry: industryIdx === '' ? null : INDUSTRY_RATES[parseInt(industryIdx, 10)],
@@ -2908,17 +2913,21 @@ function printInsurance() {
 // 산재보험 업종 드롭다운은 페이지 로드 시 한 번만 채워두면 됨
 // (스크립트 태그가 body 맨 끝에 있어 이 시점엔 이미 DOM이 준비되어 있음)
 populateIndustryOptions('employerIndustryType');
-['totalBillCompanySize', 'insCompanySize'].forEach(function populateCompanySize(id) {
+['totalBillCompanySize', 'insCompanySize', 'foreignerCompanySize'].forEach(function populateCompanySize(id) {
     const select = document.getElementById(id);
+    // 외국인 계산은 칸 이름(라벨)이 없어서 보기 안에 "근로자수"를 붙여 무엇을 고르는 칸인지 보이게 함
+    const prefix = id === 'foreignerCompanySize' ? '근로자수: ' : '';
     EMPLOYMENT_STABILITY_RATES.forEach((item, idx) => {
         const option = document.createElement('option');
         option.value = idx;
-        option.textContent = `${item.label} — ${roundRate(item.rate * 100)}%`;
+        option.textContent = `${prefix}${item.label} — ${roundRate(item.rate * 100)}%`;
         select.appendChild(option);
     });
 });
 populateIndustryOptions('totalBillIndustryType');
 populateIndustryOptions('foreignerIndustryType');
+// 외국인 계산의 업종은 선택 사항임을 첫 보기에서 알려 줌
+document.getElementById('foreignerIndustryType').options[0].textContent = '업종 (선택 · 산재보험료 계산용)';
 populateIndustryOptions('insIndustryType');
 
 // 배경 공 — 공마다 화면 안의 무작위 지점을 골라 10~16초에 걸쳐 천천히 옮겨 가고, 도착하면 다음 지점을 고름
