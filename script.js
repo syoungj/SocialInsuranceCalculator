@@ -1260,7 +1260,7 @@ function prDeductionHeadHTML(totalLabel = '공제 합계') {
             <th>대상</th>
             <th>국민연금<span class="pr-rate">${prPct(RATES.pension / 2 * 100)}</span></th>
             <th>건강보험<span class="pr-rate">${prPct(RATES.health / 2 * 100)}</span></th>
-            <th>장기요양<span class="pr-rate">건강×${prPct(RATES.longterm * 100)}</span></th>
+            <th>장기요양<span class="pr-rate">건강보험료의 ${prPct(RATES.longterm * 100)}</span></th>
             <th>고용보험<span class="pr-rate">${prPct(RATES.employmentWorker * 100)}</span></th>
             <th>${totalLabel}</th>
             <th>4대보험<br>제외</th>
@@ -1273,7 +1273,7 @@ function prBurdenHeadHTML(industry, stabilityRate = RATES.employmentStability) {
             <th>대상</th>
             <th>국민연금<span class="pr-rate">${prPct(RATES.pension / 2 * 100)}</span></th>
             <th>건강보험<span class="pr-rate">${prPct(RATES.health / 2 * 100)}</span></th>
-            <th>장기요양<span class="pr-rate">건강×${prPct(RATES.longterm * 100)}</span></th>
+            <th>장기요양<span class="pr-rate">건강보험료의 ${prPct(RATES.longterm * 100)}</span></th>
             <th>고용보험<span class="pr-rate">${prPct(RATES.employmentWorker * 100)}+${prPct(stabilityRate * 100)}</span></th>
             <th>산재보험<span class="pr-rate">${industry ? prPct(industry.permille / 10) : '업종 미선택'}</span></th>
             <th>부담 합계</th>
@@ -1405,7 +1405,7 @@ function printEmployerBasic() {
         ['국민연금', s.pensionExempt ? '면제' : prPct(RATES.pension / 2 * 100), formatNumber(s.pensionEmployer), dd && dd.pension, dd && dd.pensionCapped],
         ['건강보험', prPct(RATES.health / 2 * 100), formatNumber(s.healthEmployer), dd && dd.health, false],
         ['장기요양보험', `건강보험료의 ${prPct(RATES.longterm * 100)}`, formatNumber(s.longtermEmployer), dd && dd.longterm, false],
-        ['고용보험', s.employmentExempt ? `고용안정·직능 ${prPct(RATES.employmentStability * 100)}만` : `${prPct(RATES.employmentWorker * 100)}+${prPct(RATES.employmentStability * 100)}`, formatNumber(s.employmentEmployer), dd && dd.employment, dd && dd.employmentCapped],
+        ['고용보험', s.employmentExempt ? `고용안정·직업능력개발 ${prPct(RATES.employmentStability * 100)}만` : `${prPct(RATES.employmentWorker * 100)}+${prPct(RATES.employmentStability * 100)}`, formatNumber(s.employmentEmployer), dd && dd.employment, dd && dd.employmentCapped],
         ['산재보험', industry ? prPct(industry.permille / 10) : '업종 미선택', accidentText, dd && accidentText, false],
     ];
 
@@ -2502,7 +2502,7 @@ function printForeigner() {
     const employmentStatus = {
         full: '가입 대상',
         reciprocal: '상호주의 확인 필요 (미충족으로 계산)',
-        partial: joined ? '고용안정·직능 의무 + 실업급여 가입' : '고용안정·직능만 가입 (실업급여 미가입)',
+        partial: joined ? '고용안정·직업능력개발 의무 + 실업급여 가입' : '고용안정·직업능력개발만 가입 (실업급여 미가입)',
         optional: joined ? '가입 (근로자 신청)' : '미가입 (근로자 미신청)',
         excluded: '적용 제외',
     }[visa.employment];
@@ -2556,7 +2556,7 @@ function printForeigner() {
                 ${itemRow('국민연금', pensionApplies ? prPct(RATES.pension / 2 * 100) : '적용 제외', w.pension, e.pensionEmployer)}
                 ${itemRow('건강보험', prPct(RATES.health / 2 * 100), w.health, e.healthEmployer)}
                 ${itemRow('장기요양보험', `건강보험료의 ${prPct(RATES.longterm * 100)}`, w.longterm, e.longtermEmployer)}
-                ${itemRow('고용보험', employmentMode === 'none' ? '0원으로 계산' : employmentMode === 'stabilityOnly' ? '사업주 고용안정분만' : `${prPct(RATES.employmentWorker * 100)} / ${prPct(RATES.employmentWorker * 100)}+${prPct(stabilityRate * 100)}`, w.employment, e.employmentEmployer)}
+                ${itemRow('고용보험', employmentMode === 'none' ? '0원으로 계산' : employmentMode === 'stabilityOnly' ? '사업주 고용안정·직업능력개발분만' : `${prPct(RATES.employmentWorker * 100)} / ${prPct(RATES.employmentWorker * 100)}+${prPct(stabilityRate * 100)}`, w.employment, e.employmentEmployer)}
                 ${itemRow('산재보험', industry ? prPct(industry.permille / 10) : '', null, e.accidentEmployer)}
                 ${prSumRowsHTML([w.total, e.total, w.total + e.total], dn ? [dn.workerTotal, dn.employerTotal, dn.workerTotal + dn.employerTotal] : null, 2)}
                 <tr><td class="pr-strong">4대보험 제외</td><td class="pr-strong">${formatNumber(w.netPay)}</td><td></td><td></td></tr>
@@ -2945,7 +2945,7 @@ function printInsurance() {
             <thead><tr><th>항목</th><th>근로자</th><th>사업주</th><th>합계</th></tr></thead>
             <tbody>
                 ${rows.map(r => `
-                <tr><td>${r.name}<span class="pr-rate">${r.rate}</span></td>
+                <tr><td>${r.name}<span class="pr-rate">${r.rate.replace('직능', '직업능력개발')}</span></td>
                     ${r.worker === null ? '<td class="pr-na">해당없음</td>' : `<td>${fmt(r.worker)}</td>`}
                     ${r.employer === null ? '<td class="pr-na">업종 미선택</td>' : `<td>${fmt(r.employer)}</td>`}
                     <td class="pr-strong">${fmt((r.worker || 0) + (r.employer || 0))}</td></tr>`).join('')}
