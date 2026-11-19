@@ -2284,11 +2284,34 @@ function buildForeignerEmploymentHTML(visa) {
 
     // 칸 안에서 바로 알 수 있게: 일부 가입이면 무엇을 고를 수 있는지 이름 아래에 짧게
     const title = visa.employment === 'optional' ? '고용보험<span class="fr-verdict-sub">실업급여·직능 포함</span>'
-        : visa.employment === 'partial' ? '고용보험<span class="fr-verdict-sub">실업급여는 원하면 가입</span>'
+        : visa.employment === 'partial' ? `고용보험<span class="fr-verdict-sub">고안직능만 가입 대상${termTipHTML('고안직능', '고용안정·직업능력개발사업')}</span>`
         : '고용보험';
     const kind = excluded ? 'out' : visa.employment === 'full' ? 'in' : visa.employment === 'reciprocal' ? 'check' : 'part';
     return { title, badge: frBadge(kind, status), details, reason };
 }
+
+// 줄인 말 뒤에 붙는 ⓘ — 누르면 원래 말을 말풍선으로 보여줌 (다시 누르거나 바깥을 누르면 닫힘)
+function termTipHTML(short, full) {
+    return `<button type="button" class="term-tip" aria-expanded="false" aria-label="${short} 뜻 보기" onclick="toggleTermTip(event, this)">i</button><span class="term-pop" role="tooltip" hidden><b>${short}</b> = ${full}</span>`;
+}
+
+function toggleTermTip(event, btn) {
+    event.stopPropagation();
+    const pop = btn.nextElementSibling;
+    const open = pop.hidden;
+    closeTermTips();
+    pop.hidden = !open;
+    btn.setAttribute('aria-expanded', open);
+}
+
+function closeTermTips() {
+    document.querySelectorAll('.term-pop').forEach(p => { p.hidden = true; });
+    document.querySelectorAll('.term-tip').forEach(b => b.setAttribute('aria-expanded', 'false'));
+}
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('.term-pop')) closeTermTips();
+});
 
 // 판정 배지 — 빨강·초록 없이 채움 정도와 아이콘으로 구분 (가입=파랑 채움+체크, 일부=옅은 파랑+반원, 제외=회색 점선+빼기)
 function frBadge(kind, text) {

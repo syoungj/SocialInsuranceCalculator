@@ -3553,6 +3553,61 @@ select.xp-input {
     color: var(--text-sub);
 }
 
+/* 줄인 말 뒤 ⓘ — 누르면 원래 말 말풍선 (작은 글씨 바로 아래에 뜸) */
+.fr-verdict-sub:has(.term-tip) {
+    position: relative;
+}
+
+.term-tip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    margin-left: 3px;
+    padding: 0;
+    border: 1.2px solid currentColor;
+    border-radius: 50%;
+    background: none;
+    color: var(--accent);
+    font: 700 10px/1 Georgia, serif;
+    font-style: italic;
+    vertical-align: -2px;
+    cursor: pointer;
+}
+
+.term-tip::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+}
+
+.term-tip {
+    position: relative;
+}
+
+.term-pop {
+    position: absolute;
+    top: 100%;
+    left: -4px;
+    z-index: 5;
+    margin-top: 6px;
+    padding: 8px 11px;
+    max-width: 250px;
+    width: max-content;
+    border-radius: 10px;
+    background: #1f2a44;
+    color: #fff;
+    font-size: 12.5px;
+    line-height: 1.45;
+    font-weight: 500;
+    box-shadow: 0 6px 18px rgba(19, 32, 58, 0.25);
+}
+
+.term-pop[hidden] {
+    display: none;
+}
+
 .fr-verdict-reason {
     margin-top: 12px;
     font-size: 13px;
