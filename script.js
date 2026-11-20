@@ -3153,7 +3153,7 @@ if (yearSeg) {
 }
 syncYearUI();
 
-// 머리줄: 계산 화면에서 아래로 내리면 숨기고, 위로 올리면 다시 보임 (첫 화면은 항상 보임)
+// 머리줄: 폰 계산 화면에서 아래로 내리면 숨기고, 위로 올리면 다시 보임 (첫 화면·PC는 항상 보임)
 (function () {
     const bar = document.querySelector('.app-bar');
     if (!bar) return;
@@ -3161,7 +3161,7 @@ syncYearUI();
     window.addEventListener('scroll', () => {
         const y = window.scrollY;
         const home = !document.body.dataset.step || document.body.dataset.step === 'step2';
-        if (home || y < 80 || bar.contains(document.activeElement)) {
+        if (home || y < 80 || window.innerWidth >= 900 || bar.contains(document.activeElement)) {
             bar.classList.remove('bar-hidden');
             lastY = y;
             return;
