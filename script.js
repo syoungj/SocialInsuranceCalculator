@@ -61,6 +61,7 @@ function premiumLimitNotesPdf(salaries) {
 
 // 두루누리 사회보험료 지원 상한액 (월평균보수 230만원 × 근로자 요율 × 80% — YEAR_DATA에서 채워짐)
 const DURUNURI_CAPS = {
+    capBase: 0,         // 지원 한도 계산 기준 월보수 (230만원)
     pension: 0,
     employmentWorker: 0,
 };
@@ -76,7 +77,7 @@ const YEAR_DATA = {
         pensionLimits: { min: 400000, max: 6370000 },     // 2025.7 ~ 2026.6
         pensionLimitsFirstHalf: { min: 390000, max: 6170000 }, // 2025.1 ~ 6 (2024.7 고시값) — 안내 문구용
         healthLimits: { min: 19780, max: 9008340 },       // 고시 2024.12.30 개정판 (신구대비로 확인)
-        durunuri: { pension: 82800, employmentWorker: 16560 }, // 2025년 두루누리 안내로 확인
+        durunuri: { capBase: 2300000, pension: 82800, employmentWorker: 16560 }, // 2025년 두루누리 안내로 확인
         commutePermille: 0.6,                              // 산재 출퇴근재해 요율 (전 업종 같음)
         pending: [],
     },
@@ -85,7 +86,7 @@ const YEAR_DATA = {
         pensionLimits: { min: 410000, max: 6590000 },     // 2026.7 ~ 2027.6
         pensionLimitsFirstHalf: { min: 400000, max: 6370000 }, // 2026.1 ~ 6 (2025.7 고시값) — 안내 문구용
         healthLimits: { min: 20160, max: 9183480 },
-        durunuri: { pension: 87400, employmentWorker: 16560 },
+        durunuri: { capBase: 2300000, pension: 87400, employmentWorker: 16560 },
         commutePermille: 0.6,
         pending: [],
     },
@@ -96,7 +97,7 @@ const YEAR_DATA = {
         rates: { pension: 0.10, health: 0.0719, longterm: 0.1390, employmentWorker: 0.009 },
         pensionLimits: { min: 410000, max: 6590000 },     // 2027.7 새 값 고시 전까지 2026.7 값
         healthLimits: { min: 20160, max: 9183480 },       // 2027년 고시 전 — 2026년 값
-        durunuri: { pension: 87400, employmentWorker: 16560 }, // 2027년 기준 발표 전 — 2026년 값
+        durunuri: { capBase: 2300000, pension: 87400, employmentWorker: 16560 }, // 2027년 기준 발표 전 — 2026년 값
         commutePermille: 0.6,                              // 2027년 고시 전 — 2026년 값
         pending: ['고용보험료율(인상 논의 중)', '국민연금 7월 이후 상·하한', '건강보험료 상·하한', '두루누리 지원 상한액', '산재보험료율'],
     },
@@ -671,7 +672,7 @@ function renderEmployerResult() {
     btn.textContent = empDurunuriApplied ? '원래 금액 보기' : '두루누리 적용해 보기';
     btn.classList.toggle('applied', empDurunuriApplied);
     document.getElementById('empDurunuriBanner').style.display = eligible ? '' : 'none';
-    const capText = dn ? durunuriCapNoticeText(dn.pensionCapped, dn.employmentCapped) : '';
+    const capText = dn ? durunuriCapNoticeText(dn.pensionCapped, dn.employmentCapped, true) : '';
     const capNotice = document.getElementById('empDurunuriCapNotice');
     capNotice.textContent = capText;
     capNotice.style.display = capText ? '' : 'none';
@@ -720,7 +721,7 @@ function computeEmployerShare(workerSalary, workerBirthDate, industryIdx, stabil
         ? stabilityRate
         : RATES.employmentWorker + stabilityRate;
     const employmentEmployer = floor10(workerSalary * employmentEmployerRate);
-    // 두루누리는 이 중 실업급여분에만 지원됨 (고용안정·직업능력개발분은 지원 대상 아님)
+    // 두루누리는 실업급여분·고용안정·직업능력개발분 모두 80% 지원 (각각 230만원 기준 한도)
     const employmentUnemploymentEmployer = employmentExempt ? 0 : floor10(workerSalary * RATES.employmentWorker);
 
     // 산재보험 — 업종을 선택했을 때만 계산 (선택 전에는 총액에서 제외)
@@ -756,11 +757,17 @@ function durunuriCapApplied(original, cap) {
 }
 
 // 상한액이 적용된 항목이 있을 때만 안내 문구를 만들어 반환 (없으면 빈 문자열)
-function durunuriCapNoticeText(pensionCapped, employmentCapped) {
+// 사업주 고용안정·직능분 지원 한도 (근로자수 150인 미만 기준 — 두루누리는 10인 미만 사업장만 대상)
+function durunuriStabilityCapText() {
+    return `${formatNumber(Math.round(DURUNURI_CAPS.capBase * RATES.employmentStability * 0.8))}원`;
+}
+
+function durunuriCapNoticeText(pensionCapped, employmentCapped, employer = false) {
     if (!pensionCapped && !employmentCapped) return '';
     const items = [];
     if (pensionCapped) items.push(`국민연금 ${formatNumber(DURUNURI_CAPS.pension)}원`);
-    if (employmentCapped) items.push(`고용보험 ${formatNumber(DURUNURI_CAPS.employmentWorker)}원`);
+    if (employmentCapped) items.push(`고용보험 ${formatNumber(DURUNURI_CAPS.employmentWorker)}원`
+        + (employer ? `, 고용안정·직능 ${durunuriStabilityCapText()}` : ''));
     return `※ 월급여가 높아 지원금이 상한액(${items.join(', ')})까지만 적용됐어요.`;
 }
 
@@ -1254,13 +1261,19 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
         </div>`;
 }
 
-// 사업주가 내는 고용보험료에 두루누리 적용 — 실업급여분만 지원하고 고용안정·직업능력개발분은 그대로 부담
+// 사업주가 내는 고용보험료에 두루누리 적용 — 실업급여분과 고용안정·직업능력개발분을 각각 80% 지원
+// (한도도 각각: 230만원 × 요율 × 80% — 예: 실업급여 16,560원, 고용안정·직능 4,600원. 2026.10 실제 지원금 내역으로 확인)
+// 실업급여분이 없는 경우(만 65세 이상 등)는 지금까지처럼 지원 없이 계산
 function durunuriEmployerEmployment(s) {
     const unemployment = s.employmentUnemploymentEmployer;
     const stability = s.employmentEmployer - unemployment;
+    const stabilityCap = Math.round(DURUNURI_CAPS.capBase * s.stabilityRate * 0.8);
+    const supportStability = unemployment > 0;
     return {
-        employment: durunuriSupportedAmount(unemployment, DURUNURI_CAPS.employmentWorker) + stability,
-        capped: durunuriCapApplied(unemployment, DURUNURI_CAPS.employmentWorker),
+        employment: durunuriSupportedAmount(unemployment, DURUNURI_CAPS.employmentWorker)
+            + (supportStability ? durunuriSupportedAmount(stability, stabilityCap) : stability),
+        capped: durunuriCapApplied(unemployment, DURUNURI_CAPS.employmentWorker)
+            || (supportStability && durunuriCapApplied(stability, stabilityCap)),
     };
 }
 
@@ -1370,7 +1383,7 @@ function prWhoHTML(name, sub) {
 
 function prDurunuriCapNote(anyCapped) {
     return anyCapped
-        ? `"(상한)" 표시는 월급여가 높아 지원금이 상한액(국민연금 ${formatNumber(DURUNURI_CAPS.pension)}원, 고용보험 ${formatNumber(DURUNURI_CAPS.employmentWorker)}원)까지만 적용된 경우입니다.`
+        ? `"(상한)" 표시는 월급여가 높아 지원금이 상한액(국민연금 ${formatNumber(DURUNURI_CAPS.pension)}원, 고용보험 ${formatNumber(DURUNURI_CAPS.employmentWorker)}원, 사업주 고용안정·직업능력개발 ${durunuriStabilityCapText()})까지만 적용된 경우입니다.`
         : '';
 }
 
@@ -1570,7 +1583,7 @@ function printEmployerBasic() {
             s.employmentExemptNextMonth ? '다음 달부터 만 65세가 되어 고용보험 실업급여분이 제외됩니다.' : '',
             industry ? '산재보험료는 선택한 업종 요율로 계산한 참고 금액이며, 실제 업종 분류는 근로복지공단이 정합니다.' : '업종을 선택하지 않아 산재보험료는 계산하지 않았습니다.',
             dd ? '두루누리 적용 시 금액은 월급여 270만원 미만으로 지원 가능 대상일 때의 예상 금액입니다.' : '',
-            dd ? `사업주가 내는 고용보험료는 실업급여분(${prPct(RATES.employmentWorker * 100)})에만 두루누리가 적용됩니다.` : '',
+            dd ? '사업주가 내는 고용보험료는 실업급여분과 고용안정·직업능력개발분 모두 두루누리가 적용됩니다.' : '',
             dd ? '두루누리 실제 지원 여부는 국민연금공단·근로복지공단 확인이 필요합니다.' : '',
             prDurunuriCapNote(anyCapped),
         ])}
@@ -1879,7 +1892,7 @@ function printTotalBill() {
         ${prNotesHTML([
             '이 계산 결과는 참고용이며, 실제 신고·부과 금액은 담당 기관 확인에 따라 달라질 수 있습니다.',
             anyEligible ? '"두루누리 적용 시" 금액은 대상 근로자의 국민연금·고용보험에 지원금을 반영한 참고 금액이며, 실제 지원 여부는 국민연금공단·근로복지공단 확인이 필요합니다.' : '',
-            anyEligible ? `사업주가 내는 고용보험료는 실업급여분(0.9%)에만 두루누리가 적용되고, 고용안정·직업능력개발분(${prPct(totalBillStabilityRate * 100)})은 지원 대상이 아닙니다.` : '',
+            anyEligible ? '사업주가 내는 고용보험료는 실업급여분과 고용안정·직업능력개발분 모두 두루누리가 적용됩니다.' : '',
             prDurunuriCapNote(anyDurunuriCapped),
             '표의 요율은 기본 요율이며, 각 보험료는 10원 미만을 절사했습니다.',
             ...premiumLimitNotesPdf([...totalBillWorkersCalc.map(w => w.salary), totalBillOwnerCalc.salary].filter(v => v > 0))
@@ -2511,12 +2524,12 @@ function buildForeignerCalcHTML(salary, visa, pensionApplies, employmentMode, w,
 
     const dn = computeForeignerDurunuri(salary, w, e);
     const dnRows = dn ? `
-                    <tr class="fr-dn-row"><td>두루누리 적용 시 고용보험${sub('실업급여분만 지원')}</td><td>${n(dn.workerEmployment)}</td><td>${n(dn.employerEmployment)}</td></tr>
+                    <tr class="fr-dn-row"><td>두루누리 적용 시 고용보험</td><td>${n(dn.workerEmployment)}</td><td>${n(dn.employerEmployment)}</td></tr>
                     <tr class="fr-dn-row"><td>두루누리 적용 시 합계</td><td class="xp-strong">${n(dn.workerTotal)}</td><td class="xp-strong">${n(dn.employerTotal)}</td></tr>
                     <tr class="fr-dn-row"><td>두루누리 적용 시 4대보험 제외</td><td>${n(salary - dn.workerTotal)}</td><td></td></tr>` : '';
 
     const notes = [
-        dn ? durunuriCapNoticeText(false, dn.capped).replace(/^※\s*/, '') : '',
+        dn ? durunuriCapNoticeText(false, dn.capped, true).replace(/^※\s*/, '') : '',
         '건강보험·장기요양보험·산재보험은 내국인과 같은 기준으로 계산했어요.',
         ...premiumLimitNotes(salary).filter(t => !(t.startsWith('국민연금') && (!pensionApplies || w.pensionExempt))),
         employmentMode === 'none' && visa.employment === 'reciprocal'
@@ -2645,8 +2658,8 @@ function printForeigner() {
             ...premiumLimitNotesPdf([salary]).filter(t => !(t.startsWith('국민연금') && (!pensionApplies || w.pensionExempt))),
             visa.employment === 'reciprocal' ? '체류자격 D-7·D-8·D-9는 상호주의 충족 여부를 알 수 없어 고용보험을 0원으로 계산했습니다. 충족되면 내국인과 같이 부과됩니다.' : '',
             pdfShowDurunuri ? '외국인은 국민연금 두루누리 지원 대상이 아닙니다.' : '',
-            dn ? '"두루누리 적용 시"는 고용보험 실업급여분에만 지원금을 반영한 참고 금액이며, 실제 지원 여부는 근로복지공단 확인이 필요합니다.' : '',
-            dn && dn.capped ? `월급여가 높아 고용보험 지원금은 상한액(${formatNumber(DURUNURI_CAPS.employmentWorker)}원)까지만 반영했습니다.` : '',
+            dn ? '"두루누리 적용 시"는 고용보험에만 지원금을 반영한 참고 금액이며, 실제 지원 여부는 근로복지공단 확인이 필요합니다.' : '',
+            dn && dn.capped ? `월급여가 높아 고용보험 지원금은 상한액(${formatNumber(DURUNURI_CAPS.employmentWorker)}원, 사업주 고용안정·직업능력개발 ${durunuriStabilityCapText()})까지만 반영했습니다.` : '',
             '고용보험은 체류자격 외에도 65세 이후 신규 고용, 월 소정근로시간 60시간 미만 등 일반 적용제외 사유를 별도로 확인해야 합니다.',
             '표의 요율은 기본 요율이며, 각 보험료는 10원 미만을 절사했습니다.',
         ])}
