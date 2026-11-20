@@ -4559,3 +4559,18 @@ body:not([data-step="step2"]) .bar-back {
     height: 34px;
     font-size: 14px;
 }
+
+/* 머리줄 스크롤 숨기기 (script.js 끝) */
+.app-bar {
+    transition: transform 0.25s ease;
+}
+
+.app-bar.bar-hidden {
+    transform: translateY(calc(-100% - 24px));
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-bar {
+        transition: none;
+    }
+}

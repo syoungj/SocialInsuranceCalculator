@@ -1354,6 +1354,11 @@ function prDeductionHeadHTML(totalLabel = '공제 합계') {
         </tr></thead>`;
 }
 
+// 사업주 표 고용보험 머리글 "0.9%+0.25%" 설명
+function prEmploymentRateNote(stabilityRate) {
+    return `사업주 고용보험 요율 ${prPct(RATES.employmentWorker * 100)}+${prPct(stabilityRate * 100)}는 실업급여분과 고용안정·직업능력개발분을 더한 것입니다.`;
+}
+
 function prBurdenHeadHTML(industry, stabilityRate = RATES.employmentStability) {
     return `
         <thead><tr>
@@ -1895,6 +1900,7 @@ function printTotalBill() {
             anyEligible ? '사업주가 내는 고용보험료는 실업급여분과 고용안정·직업능력개발분 모두 두루누리가 적용됩니다.' : '',
             prDurunuriCapNote(anyDurunuriCapped),
             '표의 요율은 기본 요율이며, 각 보험료는 10원 미만을 절사했습니다.',
+            prEmploymentRateNote(totalBillStabilityRate),
             ...premiumLimitNotesPdf([...totalBillWorkersCalc.map(w => w.salary), totalBillOwnerCalc.salary].filter(v => v > 0))
                 .map(t => '급여가 상·하한을 벗어난 사람은 ' + t.replace('계산했습니다.', '계산했습니다(해당자만).')),
             `고용보험은 만 65세 이상이면 사업주 고용안정·직업능력개발분(${prPct(totalBillStabilityRate * 100)})만 부과됩니다.`,
@@ -2662,6 +2668,7 @@ function printForeigner() {
             dn && dn.capped ? `월급여가 높아 고용보험 지원금은 상한액(${formatNumber(DURUNURI_CAPS.employmentWorker)}원, 사업주 고용안정·직업능력개발 ${durunuriStabilityCapText()})까지만 반영했습니다.` : '',
             '고용보험은 체류자격 외에도 65세 이후 신규 고용, 월 소정근로시간 60시간 미만 등 일반 적용제외 사유를 별도로 확인해야 합니다.',
             '표의 요율은 기본 요율이며, 각 보험료는 10원 미만을 절사했습니다.',
+            prEmploymentRateNote(stabilityRate),
         ])}
     `;
 
@@ -3136,3 +3143,21 @@ YEAR_SELECT_IDS.forEach(id => {
     if (el) el.innerHTML = RATE_YEARS.map(y => `<option value="${y}">${y}년</option>`).join('');
 });
 syncYearUI();
+
+// 머리줄: 계산 화면에서 아래로 내리면 숨기고, 위로 올리면 다시 보임 (첫 화면은 항상 보임)
+(function () {
+    const bar = document.querySelector('.app-bar');
+    if (!bar) return;
+    let lastY = window.scrollY;
+    window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        const home = !document.body.dataset.step || document.body.dataset.step === 'step2';
+        if (home || y < 80 || bar.contains(document.activeElement)) {
+            bar.classList.remove('bar-hidden');
+            lastY = y;
+            return;
+        }
+        if (y > lastY + 8) { bar.classList.add('bar-hidden'); lastY = y; }
+        else if (y < lastY - 8) { bar.classList.remove('bar-hidden'); lastY = y; }
+    }, { passive: true });
+})();
