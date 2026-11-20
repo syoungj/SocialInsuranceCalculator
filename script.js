@@ -3108,9 +3108,9 @@ window.addEventListener('load', () => {
 });
 
 // ========================================
-// 기준 연도 고르기 — 머리줄(계산 화면)과 첫 화면 두 곳, 서로 맞춰 움직임
+// 기준 연도 고르기 — 머리줄(계산 화면) 펼침 목록과 PC 첫 화면 연도 버튼, 서로 맞춰 움직임
 // ========================================
-const YEAR_SELECT_IDS = ['yearBar', 'yearHome'];
+const YEAR_SELECT_IDS = ['yearBar'];
 
 function syncYearUI() {
     YEAR_SELECT_IDS.forEach(id => {
@@ -3118,6 +3118,11 @@ function syncYearUI() {
         if (!el) return;
         el.value = String(rateYear);
         el.classList.toggle('other', rateYear !== THIS_YEAR);  // 올해가 아니면 파랗게 — 다른 연도로 계산 중임을 알아보게
+    });
+    document.querySelectorAll('#yearSeg button').forEach(btn => {
+        const on = Number(btn.dataset.year) === rateYear;
+        btn.classList.toggle('on', on);
+        btn.setAttribute('aria-pressed', String(on));
     });
     const note = document.getElementById('yearNote');
     if (note) {
@@ -3142,6 +3147,10 @@ YEAR_SELECT_IDS.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = RATE_YEARS.map(y => `<option value="${y}">${y}년</option>`).join('');
 });
+const yearSeg = document.getElementById('yearSeg');
+if (yearSeg) {
+    yearSeg.innerHTML = RATE_YEARS.map(y => `<button type="button" data-year="${y}" onclick="changeRateYear(${y})">${y}</button>`).join('');
+}
 syncYearUI();
 
 // 머리줄: 계산 화면에서 아래로 내리면 숨기고, 위로 올리면 다시 보임 (첫 화면은 항상 보임)

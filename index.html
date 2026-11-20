@@ -43,8 +43,12 @@
     <div id="step2" class="step active">
         <div class="home">
             <div class="home-intro">
+                <!-- 기준 연도 (PC 첫 화면에만 보임 — 폰 첫 화면은 질문·카드만, 연도는 계산 화면 머리줄에서 바꿈) -->
+                <div class="home-year" role="group" aria-labelledby="homeYearCap">
+                    <span class="home-year-cap" id="homeYearCap">기준 연도</span>
+                    <div class="year-seg" id="yearSeg"></div>
+                </div>
                 <h2 class="home-title">무엇이 <br class="pc-only">궁금하세요?</h2>
-                <div class="home-year"><select id="yearHome" class="yr" aria-label="기준 연도" onchange="changeRateYear(this.value)"></select><span>요율로 계산해요</span></div>
             </div>
 
             <div class="home-choices">

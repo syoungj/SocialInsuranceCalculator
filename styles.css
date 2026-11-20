@@ -4546,18 +4546,60 @@ body:not([data-step="step2"]) .bar-back {
     padding: 0 8px 0 4px;
 }
 
+/* PC 첫 화면 연도 버튼: 제목 위, 유리 띠 안에서 하나 고름 (폰 첫 화면에서는 숨김) */
 .home-year {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 14px;
-    font-size: 14px;
+    display: none;
+}
+
+@media (min-width: 900px) {
+    .home-year {
+        display: block;
+        margin-bottom: 16px;
+    }
+}
+
+.home-year-cap {
+    display: block;
+    margin: 0 0 6px 2px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
     color: var(--text-sub);
 }
 
-.home-year .yr {
-    height: 34px;
-    font-size: 14px;
+.year-seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.year-seg button {
+    min-height: 32px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-sub);
+    cursor: pointer;
+}
+
+.year-seg button:hover {
+    color: var(--accent);
+}
+
+.year-seg button.on {
+    background: #fff;
+    color: var(--accent);
+    font-weight: 800;
+    box-shadow: 0 2px 8px rgba(58, 91, 214, 0.15);
 }
 
 /* 머리줄 스크롤 숨기기 (script.js 끝) */
