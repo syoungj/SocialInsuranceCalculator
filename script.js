@@ -720,9 +720,10 @@ function computeEmployerShare(workerSalary, workerBirthDate, industryIdx, stabil
     const employmentEmployerRate = employmentExempt
         ? stabilityRate
         : RATES.employmentWorker + stabilityRate;
-    const employmentEmployer = floor10(workerSalary * employmentEmployerRate);
+    // 고지서처럼 실업급여분과 고용안정·직능분을 각각 10원 미만 절사한 뒤 더함 (한 번에 곱하면 10원 차이가 날 수 있음)
     // 두루누리는 실업급여분·고용안정·직업능력개발분 모두 80% 지원 (각각 230만원 기준 한도)
     const employmentUnemploymentEmployer = employmentExempt ? 0 : floor10(workerSalary * RATES.employmentWorker);
+    const employmentEmployer = employmentUnemploymentEmployer + floor10(workerSalary * stabilityRate);
 
     // 산재보험 — 업종을 선택했을 때만 계산 (선택 전에는 총액에서 제외)
     let accidentEmployer = null;
@@ -1263,17 +1264,16 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
 
 // 사업주가 내는 고용보험료에 두루누리 적용 — 실업급여분과 고용안정·직업능력개발분을 각각 80% 지원
 // (한도도 각각: 230만원 × 요율 × 80% — 예: 실업급여 16,560원, 고용안정·직능 4,600원. 2026.10 실제 지원금 내역으로 확인)
-// 실업급여분이 없는 경우(만 65세 이상 등)는 지금까지처럼 지원 없이 계산
+// 고용안정·직능분만 내는 경우(만 65세 이상, E-9 실업급여 미가입 등)도 지원 — 지원 제외 사유에 해당하지 않으므로 (사용자 판단 2026.11.20)
 function durunuriEmployerEmployment(s) {
     const unemployment = s.employmentUnemploymentEmployer;
     const stability = s.employmentEmployer - unemployment;
     const stabilityCap = Math.round(DURUNURI_CAPS.capBase * s.stabilityRate * 0.8);
-    const supportStability = unemployment > 0;
     return {
         employment: durunuriSupportedAmount(unemployment, DURUNURI_CAPS.employmentWorker)
-            + (supportStability ? durunuriSupportedAmount(stability, stabilityCap) : stability),
+            + durunuriSupportedAmount(stability, stabilityCap),
         capped: durunuriCapApplied(unemployment, DURUNURI_CAPS.employmentWorker)
-            || (supportStability && durunuriCapApplied(stability, stabilityCap)),
+            || durunuriCapApplied(stability, stabilityCap),
     };
 }
 
@@ -1901,7 +1901,7 @@ function printTotalBill() {
             anyExempt ? '나이(만 60세·65세) 조건으로 제외된 항목이 있는 경우, 금액에는 이미 반영되어 있어 표의 기본 요율과 다를 수 있습니다.' : '',
             industry ? '산재보험료는 선택한 업종 요율로 계산한 참고 금액이며, 실제 업종 분류는 근로복지공단이 정합니다.' : '업종을 선택하지 않아 산재보험료는 계산하지 않았습니다.',
             anyForeign ? '외국인 근로자는 체류자격·국적 판정에 따라 국민연금·고용보험을 계산했습니다(적용 제외·미가입이면 0원).' : '',
-            anyForeign && pdfShowDurunuri ? '외국인은 국민연금 두루누리 지원 대상이 아니며, 고용보험 두루누리는 실업급여에 가입한 경우에만 적용됩니다.' : '',
+            anyForeign && pdfShowDurunuri ? '외국인은 국민연금 두루누리 지원 대상이 아니며, 고용보험 두루누리는 내국인과 같이 적용됩니다.' : '',
             anyReciprocal ? '체류자격 D-7·D-8·D-9는 상호주의 충족 여부를 알 수 없어 고용보험을 0원으로 계산했습니다. 충족되면 내국인과 같이 부과됩니다.' : '',
             pdfShowDurunuri
                 ? '사업주 본인은 고용보험·산재보험 가입 대상이 아니며, 두루누리 지원 대상도 아닙니다.'
@@ -2498,8 +2498,8 @@ function computeForeignerShares(salary, birthDate, industryIdx, pensionApplies, 
     w.netPay = salary - w.total;
     e.total = e.pensionEmployer + e.healthEmployer + e.longtermEmployer + e.employmentEmployer + (e.accidentEmployer || 0);
 
-    // 두루누리: 외국인은 국민연금 지원 없음, 고용보험은 실업급여분이 부과될 때만 지원
-    const noSupportAtAll = employmentMode !== 'all' || w.employmentExempt;
+    // 두루누리: 외국인은 국민연금 지원 없음, 고용보험은 부과되는 만큼 지원 (고용안정·직능분만 내도 지원)
+    const noSupportAtAll = employmentMode === 'none';
     w.noPensionDurunuri = e.noPensionDurunuri = true;
     w.durunuriNone = e.durunuriNone = noSupportAtAll;
     return { w, e };
@@ -2535,7 +2535,7 @@ function buildForeignerCalcHTML(salary, visa, pensionApplies, employmentMode, w,
         employmentMode === 'none' && visa.employment === 'reciprocal'
             ? '상호주의 충족 여부를 알 수 없어 고용보험을 0원으로 계산했어요. 본국 법령상 충족되면 내국인과 같이 부과돼요.' : '',
         '외국인은 국민연금 두루누리 지원 대상이 아니에요.',
-        salary < 2700000 && employmentMode !== 'all' ? '실업급여분 고용보험이 부과되지 않아 고용보험 두루누리 지원도 없어요.' : '',
+        salary < 2700000 && employmentMode === 'none' ? '고용보험이 부과되지 않아 고용보험 두루누리 지원도 없어요.' : '',
     ].filter(Boolean);
 
     return `
@@ -2557,7 +2557,7 @@ function buildForeignerCalcHTML(salary, visa, pensionApplies, employmentMode, w,
         <ul class="fr-notes">${notes.map(t => `<li><span class="fr-mark" aria-hidden="true">※</span><span>${t}</span></li>`).join('')}</ul>`;
 }
 
-// 외국인 두루누리: 국민연금 지원 없음, 고용보험은 실업급여분이 부과될 때만 내국인과 같이 지원. 대상 아니면 null
+// 외국인 두루누리: 국민연금 지원 없음, 고용보험은 부과되는 만큼 내국인과 같이 지원(고용안정·직능분만 내도). 대상 아니면 null
 function computeForeignerDurunuri(salary, w, e) {
     if (!hasDurunuri(salary, w)) return null;
     const workerEmployment = durunuriSupportedAmount(w.employment, DURUNURI_CAPS.employmentWorker);
