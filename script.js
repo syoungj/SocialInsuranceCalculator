@@ -1,9 +1,9 @@
-// 2026년 보험료율 (고용보험은 2025년 요율)
+// 보험료율 — 값은 아래 YEAR_DATA에서 고른 연도 것으로 채워짐 (setRateYear)
 const RATES = {
-    pension: 0.095,             // 국민연금 9.5% (근로자·사업주 각 4.75%)
-    health: 0.0719,             // 건강보험 7.19% (근로자·사업주 각 3.595%)
-    longterm: 0.1314,           // 장기요양보험 — 건강보험료의 13.14%
-    employmentWorker: 0.009,    // 고용보험 실업급여분 (근로자·사업주 동일 0.9%, 65세 이상은 제외)
+    pension: 0,                 // 국민연금 (근로자·사업주 절반씩)
+    health: 0,                  // 건강보험 (근로자·사업주 절반씩)
+    longterm: 0,                // 장기요양보험 — 건강보험료의 몇 %
+    employmentWorker: 0,        // 고용보험 실업급여분 (근로자·사업주 동일, 65세 이상은 제외)
     // 고용안정·직업능력개발사업분: 사업주만 내고, 나이와 무관하게 계속 부과됨 (150인 미만 기업 기준 0.25%)
     // 기업 규모별로 요율이 다르므로(150인 이상은 더 높음), 여기선 가장 흔한 소규모 사업장 기준 값을 씀
     employmentStability: 0.0025,
@@ -18,10 +18,10 @@ const EMPLOYMENT_STABILITY_RATES = [
     { label: '1,000인 이상 기업, 국가·지방자치단체', rate: 0.0085 },
 ];
 
-// 국민연금 기준소득월액 상·하한 (2026.7.1 ~ 2027.6.30 적용 — 매년 7월에 바뀜)
-const PENSION_BASE_LIMITS = { min: 410000, max: 6590000 };
-// 건강보험 직장가입자 월 보험료 상·하한 (2026년 — 근로자·사업주 합친 전체 금액, 각자 절반씩)
-const HEALTH_PREMIUM_LIMITS = { min: 20160, max: 9183480 };
+// 국민연금 기준소득월액 상·하한 (매년 7월에 바뀜 — YEAR_DATA에서 채워짐)
+const PENSION_BASE_LIMITS = { min: 0, max: 0 };
+// 건강보험 직장가입자 월 보험료 상·하한 (근로자·사업주 합친 전체 금액, 각자 절반씩 — YEAR_DATA에서 채워짐)
+const HEALTH_PREMIUM_LIMITS = { min: 0, max: 0 };
 
 // 국민연금 기준소득월액: 천원 미만 절사 후 상·하한 안으로
 function pensionBaseOf(salary) {
@@ -55,11 +55,64 @@ function premiumLimitNotesPdf(salaries) {
     return [...all];
 }
 
-// 두루누리 사회보험료 지원 상한액 (2026년 기준)
+// 두루누리 사회보험료 지원 상한액 (월평균보수 230만원 × 근로자 요율 × 80% — YEAR_DATA에서 채워짐)
 const DURUNURI_CAPS = {
-    pension: 87400,
-    employmentWorker: 16560,
+    pension: 0,
+    employmentWorker: 0,
 };
+
+// ========================================
+// 연도별 값 — 화면 머리줄·첫 화면의 연도 칸에서 고른 연도로 모든 계산기가 계산함
+// 국민연금 상·하한은 7월에 바뀌므로 그 해 7월부터 쓰는 값을 넣음
+// pending: 그 연도 값이 아직 발표되지 않아 앞 연도 값을 그대로 쓴 항목 (화면 아래·PDF 안내에 나옴)
+// ========================================
+const YEAR_DATA = {
+    2025: {
+        rates: { pension: 0.09, health: 0.0709, longterm: 0.1295, employmentWorker: 0.009 },
+        pensionLimits: { min: 400000, max: 6370000 },     // 2025.7 ~ 2026.6
+        healthLimits: { min: 19780, max: 9008340 },
+        durunuri: { pension: 82800, employmentWorker: 16560 },
+        pending: [],
+    },
+    2026: {
+        rates: { pension: 0.095, health: 0.0719, longterm: 0.1314, employmentWorker: 0.009 },
+        pensionLimits: { min: 410000, max: 6590000 },     // 2026.7 ~ 2027.6
+        healthLimits: { min: 20160, max: 9183480 },
+        durunuri: { pension: 87400, employmentWorker: 16560 },
+        pending: [],
+    },
+    2027: {
+        // 국민연금 10% (연금개혁, 매년 0.5%p 인상), 건강 7.19% 동결(2026.9.8 건정심),
+        // 장기요양 건강보험료의 13.90% (소득 대비 0.9994%, 2026.10.30 장기요양위원회) — 공단 상담으로 확인
+        // 고용보험 1.0% 인상안은 아직 논의 중이라 0.9% 유지
+        rates: { pension: 0.10, health: 0.0719, longterm: 0.1390, employmentWorker: 0.009 },
+        pensionLimits: { min: 410000, max: 6590000 },     // 2027.7 새 값 고시 전까지 2026.7 값
+        healthLimits: { min: 20160, max: 9183480 },       // 2027년 고시 전 — 2026년 값
+        durunuri: { pension: 87400, employmentWorker: 16560 }, // 2027년 기준 발표 전 — 2026년 값
+        pending: ['고용보험료율(인상 논의 중)', '국민연금 7월 이후 상·하한', '건강보험료 상·하한', '두루누리 지원 상한액', '산재보험 업종 요율'],
+    },
+};
+const RATE_YEARS = Object.keys(YEAR_DATA).map(Number);
+const THIS_YEAR = new Date().getFullYear();
+// 앱을 열면 항상 올해로 시작 (표에 없는 해면 가장 가까운 해)
+let rateYear = Math.min(Math.max(THIS_YEAR, RATE_YEARS[0]), RATE_YEARS[RATE_YEARS.length - 1]);
+
+function setRateYear(year) {
+    const d = YEAR_DATA[year];
+    if (!d) return;
+    rateYear = year;
+    Object.assign(RATES, d.rates);
+    Object.assign(PENSION_BASE_LIMITS, d.pensionLimits);
+    Object.assign(HEALTH_PREMIUM_LIMITS, d.healthLimits);
+    Object.assign(DURUNURI_CAPS, d.durunuri);
+}
+setRateYear(rateYear);
+
+// 아직 발표 안 된 값이 있으면 안내 문장 (없으면 빈 문자열)
+function pendingYearNote(ending = '했어요') {
+    const p = YEAR_DATA[rateYear].pending;
+    return p.length ? `${rateYear}년 ${p.join('·')}은 아직 발표되지 않아 ${rateYear - 1}년 값으로 계산${ending}.` : '';
+}
 
 // 금액 입력칸("1,600,000")을 숫자로 — 쉼표 등 숫자 아닌 글자는 무시
 function parseMoney(text) {
@@ -1232,7 +1285,7 @@ function prHeadHTML(title, metaLines) {
                 <div class="pr-kicker">4대보험 계산 결과</div>
                 <h1 class="pr-title">${title}</h1>
             </div>
-            <div class="pr-meta">${metaLines.map(line => `<span>${line}</span>`).join('')}</div>
+            <div class="pr-meta">${[`${rateYear}년 요율 적용`, ...metaLines].filter(Boolean).map(line => `<span>${line}</span>`).join('')}</div>
         </div>`;
 }
 
@@ -1247,7 +1300,7 @@ function prCardHTML(label, total, items, isDurunuri) {
 }
 
 function prNotesHTML(lines) {
-    return `<div class="pr-notes">${lines.filter(Boolean).map(line => `<p>※ ${line}</p>`).join('')}</div>`;
+    return `<div class="pr-notes">${[...lines, pendingYearNote('했습니다')].filter(Boolean).map(line => `<p>※ ${line}</p>`).join('')}</div>`;
 }
 
 function prPct(percentValue) {
@@ -3012,3 +3065,40 @@ window.addEventListener('load', () => {
         });
     }
 });
+
+// ========================================
+// 기준 연도 고르기 — 머리줄(계산 화면)과 첫 화면 두 곳, 서로 맞춰 움직임
+// ========================================
+const YEAR_SELECT_IDS = ['yearBar', 'yearHome'];
+
+function syncYearUI() {
+    YEAR_SELECT_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = String(rateYear);
+        el.classList.toggle('other', rateYear !== THIS_YEAR);  // 올해가 아니면 파랗게 — 다른 연도로 계산 중임을 알아보게
+    });
+    const note = document.getElementById('yearNote');
+    if (note) {
+        note.textContent = `${rateYear}년 요율 기준`
+            + (YEAR_DATA[rateYear].pending.length ? ` (아직 발표 안 된 값은 ${rateYear - 1}년 값)` : '');
+    }
+}
+
+// 연도를 바꾸면 지금 나와 있는 결과를 그 연도로 다시 계산
+function changeRateYear(value) {
+    setRateYear(parseInt(value, 10));
+    syncYearUI();
+    const shown = id => { const el = document.getElementById(id); return el && el.style.display !== 'none'; };
+    if (shown('workerResultSection')) calculateWorkerResult();
+    if (shown('employerResultSection')) calculateEmployerResult();
+    if (shown('totalBillResult')) calculateTotalBill();
+    if (shown('foreignerCalcResult')) calculateForeignerPremium();
+    renderInsurance();
+}
+
+YEAR_SELECT_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = RATE_YEARS.map(y => `<option value="${y}">${y}년</option>`).join('');
+});
+syncYearUI();

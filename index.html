@@ -26,6 +26,8 @@
                 <span class="app-org">국민노무법인</span>
             </span>
         </a>
+        <!-- 기준 연도 (계산 화면에서만 보임, 첫 화면은 본문 안에 따로 있음 — 둘은 서로 맞춰 움직임) -->
+        <select id="yearBar" class="yr yr-bar" aria-label="기준 연도" onchange="changeRateYear(this.value)"></select>
         <div class="app-bar-actions">
             <a class="bar-call" href="tel:02-2671-0091">
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></svg><span class="bar-call-long">상담 02-2671-0091</span><span class="bar-call-short">상담</span>
@@ -42,6 +44,7 @@
         <div class="home">
             <div class="home-intro">
                 <h2 class="home-title">무엇이 <br class="pc-only">궁금하세요?</h2>
+                <div class="home-year"><select id="yearHome" class="yr" aria-label="기준 연도" onchange="changeRateYear(this.value)"></select><span>요율로 계산해요</span></div>
             </div>
 
             <div class="home-choices">
@@ -517,7 +520,7 @@
     <!-- 푸터 -->
     <footer>
         <p class="footer-main">이 계산기는 <a class="footer-org" href="http://www.gmlabor.co.kr/" target="_blank" rel="noopener noreferrer">국민노무법인</a>에서 제공합니다<span class="footer-sep"> · </span><span class="footer-contact">사무실 <a href="tel:02-2671-0091">02-2671-0091</a> · 휴대폰 <a href="tel:010-5284-0091">010-5284-0091</a></span></p>
-        <p class="note">※ 2026년 요율 기준 (고용보험 2025년) · 입력값은 저장되지 않아요</p>
+        <p class="note">※ <span id="yearNote">2026년 요율 기준</span> · 입력값은 저장되지 않아요</p>
     </footer>
 
     <!-- PDF 저장(인쇄) 시에만 보이는 영역 — 화면에는 항상 숨겨져 있음 -->
