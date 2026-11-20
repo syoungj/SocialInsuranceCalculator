@@ -77,6 +77,7 @@ const YEAR_DATA = {
         pensionLimitsFirstHalf: { min: 390000, max: 6170000 }, // 2025.1 ~ 6 (2024.7 고시값) — 안내 문구용
         healthLimits: { min: 19780, max: 9008340 },
         durunuri: { pension: 82800, employmentWorker: 16560 },
+        commutePermille: 0.6,                              // 산재 출퇴근재해 요율 (전 업종 같음)
         pending: [],
     },
     2026: {
@@ -85,6 +86,7 @@ const YEAR_DATA = {
         pensionLimitsFirstHalf: { min: 400000, max: 6370000 }, // 2026.1 ~ 6 (2025.7 고시값) — 안내 문구용
         healthLimits: { min: 20160, max: 9183480 },
         durunuri: { pension: 87400, employmentWorker: 16560 },
+        commutePermille: 0.6,
         pending: [],
     },
     2027: {
@@ -95,11 +97,13 @@ const YEAR_DATA = {
         pensionLimits: { min: 410000, max: 6590000 },     // 2027.7 새 값 고시 전까지 2026.7 값
         healthLimits: { min: 20160, max: 9183480 },       // 2027년 고시 전 — 2026년 값
         durunuri: { pension: 87400, employmentWorker: 16560 }, // 2027년 기준 발표 전 — 2026년 값
-        pending: ['고용보험료율(인상 논의 중)', '국민연금 7월 이후 상·하한', '건강보험료 상·하한', '두루누리 지원 상한액', '산재보험 업종 요율'],
+        commutePermille: 0.6,                              // 2027년 고시 전 — 2026년 값
+        pending: ['고용보험료율(인상 논의 중)', '국민연금 7월 이후 상·하한', '건강보험료 상·하한', '두루누리 지원 상한액', '산재보험료율'],
     },
 };
 const RATE_YEARS = Object.keys(YEAR_DATA).map(Number);
 const THIS_YEAR = new Date().getFullYear();
+let accidentCommutePermille = 0;  // 산재 출퇴근재해 요율(천분율) — 업종 요율에 더해서 부과됨
 // 앱을 열면 항상 올해로 시작 (표에 없는 해면 가장 가까운 해)
 let rateYear = Math.min(Math.max(THIS_YEAR, RATE_YEARS[0]), RATE_YEARS[RATE_YEARS.length - 1]);
 
@@ -111,6 +115,7 @@ function setRateYear(year) {
     Object.assign(PENSION_BASE_LIMITS, d.pensionLimits);
     Object.assign(HEALTH_PREMIUM_LIMITS, d.healthLimits);
     Object.assign(DURUNURI_CAPS, d.durunuri);
+    accidentCommutePermille = d.commutePermille;
 }
 setRateYear(rateYear);
 
@@ -183,6 +188,16 @@ const INDUSTRY_RATES = [
     { name: '어업', permille: 27 },
     { name: '농업', permille: 20 },
 ];
+
+// 실제 산재보험료율 = 업종 요율 + 출퇴근재해 요율 (예: 8 + 0.6 = 8.6‰)
+function accidentPermilleOf(industry) {
+    return Math.round((industry.permille + accidentCommutePermille) * 10) / 10;
+}
+
+// "8.6/1000 (출퇴근 0.6 포함)"
+function accidentRateText(industry) {
+    return `${accidentPermilleOf(industry)}/1000 (출퇴근 ${accidentCommutePermille} 포함)`;
+}
 
 // ========================================
 // 외국인 근로자 — 국민연금·고용보험 적용 판단용 자료
@@ -632,7 +647,7 @@ function renderEmployerResult() {
     } else {
         set('empEmploymentRate', formatRate((RATES.employmentWorker + RATES.employmentStability) * 100));
     }
-    set('empAccidentRate', s.accidentPermille === null ? '' : `(${s.accidentPermille}/1000, 참고용)`);
+    set('empAccidentRate', s.accidentPermille === null ? '' : `(${s.accidentPermille}/1000, 출퇴근 포함·참고용)`);
     document.getElementById('empAccidentInfo').style.display = s.accidentPermille === null ? 'none' : '';
 
     ['empPension', 'empEmployment', 'empResultTotal'].forEach(id => {
@@ -713,8 +728,8 @@ function computeEmployerShare(workerSalary, workerBirthDate, industryIdx, stabil
     let accidentPermille = null;
     if (industryIdx !== '' && industryIdx !== null && industryIdx !== undefined) {
         const industry = INDUSTRY_RATES[parseInt(industryIdx, 10)];
-        accidentEmployer = floor10(workerSalary * industry.permille / 1000);
-        accidentPermille = industry.permille;
+        accidentPermille = accidentPermilleOf(industry);
+        accidentEmployer = floor10(workerSalary * accidentPermille / 1000);
     }
 
     const total = pensionEmployer + healthEmployer + longtermEmployer + employmentEmployer + (accidentEmployer || 0);
@@ -1334,7 +1349,7 @@ function prBurdenHeadHTML(industry, stabilityRate = RATES.employmentStability) {
             <th>건강보험<span class="pr-rate">${prPct(RATES.health / 2 * 100)}</span></th>
             <th>장기요양<span class="pr-rate">건강보험료의 ${prPct(RATES.longterm * 100)}</span></th>
             <th>고용보험<span class="pr-rate">${prPct(RATES.employmentWorker * 100)}+${prPct(stabilityRate * 100)}</span></th>
-            <th>산재보험<span class="pr-rate">${industry ? prPct(industry.permille / 10) : '업종 미선택'}</span></th>
+            <th>산재보험<span class="pr-rate">${industry ? prPct(accidentPermilleOf(industry) / 10) : '업종 미선택'}</span></th>
             <th>부담 합계</th>
         </tr></thead>`;
 }
@@ -1465,13 +1480,13 @@ function printEmployerBasic() {
         ['건강보험', prPct(RATES.health / 2 * 100), formatNumber(s.healthEmployer), dd && dd.health, false],
         ['장기요양보험', `건강보험료의 ${prPct(RATES.longterm * 100)}`, formatNumber(s.longtermEmployer), dd && dd.longterm, false],
         ['고용보험', s.employmentExempt ? `고용안정·직업능력개발 ${prPct(RATES.employmentStability * 100)}만` : `${prPct(RATES.employmentWorker * 100)}+${prPct(RATES.employmentStability * 100)}`, formatNumber(s.employmentEmployer), dd && dd.employment, dd && dd.employmentCapped],
-        ['산재보험', industry ? prPct(industry.permille / 10) : '업종 미선택', accidentText, dd && accidentText, false],
+        ['산재보험', industry ? prPct(accidentPermilleOf(industry) / 10) : '업종 미선택', accidentText, dd && accidentText, false],
     ];
 
     document.getElementById('printArea').innerHTML = `
         ${prHeadHTML('사업주 4대보험 부담 내역', [
             `${prDateStr(today)} 기준`,
-            `업종: ${industry ? `${industry.name} · 산재 ${industry.permille}/1000` : '선택 안 함'}`,
+            `업종: ${industry ? `${industry.name} · 산재 ${accidentRateText(industry)}` : '선택 안 함'}`,
             '금액 단위: 원',
         ])}
 
@@ -1818,7 +1833,7 @@ function printTotalBill() {
     printArea.innerHTML = `
         ${prHeadHTML('한 달 총 부과 예상 금액', [
             `${prDateStr(today)} 기준`,
-            `업종: ${industry ? `${industry.name} · 산재 ${industry.permille}/1000` : '선택 안 함'}`,
+            `업종: ${industry ? `${industry.name} · 산재 ${accidentRateText(industry)}` : '선택 안 함'}`,
             `근로자수: ${EMPLOYMENT_STABILITY_RATES.find(r => r.rate === totalBillStabilityRate).label}`,
             '금액 단위: 원',
         ])}
@@ -2576,7 +2591,7 @@ function printForeigner() {
         ${prHeadHTML('외국인 근로자 4대보험 내역', [
             `${prDateStr(today)} 기준`,
             `${visa.code}(${visa.name})${country.unknown ? '' : ` · ${country.name}`}`,
-            `업종: ${industry ? `${industry.name} · 산재 ${industry.permille}/1000` : '선택 안 함'}`,
+            `업종: ${industry ? `${industry.name} · 산재 ${accidentRateText(industry)}` : '선택 안 함'}`,
             employmentMode === 'none' ? '' : `근로자수: ${EMPLOYMENT_STABILITY_RATES[sizeIdx].label}`,
             '금액 단위: 원',
         ].filter(Boolean))}
@@ -2616,7 +2631,7 @@ function printForeigner() {
                 ${itemRow('건강보험', prPct(RATES.health / 2 * 100), w.health, e.healthEmployer)}
                 ${itemRow('장기요양보험', `건강보험료의 ${prPct(RATES.longterm * 100)}`, w.longterm, e.longtermEmployer)}
                 ${itemRow('고용보험', employmentMode === 'none' ? '0원으로 계산' : employmentMode === 'stabilityOnly' ? '사업주 고용안정·직업능력개발분만' : `${prPct(RATES.employmentWorker * 100)} / ${prPct(RATES.employmentWorker * 100)}+${prPct(stabilityRate * 100)}`, w.employment, e.employmentEmployer)}
-                ${itemRow('산재보험', industry ? prPct(industry.permille / 10) : '', null, e.accidentEmployer)}
+                ${itemRow('산재보험', industry ? prPct(accidentPermilleOf(industry) / 10) : '', null, e.accidentEmployer)}
                 ${prSumRowsHTML([w.total, e.total, w.total + e.total], dn ? [dn.workerTotal, dn.employerTotal, dn.workerTotal + dn.employerTotal] : null, 2)}
                 <tr><td class="pr-strong">4대보험 제외</td><td class="pr-strong">${formatNumber(w.netPay)}</td><td></td><td></td></tr>
             </tbody>
@@ -2869,7 +2884,7 @@ function buildInsuranceRows(picks, w, e, industry, stabilityRate) {
         });
     }
     if (picks.includes('accident')) {
-        rows.push({ name: '산재보험', rate: industry ? `${industry.permille}/1000` : '', worker: null, employer: e.accidentEmployer });
+        rows.push({ name: '산재보험', rate: industry ? accidentRateText(industry) : '', worker: null, employer: e.accidentEmployer });
     }
     return rows;
 }
@@ -2989,7 +3004,7 @@ function printInsurance() {
             `${prDateStr(today)} 기준`,
             ageMatters ? (bd ? `${bd.year}년 ${bd.month}월생 기준` : insuranceBaseAgeText(picks)) : '',
             picks.includes('employment') ? `근로자수: ${EMPLOYMENT_STABILITY_RATES[sizeIdx].label}` : '',
-            picks.includes('accident') ? `업종: ${industry ? `${industry.name} · 산재 ${industry.permille}/1000` : '선택 안 함'}` : '',
+            picks.includes('accident') ? `업종: ${industry ? `${industry.name} · 산재 ${accidentRateText(industry)}` : '선택 안 함'}` : '',
             '금액 단위: 원',
         ].filter(Boolean))}
 
