@@ -42,6 +42,10 @@ function premiumLimitNotes(salary) {
     const base = Math.floor(salary / 1000) * 1000;
     if (base > PENSION_BASE_LIMITS.max) notes.push(`국민연금은 기준소득월액 상한(${formatNumber(PENSION_BASE_LIMITS.max)}원)으로 계산했어요.`);
     if (base < PENSION_BASE_LIMITS.min) notes.push(`국민연금은 기준소득월액 하한(${formatNumber(PENSION_BASE_LIMITS.min)}원)으로 계산했어요.`);
+    // 상·하한은 7월에 바뀌어서 그 해 1~6월은 값이 다름 — 반기를 나누는 대신, 해당하는 사람에게만 한 줄 안내
+    const firstHalf = YEAR_DATA[rateYear].pensionLimitsFirstHalf;
+    if (firstHalf && base > firstHalf.max) notes.push(`국민연금 기준소득월액 상한은 ${rateYear}년 1~6월에는 ${formatNumber(firstHalf.max)}원이에요.`);
+    if (firstHalf && base < PENSION_BASE_LIMITS.min) notes.push(`국민연금 기준소득월액 하한은 ${rateYear}년 1~6월에는 ${formatNumber(firstHalf.min)}원이에요.`);
     const healthRaw = floor10(salary * RATES.health);
     if (healthRaw > HEALTH_PREMIUM_LIMITS.max) notes.push('건강보험은 보험료 상한액으로 계산했어요.');
     if (healthRaw < HEALTH_PREMIUM_LIMITS.min) notes.push('건강보험은 보험료 하한액으로 계산했어요.');
@@ -51,7 +55,7 @@ function premiumLimitNotes(salary) {
 // PDF용 — 화면 문구를 "~했습니다"로
 function premiumLimitNotesPdf(salaries) {
     const all = new Set();
-    salaries.forEach(v => premiumLimitNotes(v).forEach(t => all.add(t.replace('했어요.', '했습니다.'))));
+    salaries.forEach(v => premiumLimitNotes(v).forEach(t => all.add(t.replace('했어요.', '했습니다.').replace('이에요.', '입니다.'))));
     return [...all];
 }
 
@@ -70,6 +74,7 @@ const YEAR_DATA = {
     2025: {
         rates: { pension: 0.09, health: 0.0709, longterm: 0.1295, employmentWorker: 0.009 },
         pensionLimits: { min: 400000, max: 6370000 },     // 2025.7 ~ 2026.6
+        pensionLimitsFirstHalf: { min: 390000, max: 6170000 }, // 2025.1 ~ 6 (2024.7 고시값) — 안내 문구용
         healthLimits: { min: 19780, max: 9008340 },
         durunuri: { pension: 82800, employmentWorker: 16560 },
         pending: [],
@@ -77,6 +82,7 @@ const YEAR_DATA = {
     2026: {
         rates: { pension: 0.095, health: 0.0719, longterm: 0.1314, employmentWorker: 0.009 },
         pensionLimits: { min: 410000, max: 6590000 },     // 2026.7 ~ 2027.6
+        pensionLimitsFirstHalf: { min: 400000, max: 6370000 }, // 2026.1 ~ 6 (2025.7 고시값) — 안내 문구용
         healthLimits: { min: 20160, max: 9183480 },
         durunuri: { pension: 87400, employmentWorker: 16560 },
         pending: [],
