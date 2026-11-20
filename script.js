@@ -75,8 +75,8 @@ const YEAR_DATA = {
         rates: { pension: 0.09, health: 0.0709, longterm: 0.1295, employmentWorker: 0.009 },
         pensionLimits: { min: 400000, max: 6370000 },     // 2025.7 ~ 2026.6
         pensionLimitsFirstHalf: { min: 390000, max: 6170000 }, // 2025.1 ~ 6 (2024.7 고시값) — 안내 문구용
-        healthLimits: { min: 19780, max: 9008340 },
-        durunuri: { pension: 82800, employmentWorker: 16560 },
+        healthLimits: { min: 19780, max: 9008340 },       // 고시 2024.12.30 개정판 (신구대비로 확인)
+        durunuri: { pension: 82800, employmentWorker: 16560 }, // 2025년 두루누리 안내로 확인
         commutePermille: 0.6,                              // 산재 출퇴근재해 요율 (전 업종 같음)
         pending: [],
     },
