@@ -99,7 +99,7 @@ const YEAR_DATA = {
         healthLimits: { min: 20160, max: 9183480 },       // 2027년 고시 전 — 2026년 값
         durunuri: { capBase: 2300000, pension: 87400, employmentWorker: 16560 }, // 2027년 기준 발표 전 — 2026년 값
         commutePermille: 0.6,                              // 2027년 고시 전 — 2026년 값
-        pending: ['고용보험료율(인상 논의 중)', '국민연금 7월 이후 상·하한', '건강보험료 상·하한', '두루누리 지원 상한액', '산재보험료율'],
+        pending: ['고용보험료율(인상 논의 중)', '국민연금 7월 이후 상·하한', '건강보험료 상·하한', '두루누리 지원율·상한(예산 심의 중)', '산재보험료율'],
     },
 };
 const RATE_YEARS = Object.keys(YEAR_DATA).map(Number);
