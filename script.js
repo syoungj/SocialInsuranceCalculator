@@ -46,6 +46,11 @@ function premiumLimitNotes(salary) {
     const firstHalf = YEAR_DATA[rateYear].pensionLimitsFirstHalf;
     if (firstHalf && base > firstHalf.max) notes.push(`국민연금 기준소득월액 상한은 ${rateYear}년 1~6월에는 ${formatNumber(firstHalf.max)}원이에요.`);
     if (firstHalf && base < PENSION_BASE_LIMITS.min) notes.push(`국민연금 기준소득월액 하한은 ${rateYear}년 1~6월에는 ${formatNumber(firstHalf.min)}원이에요.`);
+    // 7월 이후 상·하한이 아직 발표 전인 해(2027): 지금 값이 그 해 6월까지라는 것만 해당자에게 안내
+    if (YEAR_DATA[rateYear].pending.pensionLimits) {
+        if (base > PENSION_BASE_LIMITS.max) notes.push(`국민연금 상한은 ${rateYear}년 6월까지의 값이에요. 7월 이후 상한은 아직 발표 전이에요.`);
+        if (base < PENSION_BASE_LIMITS.min) notes.push(`국민연금 하한은 ${rateYear}년 6월까지의 값이에요. 7월 이후 하한은 아직 발표 전이에요.`);
+    }
     const healthRaw = floor10(salary * RATES.health);
     if (healthRaw > HEALTH_PREMIUM_LIMITS.max) notes.push('건강보험은 보험료 상한액으로 계산했어요.');
     if (healthRaw < HEALTH_PREMIUM_LIMITS.min) notes.push('건강보험은 보험료 하한액으로 계산했어요.');
@@ -55,7 +60,7 @@ function premiumLimitNotes(salary) {
 // PDF용 — 화면 문구를 "~했습니다"로
 function premiumLimitNotesPdf(salaries) {
     const all = new Set();
-    salaries.forEach(v => premiumLimitNotes(v).forEach(t => all.add(t.replace('했어요.', '했습니다.').replace('이에요.', '입니다.'))));
+    salaries.forEach(v => premiumLimitNotes(v).forEach(t => all.add(t.replace('했어요.', '했습니다.').replace('적용돼요.', '적용됩니다.').replace(/이에요\./g, '입니다.'))));
     return [...all];
 }
 
@@ -133,7 +138,7 @@ setRateYear(rateYear);
 function pendingYearNote(ending = '했어요', ctx) {
     const p = YEAR_DATA[rateYear].pending;
     const salaries = ctx ? (ctx.salaries || []).filter(v => v > 0) : [];
-    const pensionNear = v => { const b = Math.floor(v / 1000) * 1000; return b > PENSION_BASE_LIMITS.max || b < PENSION_BASE_LIMITS.min * 1.05; };
+    const pensionNear = v => { const b = Math.floor(v / 1000) * 1000; return b >= PENSION_BASE_LIMITS.min && b < PENSION_BASE_LIMITS.min * 1.05; };  // 바깥이면 premiumLimitNotes가 따로 안내
     const healthNear = v => { const h = floor10(v * RATES.health); return h > HEALTH_PREMIUM_LIMITS.max || h < HEALTH_PREMIUM_LIMITS.min * 1.05; };
     const applies = {
         employment: () => ctx.employment,
@@ -1231,6 +1236,9 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
         if (limitSalaries.some(v => premiumLimitNotes(v).length)) {
             notes.push(`급여가 상·하한을 벗어난 사람은 국민연금 기준소득월액 상·하한(${formatNumber(PENSION_BASE_LIMITS.min)}원~${formatNumber(PENSION_BASE_LIMITS.max)}원)과 건강보험료 상·하한을 적용해 계산했어요.`);
         }
+        if (limitSalaries.some(v => premiumLimitNotes(v).some(t => t.includes('6월까지의 값')))) {
+            notes.push(`국민연금 기준소득월액 상·하한은 ${rateYear}년 6월까지 값이에요. 7월 이후 값은 아직 발표 전이에요.`);
+        }
     }
     notes.push('근로자 부담분과 사업주 부담분(사업주 본인 몫 포함)을 모두 합친 한 달 총 부과 예상 금액이에요.<br><b>두루누리 지원금은 반영되지 않은 금액입니다.</b><br>산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액이며, 정확한 산재보험료율은 근로복지공단(<a href="tel:1588-0075">1588-0075</a>)에 별도로 확인해주세요.');
 
@@ -1924,7 +1932,7 @@ function printTotalBill() {
             '표의 요율은 기본 요율이며, 각 보험료는 10원 미만을 절사했습니다.',
             prEmploymentRateNote(totalBillStabilityRate),
             ...premiumLimitNotesPdf([...totalBillWorkersCalc.map(w => w.salary), totalBillOwnerCalc.salary].filter(v => v > 0))
-                .map(t => '급여가 상·하한을 벗어난 사람은 ' + t.replace('계산했습니다.', '계산했습니다(해당자만).')),
+                .map(t => t.includes('계산했습니다.') ? '급여가 상·하한을 벗어난 사람은 ' + t.replace('계산했습니다.', '계산했습니다(해당자만).') : t),
             `고용보험은 만 65세 이상이면 사업주 고용안정·직업능력개발분(${prPct(totalBillStabilityRate * 100)})만 부과됩니다.`,
             anyExempt ? '나이(만 60세·65세) 조건으로 제외된 항목이 있는 경우, 금액에는 이미 반영되어 있어 표의 기본 요율과 다를 수 있습니다.' : '',
             industry ? '산재보험료는 선택한 업종 요율로 계산한 참고 금액이며, 실제 업종 분류는 근로복지공단이 정합니다.' : '업종을 선택하지 않아 산재보험료는 계산하지 않았습니다.',
