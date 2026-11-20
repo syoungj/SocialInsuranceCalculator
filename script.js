@@ -79,7 +79,7 @@ const YEAR_DATA = {
         healthLimits: { min: 19780, max: 9008340 },       // 고시 2024.12.30 개정판 (신구대비로 확인)
         durunuri: { capBase: 2300000, pension: 82800, employmentWorker: 16560 }, // 2025년 두루누리 안내로 확인
         commutePermille: 0.6,                              // 산재 출퇴근재해 요율 (전 업종 같음)
-        pending: [],
+        pending: {},
     },
     2026: {
         rates: { pension: 0.095, health: 0.0719, longterm: 0.1314, employmentWorker: 0.009 },
@@ -88,7 +88,7 @@ const YEAR_DATA = {
         healthLimits: { min: 20160, max: 9183480 },
         durunuri: { capBase: 2300000, pension: 87400, employmentWorker: 16560 },
         commutePermille: 0.6,
-        pending: [],
+        pending: {},
     },
     2027: {
         // 국민연금 10% (연금개혁, 매년 0.5%p 인상), 건강 7.19% 동결(2026.9.8 건정심),
@@ -99,7 +99,13 @@ const YEAR_DATA = {
         healthLimits: { min: 20160, max: 9183480 },       // 2027년 고시 전 — 2026년 값
         durunuri: { capBase: 2300000, pension: 87400, employmentWorker: 16560 }, // 2027년 기준 발표 전 — 2026년 값
         commutePermille: 0.6,                              // 2027년 고시 전 — 2026년 값
-        pending: ['고용보험료율(인상 논의 중)', '국민연금 7월 이후 상·하한', '건강보험료 상·하한', '두루누리 지원율·상한(예산 심의 중)', '산재보험료율'],
+        pending: {
+            employment: '고용보험료율(인상 논의 중)',
+            pensionLimits: '국민연금 7월 이후 상·하한',
+            healthLimits: '건강보험료 상·하한',
+            durunuri: '두루누리 지원율·상한(예산 심의 중)',
+            accident: '산재보험료율',
+        },
     },
 };
 const RATE_YEARS = Object.keys(YEAR_DATA).map(Number);
@@ -120,10 +126,26 @@ function setRateYear(year) {
 }
 setRateYear(rateYear);
 
-// 아직 발표 안 된 값이 있으면 안내 문장 (없으면 빈 문자열)
-function pendingYearNote(ending = '했어요') {
+// 아직 발표 안 된 값 안내 — 이 계산에 실제로 걸리는 항목만 (없으면 빈 문자열)
+// ctx: { salaries, pension, health, employment, durunuri, accident } — 각 보험을 계산했는지(true/false)
+//   상·하한은 급여가 지금 상·하한 근처(하한 5% 이내) 또는 바깥일 때만 해당
+//   ctx를 안 주면 미발표 항목을 모두 안내
+function pendingYearNote(ending = '했어요', ctx) {
     const p = YEAR_DATA[rateYear].pending;
-    return p.length ? `${rateYear}년 ${p.join('·')}은 아직 발표되지 않아 ${rateYear - 1}년 값으로 계산${ending}.` : '';
+    const salaries = ctx ? (ctx.salaries || []).filter(v => v > 0) : [];
+    const pensionNear = v => { const b = Math.floor(v / 1000) * 1000; return b > PENSION_BASE_LIMITS.max || b < PENSION_BASE_LIMITS.min * 1.05; };
+    const healthNear = v => { const h = floor10(v * RATES.health); return h > HEALTH_PREMIUM_LIMITS.max || h < HEALTH_PREMIUM_LIMITS.min * 1.05; };
+    const applies = {
+        employment: () => ctx.employment,
+        pensionLimits: () => ctx.pension && salaries.some(pensionNear),
+        healthLimits: () => ctx.health !== false && salaries.some(healthNear),
+        durunuri: () => ctx.durunuri,
+        accident: () => ctx.accident,
+    };
+    const items = Object.keys(p).filter(k => !ctx || (applies[k] ? applies[k]() : true)).map(k => p[k]);
+    if (!items.length) return '';
+    // 항목 이름이 모두 받침으로 끝나서(…율, …한) "은"
+    return `${rateYear}년 ${items.join('·')}은 아직 발표되지 않아 ${rateYear - 1}년 값으로 계산${ending}.`;
 }
 
 // 금액 입력칸("1,600,000")을 숫자로 — 쉼표 등 숫자 아닌 글자는 무시
@@ -1333,8 +1355,8 @@ function prCardHTML(label, total, items, isDurunuri) {
         </div>`;
 }
 
-function prNotesHTML(lines) {
-    return `<div class="pr-notes">${[...lines, pendingYearNote('했습니다')].filter(Boolean).map(line => `<p>※ ${line}</p>`).join('')}</div>`;
+function prNotesHTML(lines, ctx) {
+    return `<div class="pr-notes">${[...lines, pendingYearNote('했습니다', ctx)].filter(Boolean).map(line => `<p>※ ${line}</p>`).join('')}</div>`;
 }
 
 function prPct(percentValue) {
@@ -1462,7 +1484,7 @@ function printResult(type) {
             dd ? '두루누리 적용 시 금액은 월급여 270만원 미만으로 지원 가능 대상일 때의 예상 금액입니다.' : '',
             dd ? '두루누리 지원은 국민연금·고용보험에만 적용되며, 실제 지원 여부는 국민연금공단·근로복지공단 확인이 필요합니다.' : '',
             prDurunuriCapNote(anyCapped),
-        ])}
+        ], { salaries: [salary], pension: !calc.pensionExempt, health: true, employment: !calc.employmentExempt, durunuri: !!dd, accident: false })}
     `;
 
     showPdfPreview(`4대보험_내월급_${salary}원_${dateSlug(today)}`);
@@ -1591,7 +1613,7 @@ function printEmployerBasic() {
             dd ? '사업주가 내는 고용보험료는 실업급여분과 고용안정·직업능력개발분 모두 두루누리가 적용됩니다.' : '',
             dd ? '두루누리 실제 지원 여부는 국민연금공단·근로복지공단 확인이 필요합니다.' : '',
             prDurunuriCapNote(anyCapped),
-        ])}
+        ], { salaries: [empCalc.salary], pension: !s.pensionExempt, health: true, employment: !s.employmentExempt, durunuri: !!dd, accident: !!industry })}
     `;
 
     showPdfPreview(`4대보험_사업주부담_${empCalc.salary}원_${dateSlug(today)}`);
@@ -1913,7 +1935,7 @@ function printTotalBill() {
                 ? '사업주 본인은 고용보험·산재보험 가입 대상이 아니며, 두루누리 지원 대상도 아닙니다.'
                 : '사업주 본인은 고용보험·산재보험 가입 대상이 아닙니다.',
             ownerDisclaimer,
-        ])}
+        ], { salaries: [...totalBillWorkersCalc.map(w => w.salary), totalBillOwnerCalc.salary], pension: true, health: true, employment: true, durunuri: !!anyEligible, accident: !!industry })}
     `;
 
     showPdfPreview(`4대보험_총부과예상금액_${dateSlug(today)}`);
@@ -2669,7 +2691,7 @@ function printForeigner() {
             '고용보험은 체류자격 외에도 65세 이후 신규 고용, 월 소정근로시간 60시간 미만 등 일반 적용제외 사유를 별도로 확인해야 합니다.',
             '표의 요율은 기본 요율이며, 각 보험료는 10원 미만을 절사했습니다.',
             prEmploymentRateNote(stabilityRate),
-        ])}
+        ], { salaries: [salary], pension: pensionApplies && !w.pensionExempt, health: true, employment: employmentMode === 'all' && !w.employmentExempt, durunuri: !!dn, accident: !!industry })}
     `;
 
     showPdfPreview(`4대보험_외국인_${visa.code}_${salary}원_${dateSlug(today)}`);
@@ -3055,7 +3077,7 @@ function printInsurance() {
             ...insuranceAgeNotes(picks, w, true),
             picks.includes('accident') && industry ? '산재보험료는 선택한 업종 기준 참고용 금액이며, 실제 요율은 근로복지공단이 사업 내용을 보고 정합니다.' : '',
             '각 보험료는 10원 미만을 절사했습니다.',
-        ])}
+        ], { salaries: [salary], pension: picks.includes('pension') && !w.pensionExempt, health: picks.includes('health'), employment: picks.includes('employment') && !w.employmentExempt, durunuri: false, accident: picks.includes('accident') && !!industry })}
     `;
 
     showPdfPreview(`보험별계산_${salary}원_${dateSlug(today)}`);
@@ -3127,7 +3149,7 @@ function syncYearUI() {
     const note = document.getElementById('yearNote');
     if (note) {
         note.textContent = `${rateYear}년 요율 기준`
-            + (YEAR_DATA[rateYear].pending.length ? ` (아직 발표 안 된 값은 ${rateYear - 1}년 값)` : '');
+            + (Object.keys(YEAR_DATA[rateYear].pending).length ? ` (아직 발표 안 된 값은 ${rateYear - 1}년 값)` : '');
     }
 }
 
