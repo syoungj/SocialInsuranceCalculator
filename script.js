@@ -3108,9 +3108,10 @@ window.addEventListener('load', () => {
 });
 
 // ========================================
-// 기준 연도 고르기 — 머리줄(계산 화면) 펼침 목록과 PC 첫 화면 연도 버튼, 서로 맞춰 움직임
+// 기준 연도 고르기 — 각 계산의 입력 칸 안 (근로자·사업주·보험별·총 부과·외국인 보험료)
+// 한 곳에서 바꾸면 다른 칸·결과 제목도 모두 같은 연도로 맞춰 움직임
 // ========================================
-const YEAR_SELECT_IDS = ['yearBar'];
+const YEAR_SELECT_IDS = ['workerYear', 'employerYear', 'insYear', 'totalBillYear', 'foreignerYear'];
 
 function syncYearUI() {
     YEAR_SELECT_IDS.forEach(id => {
@@ -3119,10 +3120,9 @@ function syncYearUI() {
         el.value = String(rateYear);
         el.classList.toggle('other', rateYear !== THIS_YEAR);  // 올해가 아니면 파랗게 — 다른 연도로 계산 중임을 알아보게
     });
-    document.querySelectorAll('#yearSeg button').forEach(btn => {
-        const on = Number(btn.dataset.year) === rateYear;
-        btn.classList.toggle('on', on);
-        btn.setAttribute('aria-pressed', String(on));
+    // 결과 제목 앞 "2026년 기준 · " — 결과만 캡처하거나 PDF로 저장해도 어느 연도인지 보이게
+    document.querySelectorAll('.year-tag').forEach(el => {
+        el.textContent = `${rateYear}년 기준 · `;
     });
     const note = document.getElementById('yearNote');
     if (note) {
@@ -3147,10 +3147,6 @@ YEAR_SELECT_IDS.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = RATE_YEARS.map(y => `<option value="${y}">${y}년</option>`).join('');
 });
-const yearSeg = document.getElementById('yearSeg');
-if (yearSeg) {
-    yearSeg.innerHTML = RATE_YEARS.map(y => `<button type="button" data-year="${y}" onclick="changeRateYear(${y})">${y}</button>`).join('');
-}
 syncYearUI();
 
 // 머리줄: 폰 계산 화면에서 아래로 내리면 숨기고, 위로 올리면 다시 보임 (첫 화면·PC는 항상 보임)

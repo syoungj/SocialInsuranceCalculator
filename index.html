@@ -26,8 +26,6 @@
                 <span class="app-org">국민노무법인</span>
             </span>
         </a>
-        <!-- 기준 연도 (계산 화면에서만 보임, 첫 화면은 본문 안에 따로 있음 — 둘은 서로 맞춰 움직임) -->
-        <select id="yearBar" class="yr yr-bar" aria-label="기준 연도" onchange="changeRateYear(this.value)"></select>
         <div class="app-bar-actions">
             <a class="bar-call" href="tel:02-2671-0091">
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></svg><span class="bar-call-long">상담 02-2671-0091</span><span class="bar-call-short">상담</span>
@@ -47,11 +45,6 @@
             </div>
 
             <div class="home-choices">
-                <!-- 기준 연도 (PC 첫 화면에만 보임 — 폰 첫 화면은 질문·카드만, 연도는 계산 화면 머리줄에서 바꿈) -->
-                <div class="home-year" role="group" aria-labelledby="homeYearCap">
-                    <span class="home-year-cap" id="homeYearCap">기준 연도</span>
-                    <div class="year-seg" id="yearSeg"></div>
-                </div>
                 <div class="choice-grid">
                     <button class="choice-card" id="workerOptionBtn" onclick="goToWorkerStep()">
                         <span class="choice-arrow" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
@@ -91,10 +84,17 @@
                     <h2 class="sr-only">내 월급에서 얼마 떼나요?</h2>
                     <!-- 급여 칸 + 계산하기: 계산 전엔 위아래, 계산 후엔 한 줄 (script.js가 카드에 compact를 붙임) -->
                     <div class="salary-row">
-                        <div class="input-group">
-                            <label for="workerSalary" class="sr-only">월급여액</label>
-                            <input type="text" id="workerSalary" class="money-input" inputmode="numeric" placeholder="월급여 (예: 3,000,000)" autocomplete="new-password">
-                            <span class="unit">원</span>
+                        <!-- 연도 + 월급여 두 칸 나란히 (연도도 계산에 넣는 값) -->
+                        <div class="year-salary">
+                            <div class="input-group">
+                                <label for="workerYear">연도</label>
+                                <select id="workerYear" class="yr-field" onchange="changeRateYear(this.value)"></select>
+                            </div>
+                            <div class="input-group">
+                                <label for="workerSalary">월급여</label>
+                                <input type="text" id="workerSalary" class="money-input" inputmode="numeric" placeholder="예: 3,000,000" autocomplete="new-password">
+                                <span class="unit">원</span>
+                            </div>
                         </div>
                         <button class="btn-primary" onclick="calculateWorkerResult()">계산하기</button>
                     </div>
@@ -108,7 +108,7 @@
                 <div id="workerResultSection" style="display:none;">
                     <section class="result-card" aria-labelledby="netPayLabel">
                         <div class="net-band">
-                            <h3 id="netPayLabel">4대보험 제외</h3>
+                            <h3 id="netPayLabel"><span class="year-tag"></span>4대보험 제외</h3>
                             <p class="net-amount with-sub"><span id="resultNetPay">0원</span><span class="net-sub">(월급여액 <b id="displaySalary">0원</b>)</span></p>
                         </div>
 
@@ -208,10 +208,16 @@
                     <h2 class="sr-only">직원 채용하면 얼마 내나요?</h2>
                     <!-- 계산 전: 급여 / 업종 / 계산하기 위아래. 계산 후(compact): [급여][계산하기] 한 줄 + 아래 업종 -->
                     <div class="salary-row with-industry">
-                        <div class="input-group sr-salary">
-                            <label for="employerSalary" class="sr-only">직원 월급여액</label>
-                            <input type="text" id="employerSalary" class="money-input" inputmode="numeric" placeholder="직원 월급여 (예: 3,000,000)" autocomplete="new-password">
-                            <span class="unit">원</span>
+                        <div class="year-salary sr-salary">
+                            <div class="input-group">
+                                <label for="employerYear">연도</label>
+                                <select id="employerYear" class="yr-field" onchange="changeRateYear(this.value)"></select>
+                            </div>
+                            <div class="input-group">
+                                <label for="employerSalary">월급여</label>
+                                <input type="text" id="employerSalary" class="money-input" inputmode="numeric" placeholder="예: 3,000,000" autocomplete="new-password">
+                                <span class="unit">원</span>
+                            </div>
                         </div>
 
                         <div class="input-group sr-industry">
@@ -230,7 +236,7 @@
                 <div id="employerResultSection" style="display:none;">
                     <section class="result-card" aria-labelledby="employerTotalLabel">
                         <div class="net-band">
-                            <h3 id="employerTotalLabel">사업주 부담 4대보험</h3>
+                            <h3 id="employerTotalLabel"><span class="year-tag"></span>사업주 부담 4대보험</h3>
                             <p class="net-amount with-sub"><span id="empResultTotal">0원</span><span class="net-sub">(직원 월급여액 <b id="empDisplaySalary">0원</b>)</span></p>
                             <p class="net-caption" id="empGrandTotal"></p>
                         </div>
@@ -351,6 +357,12 @@
 
                 <div class="option-expand" id="totalBillExpand">
                     <div class="xp-form tb-form">
+                        <!-- 연도: PC는 첫 줄 맨 앞, 폰은 맨 아래 계산하기 옆 (자리는 styles.css의 grid가 정함) -->
+                        <div class="tb-year">
+                            <label class="xp-label" for="totalBillYear">연도</label>
+                            <select id="totalBillYear" class="xp-input yr-field" onchange="changeRateYear(this.value)"></select>
+                        </div>
+
                         <div class="tb-ind">
                             <label class="xp-label" for="totalBillIndustryType">업종 <span class="xp-label-sub">(산재보험료 계산용)</span></label>
                             <select id="totalBillIndustryType" class="xp-input"></select>
@@ -453,7 +465,10 @@
                                     <select id="foreignerIndustryType" class="xp-input" aria-label="업종 (산재보험료 계산용, 선택)"></select>
                                     <select id="foreignerCompanySize" class="xp-input" aria-label="근로자수 (고용안정·직업능력개발 요율, 선택)"></select>
                                     <p id="foreignerCalcError" class="privacy-note input-error-note" style="display:none;"></p>
-                                    <button class="btn-primary fr-calc-btn" onclick="calculateForeignerPremium()">보험료 계산</button>
+                                    <div class="fr-go">
+                                        <select id="foreignerYear" class="xp-input yr-field" aria-label="연도" onchange="changeRateYear(this.value)"></select>
+                                        <button class="btn-primary fr-calc-btn" onclick="calculateForeignerPremium()">보험료 계산</button>
+                                    </div>
                                 </div>
                             </div>
                             <div id="foreignerCalcResult" class="fr-calc-result" style="display:none;"></div>
@@ -476,9 +491,15 @@
 
                 <div class="option-expand" id="insuranceExpand">
                     <div class="xp-form ins-form">
-                        <div>
-                            <label class="xp-label" for="insSalary">월급여</label>
-                            <input type="text" id="insSalary" class="xp-input money-input" inputmode="numeric" placeholder="예: 2,500,000" autocomplete="new-password" oninput="renderInsurance()">
+                        <div class="ins-year-salary">
+                            <div>
+                                <label class="xp-label" for="insYear">연도</label>
+                                <select id="insYear" class="xp-input yr-field" onchange="changeRateYear(this.value)"></select>
+                            </div>
+                            <div>
+                                <label class="xp-label" for="insSalary">월급여</label>
+                                <input type="text" id="insSalary" class="xp-input money-input" inputmode="numeric" placeholder="예: 2,500,000" autocomplete="new-password" oninput="renderInsurance()">
+                            </div>
                         </div>
 
                         <fieldset class="ins-picks">

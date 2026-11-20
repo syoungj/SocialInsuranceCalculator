@@ -580,7 +580,7 @@ footer {
     margin: 0;
 }
 
-/* 근로자 화면 급여 칸 + 계산하기 — 계산 전엔 위아래, 계산 후(.compact)엔 한 줄 */
+/* 근로자 화면 [연도][월급여] + 계산하기 — 위아래 */
 .salary-row {
     display: flex;
     flex-direction: column;
@@ -604,37 +604,7 @@ footer {
 .salary-row.with-industry .sr-industry { grid-area: industry; margin: 0; }
 .salary-row.with-industry .sr-button { grid-area: button; }
 
-.calc-input.compact .salary-row.with-industry {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "salary button" "industry industry";
-    gap: 10px 8px;
-}
-
-/* 계산 후엔 업종 이름표를 숨겨 칸만 남김 (고른 업종이 칸 안에 보임) */
-.calc-input.compact .sr-industry label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-}
-
-.calc-input.compact .salary-row {
-    flex-direction: row;
-    align-items: stretch;
-    gap: 8px;
-}
-
-.calc-input.compact .salary-row .input-group {
-    flex: 1;
-    min-width: 0;
-}
-
-.calc-input.compact .salary-row .btn-primary {
-    width: auto;
-    flex-shrink: 0;
-    padding: 0 20px;
-}
+/* 계산 후(.compact)에도 [연도][월급여] / (업종) / 계산하기 위아래 그대로 — 칸이 셋이라 한 줄로 합치면 비좁음 */
 
 /* 월급여·생년월 두 칸 나란히 (3:2) — minmax(0, …)로 칸이 밖으로 밀려나지 않게 */
 .input-pair {
@@ -4492,37 +4462,129 @@ select.xp-input {
     }
 }
 
-/* ---------- 기준 연도 고르기 (머리줄·첫 화면) ---------- */
-.yr {
-    flex: none;
-    height: 30px;
-    padding: 0 24px 0 9px;
-    border: 0;
-    border-radius: 9px;
-    background: #eef1f6 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7385' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 7px center;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    color: #3b4252;
+/* ---------- 기준 연도 고르기 (각 계산의 입력 칸 안) ---------- */
+/* 근로자·사업주: [연도][월급여] 두 칸 나란히 */
+.year-salary {
+    display: grid;
+    grid-template-columns: 116px minmax(0, 1fr);
+    gap: 10px;
+}
+
+.year-salary .input-group {
+    margin: 0;
+}
+
+/* 연도 칸: 월급여 칸과 같은 크기·굵기, 펼침 꺾쇠는 직접 그림 */
+.input-group select.yr-field {
+    padding: 0 30px 0 14px;
+    font-size: 16px;
+    font-weight: 700;
     -webkit-appearance: none;
     appearance: none;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235A6478' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 11px center;
     cursor: pointer;
 }
 
-.yr.other {
-    background-color: #e3eafb;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%233a5bd9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+select.yr-field {
+    cursor: pointer;
+}
+
+/* 올해가 아닌 연도를 고르면 파란 글씨 — 다른 연도로 계산 중임을 알아보게 (script.js syncYearUI) */
+select.yr-field.other {
     color: var(--accent);
-    font-weight: 700;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%233a5bd6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
-.yr-bar {
-    margin-left: 2px;
-    margin-right: auto;   /* 제목 바로 옆에 붙고, 버튼들은 오른쪽 끝으로 */
+/* 결과 제목 앞 "2026년 기준 · " */
+.year-tag {
+    white-space: nowrap;
 }
 
-body[data-step="step2"] .yr-bar {
-    display: none;
+/* 보험별 계산: [연도][월급여] */
+.ins-year-salary {
+    display: grid;
+    grid-template-columns: 116px minmax(0, 1fr);
+    gap: 10px;
+}
+
+/* 외국인 보험료 계산: [연도][보험료 계산] */
+.fr-go {
+    display: grid;
+    grid-template-columns: 116px minmax(0, 1fr);
+    gap: 10px;
+}
+
+.fr-go select {
+    height: 52px;
+    border-radius: 14px;
+}
+
+/* 한 달 총 부과: 폰은 맨 아래 [연도][계산하기] (PC 배치는 900px 이상 구역) */
+.tb-year {
+    grid-area: year;
+    align-self: end;
+}
+
+.tb-year .xp-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+.tb-year select {
+    height: 52px;
+    border-radius: 14px;
+}
+
+@media (max-width: 899px) {
+    .tb-form {
+        grid-template-columns: 116px minmax(0, 1fr);
+        grid-template-areas:
+            "ind    ind"
+            "size   size"
+            "type   type"
+            "owner  owner"
+            "roster roster"
+            "year   submit";
+        column-gap: 10px;
+    }
+}
+
+@media (min-width: 900px) {
+    .year-salary,
+    .ins-year-salary {
+        grid-template-columns: 140px minmax(0, 1fr);
+    }
+
+    .ins-year-salary {
+        gap: 20px;
+    }
+
+    .tb-form {
+        grid-template-columns: 140px 5fr 4fr 3fr;
+        grid-template-areas:
+            "year   ind    size   size"
+            "type   type   type   type"
+            "owner  owner  owner  hint"
+            "roster roster roster roster"
+            ".      .      .      submit";
+    }
+
+    /* PC에선 첫 줄 다른 칸처럼 이름표를 보이고, 높이도 옆 칸에 맞춤 */
+    .tb-year .xp-label {
+        position: static;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        clip: auto;
+    }
+
+    .tb-year select {
+        height: 42px;
+        border-radius: 10px;
+    }
 }
 
 .app-name {
@@ -4544,62 +4606,6 @@ body:not([data-step="step2"]) .header-refresh-btn {
 
 body:not([data-step="step2"]) .bar-back {
     padding: 0 8px 0 4px;
-}
-
-/* PC 첫 화면 연도 버튼: 제목 위, 유리 띠 안에서 하나 고름 (폰 첫 화면에서는 숨김) */
-.home-year {
-    display: none;
-}
-
-@media (min-width: 900px) {
-    .home-year {
-        display: block;
-        margin-bottom: 16px;
-    }
-}
-
-.home-year-cap {
-    display: block;
-    margin: 0 0 6px 2px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--text-sub);
-}
-
-.year-seg {
-    display: inline-flex;
-    gap: 2px;
-    padding: 3px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-}
-
-.year-seg button {
-    min-height: 32px;
-    padding: 0 14px;
-    border: 0;
-    border-radius: 11px;
-    background: transparent;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-sub);
-    cursor: pointer;
-}
-
-.year-seg button:hover {
-    color: var(--accent);
-}
-
-.year-seg button.on {
-    background: #fff;
-    color: var(--accent);
-    font-weight: 800;
-    box-shadow: 0 2px 8px rgba(58, 91, 214, 0.15);
 }
 
 /* 머리줄 스크롤 숨기기 (script.js 끝) */
