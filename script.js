@@ -1246,7 +1246,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
             notes.push(`국민연금 기준소득월액 상·하한은 ${rateYear}년 6월까지 값이에요. 7월 이후 값은 아직 발표 전이에요.`);
         }
     }
-    notes.push((hasOwner ? '근로자 부담분과 사업주 부담분(사업주 본인 몫 포함)을 모두 합친 한 달 총 부과 예상 금액이에요.' : '근로자 부담분과 사업주 부담분을 모두 합친 금액이에요. 사업주 본인 보험료는 넣지 않았어요.') + '<br><b>두루누리 지원금은 반영되지 않은 금액입니다.</b><br>산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액이며, 정확한 산재보험료율은 근로복지공단(<a href="tel:1588-0075">1588-0075</a>)에 별도로 확인해주세요.');
+    notes.push((hasOwner ? '근로자 부담분과 사업주 부담분(사업주 본인 몫 포함)을 모두 합친 한 달 보험료 예상 금액이에요.' : '근로자 부담분과 사업주 부담분을 모두 합친 금액이에요. 사업주 본인 보험료는 넣지 않았어요.') + '<br><b>두루누리 지원금은 반영되지 않은 금액입니다.</b><br>산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액이며, 정확한 산재보험료율은 근로복지공단(<a href="tel:1588-0075">1588-0075</a>)에 별도로 확인해주세요.');
 
     return `
         <div class="xp-summary">
@@ -1887,7 +1887,7 @@ function printTotalBill() {
     const pdfHasOwner = totalBillOwnerCalc.ownerType !== 'none';
 
     printArea.innerHTML = `
-        ${prHeadHTML('한 달 총 부과 예상 금액', [
+        ${prHeadHTML('한 달 보험료 내역', [
             `${prDateStr(today)} 기준`,
             `업종: ${industry ? `${industry.name} · 산재 ${accidentRateText(industry)}` : '선택 안 함'}`,
             `근로자수: ${EMPLOYMENT_STABILITY_RATES.find(r => r.rate === totalBillStabilityRate).label}`,
@@ -1954,7 +1954,7 @@ function printTotalBill() {
         ], { salaries: [...totalBillWorkersCalc.map(w => w.salary), totalBillOwnerCalc.salary], pension: true, health: true, employment: true, durunuri: !!anyEligible, accident: !!industry })}
     `;
 
-    showPdfPreview(`4대보험_총부과예상금액_${dateSlug(today)}`);
+    showPdfPreview(`4대보험_한달보험료_${dateSlug(today)}`);
 }
 
 // 처음부터 다시
