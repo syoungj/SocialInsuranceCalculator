@@ -4622,3 +4622,45 @@ body:not([data-step="step2"]) .bar-back {
         transition: none;
     }
 }
+
+/* 한 달 보험료 계산 — 사업주 본인 접기/펼치기 (owner-off면 단추만 보이고 유형·입력칸·안내 숨김) */
+.tb-owner-toggle {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 16px;
+    border: 1px dashed var(--accent);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--accent);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.tb-type-set { margin: 12px 0 0; padding: 0; border: 0; min-width: 0; }
+.tb-form.owner-off .tb-type-set,
+.tb-form.owner-off .tb-owner,
+.tb-form.owner-off .tb-hint { display: none !important; }
+.tb-form.owner-off {
+    grid-template-areas: "ind" "size" "type" "roster" "submit";
+}
+@media (max-width: 899px) {
+    .tb-form.owner-off {
+        grid-template-areas:
+            "ind    ind"
+            "size   size"
+            "type   type"
+            "roster roster"
+            "year   submit";
+    }
+}
+@media (min-width: 900px) {
+    .tb-form.owner-off {
+        grid-template-areas:
+            "year   ind    size   size"
+            "type   type   type   type"
+            "roster roster roster roster"
+            ".      .      .      submit";
+    }
+}

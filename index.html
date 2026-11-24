@@ -356,7 +356,7 @@
                 </button>
 
                 <div class="option-expand" id="totalBillExpand">
-                    <div class="xp-form tb-form">
+                    <div class="xp-form tb-form owner-off" id="totalBillForm">
                         <!-- 연도: PC는 첫 줄 맨 앞, 폰은 맨 아래 계산하기 옆 (자리는 styles.css의 grid가 정함) -->
                         <div class="tb-year">
                             <label class="xp-label" for="totalBillYear">연도</label>
@@ -373,14 +373,18 @@
                             <select id="totalBillCompanySize" class="xp-input"></select>
                         </div>
 
-                        <fieldset class="tb-type">
-                            <legend class="xp-label">사업주 본인 <span class="xp-label-sub">(선택 · 생년월·기준급여를 비우면 빼고 계산)</span></legend>
+                        <!-- 사업주 본인: 처음엔 접혀 있음(근로자만 계산), 단추로 펼치면 유형·생년월·기준급여 입력 -->
+                        <div class="tb-type">
+                        <button type="button" class="tb-owner-toggle" id="totalBillOwnerToggle" onclick="toggleTotalBillOwner()" aria-expanded="false">＋ 사업주 본인도 넣기</button>
+                        <fieldset class="tb-type-set">
+                            <legend class="xp-label">사업주 본인</legend>
                             <div class="radio-cards">
                                 <label class="radio-card"><input type="radio" name="totalBillOwnerType" value="individual" checked onchange="toggleTotalBillOwnerInputs()"><span><b>개인사업자</b></span></label>
                                 <label class="radio-card"><input type="radio" name="totalBillOwnerType" value="paidCorp" onchange="toggleTotalBillOwnerInputs()"><span><b>법인 대표(보수 있음)</b></span></label>
                                 <label class="radio-card"><input type="radio" name="totalBillOwnerType" value="unpaidCorp" onchange="toggleTotalBillOwnerInputs()"><span><b>법인 대표(보수 없음)</b></span></label>
                             </div>
                         </fieldset>
+                        </div>
 
                         <!-- 보수 없음을 고르면 script.js가 display를 none으로 바꿈 -->
                         <div id="totalBillOwnerInputRow" class="tb-owner">

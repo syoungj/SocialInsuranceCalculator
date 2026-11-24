@@ -920,6 +920,16 @@ function initTotalBillWorkerRows() {
     addTotalBillWorkerRow();
 }
 
+// 사업주 본인 넣기/빼기 — 접혀 있으면(owner-off) 근로자만 계산
+function toggleTotalBillOwner(forceOpen) {
+    const form = document.getElementById('totalBillForm');
+    const open = forceOpen !== undefined ? forceOpen : form.classList.contains('owner-off');
+    form.classList.toggle('owner-off', !open);
+    const btn = document.getElementById('totalBillOwnerToggle');
+    btn.textContent = open ? '－ 사업주 본인 빼기' : '＋ 사업주 본인도 넣기';
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
 // 사업주 유형 선택(개인사업자/법인 유보수/법인 무보수) — 무보수는 보수 자체가 없어
 // 생년월·급여 입력칸이 필요 없으므로 숨김. 나머지 둘은 계속 입력받음(항상 필수 — 선택사항 아님)
 function toggleTotalBillOwnerInputs() {
@@ -1036,12 +1046,10 @@ function calculateTotalBill() {
         return;
     }
 
-    // 사업주 본인은 선택 — 생년월·기준급여 칸을 둘 다 비우면 사업주 본인 없이 근로자만 계산
-    // (법인 대표 보수 없음은 칸이 없으므로 고르면 항상 포함, 0원)
-    let ownerType = document.querySelector('input[name="totalBillOwnerType"]:checked').value;
-    if (ownerType !== 'unpaidCorp'
-        && !document.getElementById('totalBillOwnerBirth').value.trim()
-        && !document.getElementById('totalBillOwnerSalary').value.trim()) ownerType = 'none';
+    // 사업주 본인은 선택 — "사업주 본인도 넣기"로 펼쳤을 때만 계산에 넣음(접혀 있으면 근로자만)
+    let ownerType = document.getElementById('totalBillForm').classList.contains('owner-off')
+        ? 'none'
+        : document.querySelector('input[name="totalBillOwnerType"]:checked').value;
     let ownerShare;
     let ownerBd = null;  // 화면 결과의 "사업주 본인" 줄에 생년월 표시용
 
@@ -1054,7 +1062,7 @@ function calculateTotalBill() {
         const ownerSalaryVal = parseMoney(ownerSalaryRaw);
 
         if (!ownerBd || !ownerSalaryVal || ownerSalaryVal <= 0) {
-            errorEl.textContent = '⚠️ 사업주 본인의 생년월(6자리)과 기준급여를 둘 다 올바르게 입력해주세요. 사업주 본인을 빼려면 두 칸 모두 비워 두세요.';
+            errorEl.textContent = '⚠️ 사업주 본인의 생년월(6자리)과 기준급여를 올바르게 입력해주세요. 사업주 본인을 빼려면 "사업주 본인 빼기"를 누르세요.';
             errorEl.style.display = 'block';
             resultBox.style.display = 'none';
             return;
@@ -1994,6 +2002,7 @@ function clearExpertFields() {
     document.getElementById('totalBillCompanySize').value = '0';
     document.querySelector('input[name="totalBillOwnerType"][value="individual"]').checked = true;
     document.getElementById('totalBillOwnerInputRow').style.display = 'flex';
+    toggleTotalBillOwner(false);
     document.getElementById('totalBillOwnerBirth').value = '';
     document.getElementById('totalBillOwnerSalary').value = '';
     document.getElementById('totalBillWorkerRows').innerHTML = '';
