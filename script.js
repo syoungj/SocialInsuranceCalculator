@@ -1143,6 +1143,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
 
     let tableRows = '';
     let cards = '';
+    const offDetails = [];  // 보험이 빠진 사람 — 명단 태그 대신 아래 "자세히"에 사람별로 (사용자 결정 2026-11-24)
     totalBillWorkersCalc.forEach((w, idx) => {
         const d = w.workerShare;
         const b = w.employerShare;
@@ -1159,30 +1160,26 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
 
         // 적용 제외 항목은 0 대신 흐린 "제외", 비고에 사유
         const pensionOff = d.pensionExempt || (w.foreign && !w.foreign.pensionApplies);
-        // 빠진 보험 표시 — 짧게: 연금·고용이 둘 다 빠지면 "연금·고용 제외" 한 마디로
-        const exemptNotes = [];
         const pensionForeignOff = !d.pensionExempt && w.foreign && !w.foreign.pensionApplies;
         const employmentForeignOff = w.foreign && w.foreign.employmentMode === 'none' && w.foreign.visa.employment === 'excluded';
-        if (pensionForeignOff && employmentForeignOff) {
-            exemptNotes.push('연금·고용 제외');
-        } else {
-            if (d.pensionExempt) exemptNotes.push('60세 이상 연금 제외');
-            else if (pensionForeignOff) exemptNotes.push('연금 제외');
-            if (employmentForeignOff) exemptNotes.push('고용 제외');
-        }
-        if (d.employmentExempt) exemptNotes.push('65세 이상 실업급여 제외');
-        if (w.foreign && w.foreign.employmentMode !== 'all' && !employmentForeignOff) {
-            const kind = w.foreign.visa.employment;
-            exemptNotes.push(w.foreign.employmentMode === 'stabilityOnly' ? '실업급여 미가입'
-                : kind === 'optional' ? '고용 미가입'
-                : kind === 'reciprocal' ? '고용 상호주의 미확인'
-                : '고용 제외');
-        }
 
+        // 명단에는 사람 구분용(두루누리·외국인) 태그만. 보험이 빠진 이유는 "자세히"로
         const tags = [];
         if (dn) tags.push('<span class="xp-tag dn">두루누리</span>');
         if (w.foreign) tags.push(`<span class="xp-tag fg">외국인 ${w.foreign.visa.code} · ${w.foreign.country.name}</span>`);
-        if (exemptNotes.length) tags.push(`<span class="xp-tag off">${exemptNotes.join(' · ')}</span>`);
+        const reasons = [];
+        if (d.pensionExempt) reasons.push('만 60세 이상이라 국민연금 제외');
+        else if (pensionForeignOff) reasons.push(`국민연금 제외(${w.foreign.visa.code} · ${w.foreign.country.name} 기준)`);
+        if (employmentForeignOff) reasons.push(`고용보험 제외(${w.foreign.visa.code} 체류자격 기준)`);
+        if (d.employmentExempt) reasons.push('만 65세 이상이라 실업급여 제외(사업주 고용안정·직업능력개발분만 부과)');
+        if (w.foreign && w.foreign.employmentMode !== 'all' && !employmentForeignOff) {
+            const kind = w.foreign.visa.employment;
+            reasons.push(w.foreign.employmentMode === 'stabilityOnly' ? '실업급여 가입 신청 안 함(사업주 고용안정·직업능력개발분만 부과)'
+                : kind === 'optional' ? '고용보험 가입 신청 안 함(0원)'
+                : kind === 'reciprocal' ? '고용보험 상호주의 충족 여부를 알 수 없어 0원으로 계산'
+                : '고용보험 제외');
+        }
+        if (reasons.length) offDetails.push(`<li><b>${idx + 1}번</b> · ${birthLabel(w.birthDate)} — ${reasons.join(', ')}</li>`);
 
         const offCell = '<td class="xp-off">제외</td>';
         tableRows += `
@@ -1295,6 +1292,11 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
                 </table>
             </div>
             <ul class="xp-cards m-only-block">${cards}</ul>
+            ${offDetails.length ? `
+            <details class="calc-info xp-off-details">
+                <summary><span>${XP_INFO_ICON}보험이 빠진 근로자 ${offDetails.length}명</span><span class="calc-info-more">자세히</span></summary>
+                <ul>${offDetails.join('')}</ul>
+            </details>` : ''}
         </div>
 
         <div class="xp-foot">

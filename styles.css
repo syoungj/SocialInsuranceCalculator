@@ -4664,3 +4664,8 @@ body:not([data-step="step2"]) .bar-back {
             ".      .      .      submit";
     }
 }
+
+/* 한 달 보험료 계산 — 보험이 빠진 근로자 "자세히" (명단 태그 대신) */
+.xp-off-details { margin-top: 12px; }
+.xp-off-details ul { margin: 8px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.7; color: var(--text-sub); }
+.xp-off-details li b { color: var(--text); }
