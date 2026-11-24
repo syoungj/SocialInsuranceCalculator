@@ -1266,7 +1266,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
                 </div>
                 <div class="xp-split">
                     <div><p>근로자 부담분</p><p class="xp-split-amount">${n(sumW.total)}원</p></div>
-                    <div><p>사업주 부담분 <span>(본인 몫 포함)</span></p><p class="xp-split-amount">${n(sumE.total)}원</p></div>
+                    <div><p>사업주 부담분${hasOwner ? ' <span>(본인 몫 포함)</span>' : ''}</p><p class="xp-split-amount">${n(sumE.total)}원</p></div>
                 </div>
             </div>
             <table class="xp-table xp-ins-table">
