@@ -3148,7 +3148,7 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
 // 페이지 로드 시 서비스 워커 등록 (PWA)
 window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(() => {
+        navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {
             // 로컬 환경에서는 등록 실패해도 무시
         });
     }
