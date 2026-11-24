@@ -940,7 +940,7 @@ function toggleTotalBillOwnerInputs() {
 //   total)은 반드시 두 몫을 합친 전체 금액이어야 함(총 부과 금액 집계에 절반만 반영되면 안 됨)
 // - 법인 대표(무보수): 보수가 없어 전부 0
 function computeOwnerShareByType(ownerType, ownerSalary, ownerBirthDate) {
-    if (ownerType === 'unpaidCorp') {
+    if (ownerType === 'unpaidCorp' || ownerType === 'none') {
         return {
             selfPension: 0, selfHealth: 0, selfLongterm: 0,
             companyPension: 0, companyHealth: 0, companyLongterm: 0,
@@ -1036,13 +1036,17 @@ function calculateTotalBill() {
         return;
     }
 
-    // 사업주 본인 몫은 선택사항이 아니라 항상 계산에 포함함 (무보수 법인 대표만 예외적으로 0원)
-    const ownerType = document.querySelector('input[name="totalBillOwnerType"]:checked').value;
+    // 사업주 본인은 선택 — 생년월·기준급여 칸을 둘 다 비우면 사업주 본인 없이 근로자만 계산
+    // (법인 대표 보수 없음은 칸이 없으므로 고르면 항상 포함, 0원)
+    let ownerType = document.querySelector('input[name="totalBillOwnerType"]:checked').value;
+    if (ownerType !== 'unpaidCorp'
+        && !document.getElementById('totalBillOwnerBirth').value.trim()
+        && !document.getElementById('totalBillOwnerSalary').value.trim()) ownerType = 'none';
     let ownerShare;
     let ownerBd = null;  // 화면 결과의 "사업주 본인" 줄에 생년월 표시용
 
-    if (ownerType === 'unpaidCorp') {
-        ownerShare = computeOwnerShareByType('unpaidCorp', 0, '');
+    if (ownerType === 'unpaidCorp' || ownerType === 'none') {
+        ownerShare = computeOwnerShareByType(ownerType, 0, '');
     } else {
         const ownerBirthRaw = document.getElementById('totalBillOwnerBirth').value.trim();
         const ownerSalaryRaw = document.getElementById('totalBillOwnerSalary').value.trim();
@@ -1050,7 +1054,7 @@ function calculateTotalBill() {
         const ownerSalaryVal = parseMoney(ownerSalaryRaw);
 
         if (!ownerBd || !ownerSalaryVal || ownerSalaryVal <= 0) {
-            errorEl.textContent = '⚠️ 사업주 본인의 생년월(6자리)과 기준급여를 올바르게 입력해주세요.';
+            errorEl.textContent = '⚠️ 사업주 본인의 생년월(6자리)과 기준급여를 둘 다 올바르게 입력해주세요. 사업주 본인을 빼려면 두 칸 모두 비워 두세요.';
             errorEl.style.display = 'block';
             resultBox.style.display = 'none';
             return;
@@ -1074,7 +1078,7 @@ function calculateTotalBill() {
             employerShare: shares.e,
         };
     });
-    totalBillOwnerCalc = { ownerType, salary: ownerType === 'unpaidCorp' ? 0 : parseMoney(document.getElementById('totalBillOwnerSalary').value), ownerShare };
+    totalBillOwnerCalc = { ownerType, salary: (ownerType === 'unpaidCorp' || ownerType === 'none') ? 0 : parseMoney(document.getElementById('totalBillOwnerSalary').value), ownerShare };
     totalBillIndustryIdx = industryIdx;
     totalBillStabilityRate = stabilityRate;
 
@@ -1198,20 +1202,22 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
     const ownerWCells = ownerType === 'paidCorp'
         ? `<td>${n(ownerW.pension)}</td><td>${n(ownerW.health)}</td><td>${n(ownerW.longterm)}</td><td class="xp-off">—</td><td class="xp-strong">${n(ownerWTotal)}</td>`
         : '<td colspan="5" class="xp-center xp-off">—</td>';
-    tableRows += `
+    const hasOwner = ownerType !== 'none';
+    if (hasOwner) tableRows += `
         <tr class="xp-owner-row">
             <td colspan="2" class="xp-left"><b>사업주 본인</b> <span class="xp-sub-inline">${birthLabel(ownerBd)}</span></td>
             <td>${ownerSalaryText}</td>
             ${ownerWCells}
             <td class="xp-strong">${n(ownerETotal)}</td>
             <td class="xp-left xp-memo"><span class="xp-note">${ownerTypeLabel}</span></td>
-        </tr>
+        </tr>`;
+    tableRows += `
         <tr class="xp-sum-row">
             <td colspan="3" class="xp-left">합계</td>
             <td>${n(sumW.pension)}</td><td>${n(sumW.health)}</td><td>${n(sumW.longterm)}</td><td>${n(sumW.employment)}</td>
             <td>${n(sumW.total)}</td><td>${n(sumE.total)}</td><td></td>
         </tr>`;
-    cards += `
+    if (hasOwner) cards += `
         <li class="xp-card xp-owner-row">
             <div class="xp-card-top"><span><b>사업주 본인</b>${ownerBd ? ` · ${birthLabel(ownerBd)}` : ''} · ${ownerTypeLabel.split(' · ')[0]}</span><span>${ownerType === 'unpaidCorp' ? '' : `월 ${n(ownerSalary)}`}</span></div>
             <div class="xp-card-bottom">${ownerType === 'paidCorp'
@@ -1240,7 +1246,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
             notes.push(`국민연금 기준소득월액 상·하한은 ${rateYear}년 6월까지 값이에요. 7월 이후 값은 아직 발표 전이에요.`);
         }
     }
-    notes.push('근로자 부담분과 사업주 부담분(사업주 본인 몫 포함)을 모두 합친 한 달 총 부과 예상 금액이에요.<br><b>두루누리 지원금은 반영되지 않은 금액입니다.</b><br>산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액이며, 정확한 산재보험료율은 근로복지공단(<a href="tel:1588-0075">1588-0075</a>)에 별도로 확인해주세요.');
+    notes.push((hasOwner ? '근로자 부담분과 사업주 부담분(사업주 본인 몫 포함)을 모두 합친 한 달 총 부과 예상 금액이에요.' : '근로자 부담분과 사업주 부담분을 모두 합친 금액이에요. 사업주 본인 보험료는 넣지 않았어요.') + '<br><b>두루누리 지원금은 반영되지 않은 금액입니다.</b><br>산재보험료는 선택하신 업종 기준 요율로 계산한 참고용 금액이며, 정확한 산재보험료율은 근로복지공단(<a href="tel:1588-0075">1588-0075</a>)에 별도로 확인해주세요.');
 
     return `
         <div class="xp-summary">
@@ -1824,7 +1830,7 @@ function printTotalBill() {
         effSumBurdenHealth += os.companyHealth;
         effSumBurdenLongterm += os.companyLongterm;
         effSumBurden += companyTotal;
-    } else {
+    } else if (totalBillOwnerCalc.ownerType !== 'none') {
         // 개인사업자(전액) 또는 무보수(0원) — 둘 다 "사업주 부담" 표 한 줄로
         burdenRows += `
             <tr>
@@ -1875,8 +1881,10 @@ function printTotalBill() {
     const ownerDisclaimer = {
         individual: '사업주 본인(개인사업자)은 별도 고용주가 없어 국민연금·건강보험을 전액 본인이 부담하는 것으로 계산했습니다.',
         paidCorp: '사업주 본인(법인 대표, 보수 있음)은 국민연금·건강보험을 본인·법인이 절반씩 부담하는 것으로 계산했습니다.',
-        unpaidCorp: '사업주 본인(법인 대표, 보수 없음)은 보수가 없어 직장가입자 보험료를 0원으로 계산했습니다(지역가입자로 부과).'
+        unpaidCorp: '사업주 본인(법인 대표, 보수 없음)은 보수가 없어 직장가입자 보험료를 0원으로 계산했습니다(지역가입자로 부과).',
+        none: '사업주 본인 보험료는 넣지 않고 근로자 부담분과 사업주 부담분만 계산했습니다.'
     }[totalBillOwnerCalc.ownerType];
+    const pdfHasOwner = totalBillOwnerCalc.ownerType !== 'none';
 
     printArea.innerHTML = `
         ${prHeadHTML('한 달 총 부과 예상 금액', [
@@ -1939,7 +1947,7 @@ function printTotalBill() {
             anyForeign ? '외국인 근로자는 체류자격·국적 판정에 따라 국민연금·고용보험을 계산했습니다(적용 제외·미가입이면 0원).' : '',
             anyForeign && pdfShowDurunuri ? '외국인은 국민연금 두루누리 지원 대상이 아니며, 고용보험 두루누리는 내국인과 같이 적용됩니다.' : '',
             anyReciprocal ? '체류자격 D-7·D-8·D-9는 상호주의 충족 여부를 알 수 없어 고용보험을 0원으로 계산했습니다. 충족되면 내국인과 같이 부과됩니다.' : '',
-            pdfShowDurunuri
+            !pdfHasOwner ? '' : pdfShowDurunuri
                 ? '사업주 본인은 고용보험·산재보험 가입 대상이 아니며, 두루누리 지원 대상도 아닙니다.'
                 : '사업주 본인은 고용보험·산재보험 가입 대상이 아닙니다.',
             ownerDisclaimer,
