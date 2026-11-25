@@ -368,6 +368,23 @@ const WORK_SCOPE = {
 function workScopeOf(visa) {
     return WORK_SCOPE[visa.code] || WORK_SCOPE_DEFAULT;
 }
+// permit 자격이면 "시간제취업 허가를 받은 경우" 같은 전제 문구, 아니면 '' (permitNote 앞부분을 그대로 씀)
+function workPermitCase(visa) {
+    const scope = workScopeOf(visa);
+    return scope.kind === 'permit' && scope.permitNote ? scope.permitNote.split(', 아래')[0] : '';
+}
+// 한 달 보험료 예상 PDF — 허가가 있어야 일할 수 있는 체류자격이 명단에 있을 때만 안내 한 줄
+function permitVisaNotePdf(workers) {
+    const byCase = {};
+    workers.forEach(w => {
+        const c = w.foreign ? workPermitCase(w.foreign.visa) : '';
+        if (!c) return;
+        byCase[c] = byCase[c] || [];
+        if (!byCase[c].includes(w.foreign.visa.code)) byCase[c].push(w.foreign.visa.code);
+    });
+    const parts = Object.keys(byCase).map(c => `체류자격 ${byCase[c].join('·')} 근로자는 ${c}로 계산했습니다.`);
+    return parts.length ? parts.join(' ') + ' 허가 여부는 하이코리아 또는 외국인종합안내센터(☎1345)에서 확인할 수 있습니다.' : '';
+}
 
 // 국가별 국민연금 적용 여부 (2026.3.19. 기준, 136개국).
 // 이 계산기는 "고용된 근로자(사업장가입자)"만 다루므로, 사업장 기준으로 판단이 갈리는 세 그룹 중
@@ -1156,6 +1173,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
     let tableRows = '';
     let cards = '';
     const offDetails = [];  // 보험이 빠진 사람 — 명단 태그 대신 아래 "자세히"에 사람별로 (사용자 결정 2026-11-24)
+    let permitCount = 0;    // 그중 허가가 있어야 일할 수 있는 체류자격인 사람
     totalBillWorkersCalc.forEach((w, idx) => {
         const d = w.workerShare;
         const b = w.employerShare;
@@ -1192,6 +1210,9 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
                 : '고용보험 제외');
         }
         if (w.foreign && w.foreign.ltcOff) reasons.push(`장기요양보험 가입제외 신청(건강보험은 유지)${w.foreign.visa.code === 'E-8' ? ' — E-8은 2026.5.12.부터 가능' : ''}`);
+        // 허가를 받아야 일할 수 있는 체류자격(D-2·D-4·D-10·G-1 등) — 외국인 판정 화면의 노란 안내와 같은 전제
+        const permitCase = w.foreign ? workPermitCase(w.foreign.visa) : '';
+        if (permitCase) { reasons.unshift(`${permitCase}로 계산(${w.foreign.visa.code})`); permitCount++; }
         if (reasons.length) offDetails.push(`<li><b>${idx + 1}번</b> · ${birthLabel(w.birthDate)} — ${reasons.join(', ')}</li>`);
 
         const offCell = '<td class="xp-off">제외</td>';
@@ -1307,7 +1328,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
             <ul class="xp-cards m-only-block">${cards}</ul>
             ${offDetails.length ? `
             <details class="calc-info xp-off-details">
-                <summary><span>${XP_INFO_ICON}보험이 빠진 근로자 ${offDetails.length}명</span><span class="calc-info-more">자세히</span></summary>
+                <summary><span>${XP_INFO_ICON}${permitCount ? '확인할' : '보험이 빠진'} 근로자 ${offDetails.length}명</span><span class="calc-info-more">자세히</span></summary>
                 <ul>${offDetails.join('')}</ul>
             </details>` : ''}
         </div>
@@ -1970,6 +1991,7 @@ function printTotalBill() {
             anyForeign ? '외국인 근로자는 체류자격·국적 판정에 따라 국민연금·고용보험을 계산했습니다(적용 제외·미가입이면 0원).' : '',
             anyForeign && pdfShowDurunuri ? '외국인은 국민연금 두루누리 지원 대상이 아니며, 고용보험 두루누리는 내국인과 같이 적용됩니다.' : '',
             totalBillWorkersCalc.some(w => w.foreign && w.foreign.ltcOff) ? '장기요양보험 가입제외를 신청한 외국인 근로자(D-3·E-8·E-9·H-2)는 장기요양보험을 0원으로 계산했습니다(건강보험은 유지). E-8은 2026년 5월 12일부터 가입제외가 가능합니다.' : '',
+            permitVisaNotePdf(totalBillWorkersCalc),
             anyReciprocal ? '체류자격 D-7·D-8·D-9는 상호주의 충족 여부를 알 수 없어 고용보험을 0원으로 계산했습니다. 충족되면 내국인과 같이 부과됩니다.' : '',
             !pdfHasOwner ? '' : pdfShowDurunuri
                 ? '사업주 본인은 고용보험·산재보험 가입 대상이 아니며, 두루누리 지원 대상도 아닙니다.'
