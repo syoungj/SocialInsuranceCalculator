@@ -4705,3 +4705,110 @@ body:not([data-step="step2"]) .bar-back {
 .xp-off-details { margin-top: 12px; }
 .xp-off-details ul { margin: 8px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.7; color: var(--text-sub); }
 .xp-off-details li b { color: var(--text); }
+
+/* ========================================
+   푸터 — 기본은 긴 문장, 휴대폰에서만 짧게
+   ======================================== */
+.fm-short {
+    display: none;
+}
+
+/* 휴대폰(899px 이하): 두 줄로
+   1줄: [마크] 국민노무법인 제공 · 사무실 | 휴대폰
+   2줄: 입력값은 저장되지 않아요 */
+@media (max-width: 899px) {
+    footer {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0 6px;
+        padding: 16px 16px calc(12px + env(safe-area-inset-bottom));
+        border-top: 0;
+        font-size: 12px;
+        color: var(--text-sub);
+    }
+
+    .fm-long {
+        display: none;
+    }
+
+    .fm-short {
+        display: inline;
+    }
+
+    .footer-main {
+        margin: 0;
+        font-size: 12px;
+        color: var(--text-sub);
+    }
+
+    footer .footer-org {
+        font-weight: 600;
+        color: var(--text-2);
+    }
+
+    .footer-mark {
+        width: 16px;
+        margin-right: 3px;
+        vertical-align: -3px;
+    }
+
+    /* "제공"과 전화 사이 가운데 점 */
+    .footer-calls::before {
+        content: "·";
+        margin-right: 2px;
+        color: rgba(19, 32, 58, 0.3);
+    }
+
+    .footer-calls {
+        gap: 0;
+        align-items: center;
+    }
+
+    footer .footer-call {
+        min-height: 40px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: 0;
+        background: none;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-2);
+    }
+
+    footer .footer-call svg {
+        width: 12px;
+        height: 12px;
+        color: var(--accent);
+    }
+
+    footer .footer-call + .footer-call {
+        position: relative;
+    }
+
+    footer .footer-call + .footer-call::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 1px;
+        height: 10px;
+        margin-top: -5px;
+        background: rgba(19, 32, 58, 0.15);
+    }
+
+    footer .footer-call:active {
+        background: none;
+        color: var(--accent);
+    }
+
+    /* 저장 안 됨 안내 — 꼭 보여야 하는 문구라 둘째 줄에 따로, 작고 흐리게 */
+    footer .note {
+        flex-basis: 100%;
+        margin: -4px 0 0;
+        text-align: center;
+        font-size: 11px;
+        color: var(--text-sub);
+    }
+}
