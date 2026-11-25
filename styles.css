@@ -1299,6 +1299,14 @@ footer .footer-org {
     color: var(--text);
 }
 
+/* 국민노무법인 마크 — 글자 높이에 맞춰 앞에 */
+.footer-mark {
+    width: 20px;
+    height: auto;
+    margin-right: 4px;
+    vertical-align: -5px;
+}
+
 /* 전화 단추 — 번호를 그대로 늘어놓지 않고 옅은 알약 모양 */
 .footer-calls {
     display: flex;
