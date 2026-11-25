@@ -1299,13 +1299,31 @@ footer .footer-org {
     color: var(--text);
 }
 
-.footer-sep {
-    display: none;
+/* 전화 단추 — 번호를 그대로 늘어놓지 않고 옅은 알약 모양 */
+.footer-calls {
+    display: flex;
+    gap: 8px;
 }
 
-.footer-contact {
-    display: block;
-    margin-top: 8px;
+footer .footer-call {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border: 1px solid #d4dcf3;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.55);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+footer .footer-call:active {
+    background: #e8edfb;
+}
+
+.fc-num {
+    display: none;
 }
 
 .note {
@@ -1643,13 +1661,20 @@ footer .footer-org {
         margin-bottom: 48px;
     }
 
-    .footer-sep {
-        display: inline;
+    .footer-main {
+        flex: 1;
     }
 
-    .footer-contact {
+    /* PC는 전화를 걸 수 없으니 번호를 옅게 같이 */
+    .fc-num {
         display: inline;
-        margin-top: 0;
+        margin-left: 2px;
+        font-weight: 500;
+        color: var(--text-2);
+    }
+
+    footer .footer-call:hover {
+        background: #fff;
     }
 
     .note {

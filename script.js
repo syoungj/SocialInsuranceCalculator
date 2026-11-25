@@ -3227,11 +3227,6 @@ function syncYearUI() {
     document.querySelectorAll('.year-tag').forEach(el => {
         el.textContent = `${rateYear}년 기준 · `;
     });
-    const note = document.getElementById('yearNote');
-    if (note) {
-        note.textContent = `${rateYear}년 요율 기준`
-            + (Object.keys(YEAR_DATA[rateYear].pending).length ? ` (아직 발표 안 된 값은 ${rateYear - 1}년 값)` : '');
-    }
 }
 
 // 연도를 바꾸면 지금 나와 있는 결과를 그 연도로 다시 계산
