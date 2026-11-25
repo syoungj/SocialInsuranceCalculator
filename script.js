@@ -870,6 +870,13 @@ function addTotalBillWorkerRow() {
         </div>
     `;
     fillSelectOptions(row.querySelector('.tb-visa'), '체류자격', VISA_TYPES, v => `${v.code} (${v.name})`);
+    // 국내 취업이 안 되는 체류자격(외국인 판정과 같은 WORK_SCOPE 'none')은 고를 수 없게 — 보험료를 계산할 대상이 아님
+    row.querySelectorAll('.tb-visa option').forEach(o => {
+        if (o.value !== '' && workScopeOf(VISA_TYPES[parseInt(o.value, 10)]).kind === 'none') {
+            o.disabled = true;
+            o.textContent += ' · 취업 불가';
+        }
+    });
     fillSelectOptions(row.querySelector('.tb-country'), '국적', PENSION_COUNTRIES, c => c.name);
     container.appendChild(row);
     updateTotalBillCount();
@@ -1020,7 +1027,7 @@ function calculateTotalBill() {
         if (row.querySelector('.tb-foreign-check').checked) {
             const visaIdx = row.querySelector('.tb-visa').value;
             const countryIdx = row.querySelector('.tb-country').value;
-            if (visaIdx !== '' && countryIdx !== '') {
+            if (visaIdx !== '' && countryIdx !== '' && workScopeOf(VISA_TYPES[parseInt(visaIdx, 10)]).kind !== 'none') {
                 const visa = VISA_TYPES[parseInt(visaIdx, 10)];
                 const country = PENSION_COUNTRIES[parseInt(countryIdx, 10)];
                 foreign = {
