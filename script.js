@@ -1903,7 +1903,7 @@ function printTotalBill() {
     const pdfHasOwner = totalBillOwnerCalc.ownerType !== 'none';
 
     printArea.innerHTML = `
-        ${prHeadHTML('한 달 보험료 내역', [
+        ${prHeadHTML('한 달 보험료 예상', [
             `${prDateStr(today)} 기준`,
             `업종: ${industry ? `${industry.name} · 산재 ${accidentRateText(industry)}` : '선택 안 함'}`,
             `근로자수: ${EMPLOYMENT_STABILITY_RATES.find(r => r.rate === totalBillStabilityRate).label}`,
@@ -1971,7 +1971,7 @@ function printTotalBill() {
         ], { salaries: [...totalBillWorkersCalc.map(w => w.salary), totalBillOwnerCalc.salary], pension: true, health: true, employment: true, durunuri: !!anyEligible, accident: !!industry })}
     `;
 
-    showPdfPreview(`4대보험_한달보험료_${dateSlug(today)}`);
+    showPdfPreview(`4대보험_한달보험료예상_${dateSlug(today)}`);
 }
 
 // 처음부터 다시
