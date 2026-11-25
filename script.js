@@ -246,7 +246,7 @@ const VISA_TYPES = [
     { code: 'C-4', name: '단기취업', pensionExcluded: true, employment: 'optional' },
     { code: 'D-1', name: '문화예술', pensionExcluded: true, employment: 'excluded' },
     { code: 'D-2', name: '유학', pensionExcluded: true, employment: 'excluded' },
-    { code: 'D-3', name: '기술연수', pensionExcluded: true, employment: 'excluded' },
+    { code: 'D-3', name: '기술연수', pensionExcluded: true, employment: 'excluded', ltcOptOut: true },
     { code: 'D-4', name: '일반연수', pensionExcluded: true, employment: 'excluded' },
     { code: 'D-5', name: '취재', pensionExcluded: false, employment: 'excluded' },
     { code: 'D-6', name: '종교', pensionExcluded: true, employment: 'excluded' },
@@ -261,8 +261,8 @@ const VISA_TYPES = [
     { code: 'E-5', name: '전문직업', pensionExcluded: false, employment: 'optional' },
     { code: 'E-6', name: '예술흥행', pensionExcluded: false, employment: 'optional' },
     { code: 'E-7', name: '특정활동', pensionExcluded: false, employment: 'optional' },
-    { code: 'E-8', name: '계절근로', pensionExcluded: false, employment: 'optional' },
-    { code: 'E-9', name: '비전문취업', pensionExcluded: false, employment: 'partial' },
+    { code: 'E-8', name: '계절근로', pensionExcluded: false, employment: 'optional', ltcOptOut: true },
+    { code: 'E-9', name: '비전문취업', pensionExcluded: false, employment: 'partial', ltcOptOut: true },
     { code: 'E-10', name: '선원취업', pensionExcluded: false, employment: 'optional' },
     { code: 'F-1', name: '방문동거', pensionExcluded: true, employment: 'excluded' },
     { code: 'F-2', name: '거주', pensionExcluded: false, employment: 'full' },
@@ -272,7 +272,7 @@ const VISA_TYPES = [
     { code: 'F-6', name: '결혼이민', pensionExcluded: false, employment: 'full' },
     { code: 'G-1', name: '기타', pensionExcluded: true, employment: 'excluded' },
     { code: 'H-1', name: '관광취업', pensionExcluded: false, employment: 'excluded' },
-    { code: 'H-2', name: '방문취업', pensionExcluded: false, employment: 'partial' },
+    { code: 'H-2', name: '방문취업', pensionExcluded: false, employment: 'partial', ltcOptOut: true },
 ];
 
 // 체류자격별 취업 가능 범위 (출입국관리법 시행령 제23조 등, 2026.11 조사) — 판정이 아니라 안내용.
@@ -866,6 +866,7 @@ function addTotalBillWorkerRow() {
             <select class="tb-visa xp-input" onchange="updateTotalBillJoin(this)" aria-label="${n}번 체류자격"></select>
             <select class="tb-country xp-input" aria-label="${n}번 국적"></select>
             <select class="tb-join xp-input" style="display:none;" aria-label="${n}번 실업급여 가입"></select>
+            <select class="tb-ltc xp-input" style="display:none;" aria-label="${n}번 장기요양 가입제외"><option value="no">장기요양 가입</option><option value="yes">장기요양 가입제외 신청</option></select>
         </div>
     `;
     fillSelectOptions(row.querySelector('.tb-visa'), '체류자격', VISA_TYPES, v => `${v.code} (${v.name})`);
@@ -894,6 +895,9 @@ function toggleTotalBillForeign(checkbox) {
 function updateTotalBillJoin(visaSelect) {
     const joinSelect = visaSelect.closest('.tb-foreign-panel').querySelector('.tb-join');
     const visa = visaSelect.value === '' ? null : VISA_TYPES[parseInt(visaSelect.value, 10)];
+    const ltcSelect = visaSelect.closest('.tb-foreign-panel').querySelector('.tb-ltc');
+    ltcSelect.style.display = visa && visa.ltcOptOut ? 'block' : 'none';
+    if (!visa || !visa.ltcOptOut) ltcSelect.value = 'no';
     if (!visa || (visa.employment !== 'partial' && visa.employment !== 'optional')) {
         joinSelect.style.display = 'none';
         joinSelect.innerHTML = '';
@@ -1023,6 +1027,7 @@ function calculateTotalBill() {
                     visa, country,
                     pensionApplies: !visa.pensionExcluded && !country.exempt,
                     employmentMode: foreignerEmploymentMode(visa, row.querySelector('.tb-join').value === 'yes'),
+                    ltcOff: !!visa.ltcOptOut && row.querySelector('.tb-ltc').value === 'yes',
                 };
             } else {
                 foreign = 'incomplete';
@@ -1076,7 +1081,7 @@ function calculateTotalBill() {
     // PDF 저장 시 재사용할 수 있도록 근로자별 상세 계산 결과를 그대로 보관해둠
     totalBillWorkersCalc = workers.map(w => {
         const shares = w.foreign
-            ? computeForeignerShares(w.salary, w.birthDate, industryIdx, w.foreign.pensionApplies, w.foreign.employmentMode, stabilityRate)
+            ? computeForeignerShares(w.salary, w.birthDate, industryIdx, w.foreign.pensionApplies, w.foreign.employmentMode, stabilityRate, w.foreign.ltcOff)
             : { w: computeWorkerShare(w.salary, w.birthDate), e: computeEmployerShare(w.salary, w.birthDate, industryIdx, stabilityRate) };
         return {
             salary: w.salary,
@@ -1179,6 +1184,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
                 : kind === 'reciprocal' ? '고용보험 상호주의 충족 여부를 알 수 없어 0원으로 계산'
                 : '고용보험 제외');
         }
+        if (w.foreign && w.foreign.ltcOff) reasons.push(`장기요양보험 가입제외 신청(건강보험은 유지)${w.foreign.visa.code === 'E-8' ? ' — E-8은 2026.5.12.부터 가능' : ''}`);
         if (reasons.length) offDetails.push(`<li><b>${idx + 1}번</b> · ${birthLabel(w.birthDate)} — ${reasons.join(', ')}</li>`);
 
         const offCell = '<td class="xp-off">제외</td>';
@@ -1189,7 +1195,7 @@ function buildTotalBillResultHTML(grandTotal, ownerBd) {
                 <td>${n(w.salary)}</td>
                 ${pensionOff ? offCell : `<td>${n(d.pension)}</td>`}
                 <td>${n(d.health)}</td>
-                <td>${n(d.longterm)}</td>
+                ${w.foreign && w.foreign.ltcOff ? offCell : `<td>${n(d.longterm)}</td>`}
                 ${d.employmentExempt ? offCell : `<td${d.employment === 0 ? ' class="xp-off"' : ''}>${n(d.employment)}</td>`}
                 <td class="xp-strong">${n(d.total)}</td>
                 <td class="xp-strong">${n(b.total)}</td>
@@ -1956,6 +1962,7 @@ function printTotalBill() {
             industry ? '산재보험료는 선택한 업종 요율로 계산한 참고 금액이며, 실제 업종 분류는 근로복지공단이 정합니다.' : '업종을 선택하지 않아 산재보험료는 계산하지 않았습니다.',
             anyForeign ? '외국인 근로자는 체류자격·국적 판정에 따라 국민연금·고용보험을 계산했습니다(적용 제외·미가입이면 0원).' : '',
             anyForeign && pdfShowDurunuri ? '외국인은 국민연금 두루누리 지원 대상이 아니며, 고용보험 두루누리는 내국인과 같이 적용됩니다.' : '',
+            totalBillWorkersCalc.some(w => w.foreign && w.foreign.ltcOff) ? '장기요양보험 가입제외를 신청한 외국인 근로자(D-3·E-8·E-9·H-2)는 장기요양보험을 0원으로 계산했습니다(건강보험은 유지). E-8은 2026년 5월 12일부터 가입제외가 가능합니다.' : '',
             anyReciprocal ? '체류자격 D-7·D-8·D-9는 상호주의 충족 여부를 알 수 없어 고용보험을 0원으로 계산했습니다. 충족되면 내국인과 같이 부과됩니다.' : '',
             !pdfHasOwner ? '' : pdfShowDurunuri
                 ? '사업주 본인은 고용보험·산재보험 가입 대상이 아니며, 두루누리 지원 대상도 아닙니다.'
@@ -1998,6 +2005,8 @@ function clearExpertFields() {
     document.getElementById('foreignerCompanySize').value = '0';
     document.querySelector('input[name="foreignerJoin"][value="no"]').checked = true;
     document.getElementById('foreignerJoinRow').style.display = 'none';
+    document.querySelector('input[name="foreignerLtc"][value="no"]').checked = true;
+    document.getElementById('foreignerLtcRow').style.display = 'none';
     resetForeignerResult();
 
     document.getElementById('totalBillIndustryType').value = '';
@@ -2509,6 +2518,9 @@ function toggleForeignerJoinRow() {
     const row = document.getElementById('foreignerJoinRow');
     const visa = visaIdx === '' ? null : VISA_TYPES[parseInt(visaIdx, 10)];
 
+    const ltcRow = document.getElementById('foreignerLtcRow');
+    ltcRow.style.display = visa && visa.ltcOptOut ? 'block' : 'none';
+    if (!visa || !visa.ltcOptOut) document.querySelector('input[name="foreignerLtc"][value="no"]').checked = true;
     if (!visa || (visa.employment !== 'partial' && visa.employment !== 'optional')) {
         row.style.display = 'none';
         return;
@@ -2531,9 +2543,14 @@ function foreignerEmploymentMode(visa, joined) {
 }
 
 // 내국인 계산을 그대로 한 뒤 국민연금·고용보험만 외국인 판정에 맞게 바꿈 (건강보험·장기요양·산재는 그대로)
-function computeForeignerShares(salary, birthDate, industryIdx, pensionApplies, employmentMode, stabilityRate) {
+// ltcOff: D-3·E-8·E-9·H-2가 장기요양보험 가입제외를 신청한 경우 — 장기요양만 0원, 건강보험은 그대로
+function computeForeignerShares(salary, birthDate, industryIdx, pensionApplies, employmentMode, stabilityRate, ltcOff) {
     const w = { ...computeWorkerShare(salary, birthDate) };
     const e = { ...computeEmployerShare(salary, birthDate, industryIdx, stabilityRate) };
+    if (ltcOff) {
+        w.longterm = 0;
+        e.longtermEmployer = 0;
+    }
 
     if (!pensionApplies) {
         w.pension = 0;
@@ -2560,7 +2577,7 @@ function computeForeignerShares(salary, birthDate, industryIdx, pensionApplies, 
     return { w, e };
 }
 
-function buildForeignerCalcHTML(salary, visa, pensionApplies, employmentMode, w, e) {
+function buildForeignerCalcHTML(salary, visa, pensionApplies, employmentMode, w, e, ltcOff) {
     const n = v => formatNumber(v);
     const sub = text => `<span class="fr-cell-sub">${text}</span>`;
     const employmentZeroReason = {
@@ -2585,7 +2602,8 @@ function buildForeignerCalcHTML(salary, visa, pensionApplies, employmentMode, w,
 
     const notes = [
         dn ? durunuriCapNoticeText(false, dn.capped, true).replace(/^※\s*/, '') : '',
-        '건강보험·장기요양보험·산재보험은 내국인과 같은 기준으로 계산했어요.',
+        ltcOff ? '장기요양보험은 가입제외 신청으로 0원이에요. 건강보험·산재보험은 내국인과 같은 기준으로 계산했어요.' : '건강보험·장기요양보험·산재보험은 내국인과 같은 기준으로 계산했어요.',
+        ltcOff && visa.code === 'E-8' ? 'E-8(계절근로)은 2026년 5월 12일부터 장기요양보험 가입제외를 신청할 수 있어요.' : '',
         ...premiumLimitNotes(salary).filter(t => !(t.startsWith('국민연금') && (!pensionApplies || w.pensionExempt))),
         employmentMode === 'none' && visa.employment === 'reciprocal'
             ? '상호주의 충족 여부를 알 수 없어 고용보험을 0원으로 계산했어요. 본국 법령상 충족되면 내국인과 같이 부과돼요.' : '',
@@ -2601,7 +2619,7 @@ function buildForeignerCalcHTML(salary, visa, pensionApplies, employmentMode, w,
                 <tbody>
                     <tr><td>국민연금</td><td>${pensionCell(w.pension, w.pensionExempt)}</td><td>${pensionCell(e.pensionEmployer, e.pensionExempt)}</td></tr>
                     <tr><td>건강보험</td><td>${n(w.health)}</td><td>${n(e.healthEmployer)}</td></tr>
-                    <tr><td>장기요양보험</td><td>${n(w.longterm)}</td><td>${n(e.longtermEmployer)}</td></tr>
+                    <tr><td>장기요양보험</td><td>${ltcOff ? `0${sub('가입제외 신청')}` : n(w.longterm)}</td><td>${ltcOff ? `0${sub('가입제외 신청')}` : n(e.longtermEmployer)}</td></tr>
                     <tr><td>고용보험</td><td>${workerEmploymentCell}</td><td>${employerEmploymentCell}</td></tr>
                     <tr><td>산재보험</td><td class="xp-off">—</td><td>${accidentCell}</td></tr>
                     <tr class="xp-sum-row"><td>합계</td><td class="xp-sum-accent">${n(w.total)}</td><td class="xp-sum-accent">${n(e.total)}</td></tr>
@@ -2633,7 +2651,7 @@ function printForeigner() {
     if (!foreignerCalc) return;
     lastPdfRender = printForeigner;
     pdfDnWorkers = null;
-    const { visa, country, joined, pensionApplies, employmentMode, salary, industry, w, e, sizeIdx, stabilityRate } = foreignerCalc;
+    const { visa, country, joined, pensionApplies, employmentMode, salary, industry, w, e, sizeIdx, stabilityRate, ltcOff } = foreignerCalc;
     const today = new Date();
     const dn = pdfShowDurunuri ? computeForeignerDurunuri(salary, w, e) : null;
     const cell = n => `<td>${formatNumber(n)}</td>`;
@@ -2697,7 +2715,7 @@ function printForeigner() {
             <tbody>
                 ${itemRow('국민연금', pensionApplies ? prPct(RATES.pension / 2 * 100) : '적용 제외', w.pension, e.pensionEmployer)}
                 ${itemRow('건강보험', prPct(RATES.health / 2 * 100), w.health, e.healthEmployer)}
-                ${itemRow('장기요양보험', `건강보험료의 ${prPct(RATES.longterm * 100)}`, w.longterm, e.longtermEmployer)}
+                ${itemRow('장기요양보험', ltcOff ? '가입제외 신청(0원)' : `건강보험료의 ${prPct(RATES.longterm * 100)}`, w.longterm, e.longtermEmployer)}
                 ${itemRow('고용보험', employmentMode === 'none' ? '0원으로 계산' : employmentMode === 'stabilityOnly' ? '사업주 고용안정·직업능력개발분만' : `${prPct(RATES.employmentWorker * 100)} / ${prPct(RATES.employmentWorker * 100)}+${prPct(stabilityRate * 100)}`, w.employment, e.employmentEmployer)}
                 ${itemRow('산재보험', industry ? prPct(accidentPermilleOf(industry) / 10) : '', null, e.accidentEmployer)}
                 ${prSumRowsHTML([w.total, e.total, w.total + e.total], dn ? [dn.workerTotal, dn.employerTotal, dn.workerTotal + dn.employerTotal] : null, 2)}
@@ -2709,7 +2727,8 @@ function printForeigner() {
         ${prNotesHTML([
             '이 계산 결과는 참고용이며, 실제 적용 여부와 금액은 국민연금공단·근로복지공단 확인에 따라 달라질 수 있습니다.',
             '국민연금은 체류자격·국적(사회보장협정) 기준, 고용보험은 체류자격 기준으로 판정했습니다.',
-            '건강보험·장기요양보험·산재보험은 내국인과 같은 기준으로 계산했습니다.',
+            ltcOff ? '장기요양보험은 근로자가 가입제외를 신청해 0원으로 계산했습니다(건강보험은 유지). 건강보험·산재보험은 내국인과 같은 기준으로 계산했습니다.' : '건강보험·장기요양보험·산재보험은 내국인과 같은 기준으로 계산했습니다.',
+            ltcOff && visa.code === 'E-8' ? 'E-8(계절근로)은 2026년 5월 12일부터 장기요양보험 가입제외를 신청할 수 있습니다.' : '',
             ...premiumLimitNotesPdf([salary]).filter(t => !(t.startsWith('국민연금') && (!pensionApplies || w.pensionExempt))),
             visa.employment === 'reciprocal' ? '체류자격 D-7·D-8·D-9는 상호주의 충족 여부를 알 수 없어 고용보험을 0원으로 계산했습니다. 충족되면 내국인과 같이 부과됩니다.' : '',
             pdfShowDurunuri ? '외국인은 국민연금 두루누리 지원 대상이 아닙니다.' : '',
@@ -2824,7 +2843,7 @@ function checkForeignerInsurance() {
                 ${frBadge(excluded ? 'out' : 'in', excluded ? '제외 대상' : '가입 대상')}
             </div>
             <div class="fr-verdict">
-                <span class="fr-verdict-name">건강보험<span class="fr-verdict-sub">장기요양 포함</span></span>
+                <span class="fr-verdict-name">건강보험<span class="fr-verdict-sub">${visa.ltcOptOut ? '장기요양 제외 신청 가능' : '장기요양 포함'}</span></span>
                 ${frBadge('in', '가입 대상')}
             </div>
             <div class="fr-verdict">
@@ -2851,7 +2870,7 @@ function checkForeignerInsurance() {
     notes.innerHTML = `
         <details class="fr-details">
             <summary>자세한 설명과 근거 자료<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></summary>
-            <div class="fr-detail-reasons"><p><b class="fr-reason-label">국민연금</b>${reason}</p><p><b class="fr-reason-label">고용보험</b>${emp.reason}</p></div>
+            <div class="fr-detail-reasons"><p><b class="fr-reason-label">국민연금</b>${reason}</p><p><b class="fr-reason-label">고용보험</b>${emp.reason}</p>${visa.ltcOptOut ? `<p><b class="fr-reason-label">장기요양보험</b>${LTC_OPTOUT_TEXT}${visa.code === 'E-8' ? ' E-8(계절근로)은 2026년 5월 12일부터 가입제외가 가능해요.' : ''}</p>` : ''}</div>
             <div class="fr-details-body">
                 <p>※ 고용보험은 체류자격 외에도 <b>65세 이후 신규 고용</b>, <b>월 소정근로시간 60시간 미만</b> 등 일반 적용제외 사유를 별도로 확인해야 해요.</p>
                 <div class="fr-sources">
@@ -2861,6 +2880,7 @@ function checkForeignerInsurance() {
                         <dd>국민연금공단에서 제공하는 <a href="${NPS_URL}" target="_blank" rel="noopener noreferrer">[2026.3.19]기준 국가별 연금제도 자료</a>와 <a href="${NPS_URL}" target="_blank" rel="noopener noreferrer">[2024.4.1]기준 체류자격별 적용 자료</a></dd>
                         <dt>건강보험</dt>
                         <dd>「국민건강보험법」 제109조제2항 (2026.10.8. 시행)</dd>
+                        ${visa.ltcOptOut ? '<dt>장기요양보험</dt><dd>「노인장기요양보험법」 제7조, 같은 법 시행령 제3조의2, 시행규칙 제1조의2 · 국민건강보험공단 「외국인 근로자 장기요양보험 가입제외 제도 안내」</dd>' : ''}
                         <dt>산재보험</dt>
                         <dd>「산업재해보상보험법」 제6조 (2026.7.1. 시행). 대통령령으로 정하는 일부 사업은 적용 제외</dd>
                         <dt>고용보험</dt>
@@ -2876,6 +2896,9 @@ function checkForeignerInsurance() {
     notes.style.display = 'block';
     document.getElementById('foreignerCalcAsk').style.display = 'block';
 }
+
+// D-3·E-8·E-9·H-2 장기요양보험 가입제외 — 국민건강보험공단 안내문 기준
+const LTC_OPTOUT_TEXT = '체류자격이 D-3·E-8·E-9·H-2인 직장가입자는 근로자가 신청하면 장기요양보험에서 제외돼요(건강보험은 유지). 취득 신고 때 「외국인근로자 장기요양보험 가입제외 신청서」를 같이 내거나 관할 지사에 팩스·우편·방문으로 내고, 신청한 날부터 제외돼요(자격취득 신고일부터 14일 안에 내면 취득일부터). 한 번 제외되면 직장가입자인 동안 다시 가입할 수 없고(이직해도 계속 제외), 피부양자도 함께 제외돼요. 다른 체류자격으로 바뀌면 다시 가입돼요.';
 
 // 판정을 본 뒤 보험료도 알고 싶을 때만 입력칸을 펼침
 function showForeignerCalcForm() {
@@ -2909,9 +2932,11 @@ function calculateForeignerPremium() {
     // 근로자수는 선택 — 안 바꾸면 150인 미만(0.25%)
     const sizeIdx = parseInt(document.getElementById('foreignerCompanySize').value || '0', 10);
     const stabilityRate = EMPLOYMENT_STABILITY_RATES[sizeIdx].rate;
-    const shares = computeForeignerShares(salaryVal, birthDate, industryIdx, !excluded, employmentMode, stabilityRate);
+    const ltcChoice = document.querySelector('input[name="foreignerLtc"]:checked');
+    const ltcOff = !!(visa.ltcOptOut && ltcChoice && ltcChoice.value === 'yes');
+    const shares = computeForeignerShares(salaryVal, birthDate, industryIdx, !excluded, employmentMode, stabilityRate, ltcOff);
     foreignerCalc = {
-        visa, country, joined, sizeIdx, stabilityRate,
+        visa, country, joined, sizeIdx, stabilityRate, ltcOff,
         pensionApplies: !excluded, employmentMode,
         salary: salaryVal,
         industry: industryIdx === '' ? null : INDUSTRY_RATES[parseInt(industryIdx, 10)],
@@ -2919,7 +2944,7 @@ function calculateForeignerPremium() {
     };
 
     resultEl.innerHTML = `
-        ${buildForeignerCalcHTML(salaryVal, visa, !excluded, employmentMode, shares.w, shares.e)}
+        ${buildForeignerCalcHTML(salaryVal, visa, !excluded, employmentMode, shares.w, shares.e, ltcOff)}
         <div class="fr-actions"><button class="btn-primary xp-pdf-btn" onclick="printForeigner()">${XP_PDF_ICON}PDF로 저장</button></div>
     `;
     resultEl.style.display = 'block';

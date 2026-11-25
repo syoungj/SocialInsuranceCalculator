@@ -2923,7 +2923,8 @@ select.xp-input {
     background: rgba(58, 91, 214, 0.07);
 }
 
-.tb-foreign-panel .tb-join {
+.tb-foreign-panel .tb-join,
+.tb-foreign-panel .tb-ltc {
     grid-column: 1 / -1;
 }
 
@@ -4082,8 +4083,10 @@ select.xp-input {
         background: none;
     }
 
-    .tb-foreign-panel .tb-join {
-        grid-column: auto;
+    /* 실업급여 가입·장기요양 가입제외는 마지막 칸(가입 선택)에 위아래로 */
+    .tb-foreign-panel .tb-join,
+    .tb-foreign-panel .tb-ltc {
+        grid-column: 3;
     }
 
     .tb-submit {

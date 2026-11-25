@@ -410,7 +410,7 @@
                             </div>
                             <div class="tb-row tb-cols" aria-hidden="true">
                                 <span class="tb-c-num">#</span><span>생년월</span><span>월급여</span><span class="tb-c-chk">외국인</span>
-                                <span class="tb-c-pc">체류자격</span><span class="tb-c-pc">국적</span><span class="tb-c-pc">실업급여 가입</span>
+                                <span class="tb-c-pc">체류자격</span><span class="tb-c-pc">국적</span><span class="tb-c-pc">가입 선택</span>
                             </div>
                             <div id="totalBillWorkerRows" class="tb-rows"></div>
                             <p id="totalBillInputError" class="privacy-note input-error-note tb-error" style="display:none;"></p>
@@ -460,6 +460,13 @@
                                         <div class="seg">
                                             <label><input type="radio" name="foreignerJoin" value="yes">가입 신청함</label>
                                             <label><input type="radio" name="foreignerJoin" value="no" checked>가입 신청 안 함</label>
+                                        </div>
+                                    </fieldset>
+                                    <fieldset id="foreignerLtcRow" class="fr-join" style="display:none;">
+                                        <legend class="xp-label">장기요양보험 가입제외를 신청했나요? (건강보험은 그대로)</legend>
+                                        <div class="seg">
+                                            <label><input type="radio" name="foreignerLtc" value="yes">가입제외 신청함</label>
+                                            <label><input type="radio" name="foreignerLtc" value="no" checked>신청 안 함</label>
                                         </div>
                                     </fieldset>
                                     <div class="fr-pair">
